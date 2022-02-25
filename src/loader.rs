@@ -1,54 +1,7 @@
 use crate::{IOError, IOResult};
 use reqwest::Url;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
-
-///
-/// Convenience functionality to load some resources and, when loaded, use them to create one or more objects (for example a 3D model, a skybox, a texture etc).
-/// To get the loaded object, use the `borrow()` or `borrow_mut()` methods which returns `Some` reference to the object if loaded and `None` otherwise.
-///
-pub struct Loading<T> {
-    load: Rc<RefCell<Option<IOResult<T>>>>,
-}
-
-impl<T: 'static> Loading<T> {
-    ///
-    /// Starts loading the resources defined by `paths` and calls the `on_load` closure when everything is loaded.
-    ///
-    pub fn new(
-        paths: &[impl AsRef<Path>],
-        on_load: impl 'static + FnOnce(IOResult<Loaded>) -> IOResult<T>,
-    ) -> Self {
-        let load = Rc::new(RefCell::new(None));
-        let load_clone = load.clone();
-        Loader::load(paths, move |loaded| {
-            *load_clone.borrow_mut() = Some(on_load(loaded));
-        });
-        Self { load }
-    }
-
-    ///
-    /// Returns true if the object is loaded and mapped by the `on_load` closure.
-    ///
-    pub fn is_loaded(&self) -> bool {
-        self.load.borrow().is_some()
-    }
-}
-
-impl<T: 'static> std::ops::Deref for Loading<T> {
-    type Target = Rc<RefCell<Option<IOResult<T>>>>;
-    fn deref(&self) -> &Self::Target {
-        &self.load
-    }
-}
-
-impl<T: 'static> std::ops::DerefMut for Loading<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.load
-    }
-}
 
 ///
 /// Contains the resources loaded using the [Loader](crate::Loader) and/or manually inserted using the [insert_bytes](Self::insert_bytes) method.
