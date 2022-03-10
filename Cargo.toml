@@ -9,7 +9,7 @@ readme = "README.md"
 repository = "https://github.com/asny/three-d"
 categories = ["graphics", "rendering", "visualization", "webassembly"]
 keywords = ["3d", "gamedev", "graphics", "wasm"]
-exclude = ["/examples", ".gitignore"]
+exclude = [".gitignore"]
 
 [package.metadata.docs.rs]
 all-features = true
@@ -22,7 +22,7 @@ obj-io = ["wavefront_obj", "image-io"]
 gltf-io = ["gltf", "image-io"]
 
 [dependencies]
-three-d = { git="https://github.com/asny/three-d", default-features = false }
+three-d = { path="../three-d", default-features = false }
 log = "0.4"
 thiserror = "1.0"
 reqwest = "0.11"
@@ -36,10 +36,3 @@ js-sys = "0.3"
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 wasm-bindgen-futures = "0.4"
 serde = { version = "1.0", features = ["derive"] }
-
-[dev-dependencies]
-tokio = { version = "1.16", features = ["macros", "rt-multi-thread"] }
-
-[[example]]
-name = "texture"
-path = "examples/texture/src/main.rs"
