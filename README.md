@@ -10,21 +10,22 @@ A crate for 3D asset input/output which features
 
 3D format | Deserializing | Serializing
 |:------------ | :-------------| :-------------
-OBJ | :heavy_check_mark |  :white_large_square
-glTF | :heavy_check_mark |  :white_large_square
-USDZ | :white_large_square |  :white_large_square
-STL | :white_large_square |  :white_large_square
+OBJ | :heavy_check_mark: |  :white_large_square:
+glTF | :heavy_check_mark: |  :white_large_square:
+USDZ | :white_large_square: |  :white_large_square:
+STL | :white_large_square: |  :white_large_square:
+FBX | :white_large_square: |  :white_large_square:
 
 Image format | Deserializing | Serializing
 |:------------ | :-------------| :-------------
-PNG | :heavy_check_mark |  :heavy_check_mark
-JPEG | :heavy_check_mark |  :heavy_check_mark
-GIF | :heavy_check_mark |  :heavy_check_mark
-WebP | :heavy_check_mark |  :heavy_check_mark
-pnm (pbm, pgm, ppm and pam) | :heavy_check_mark |  :heavy_check_mark
-TIFF | :heavy_check_mark |  :heavy_check_mark
-DDS | :heavy_check_mark |  :heavy_check_mark
-BMP | :heavy_check_mark |  :heavy_check_mark
-ICO | :heavy_check_mark |  :heavy_check_mark
-farbfield | :heavy_check_mark |  :heavy_check_mark
-HDR | :heavy_check_mark |  :white_large_square
+PNG | :heavy_check_mark: |  :heavy_check_mark:
+JPEG | :heavy_check_mark: |  :heavy_check_mark:
+GIF | :heavy_check_mark: |  :heavy_check_mark:
+WebP | :heavy_check_mark: |  :heavy_check_mark:
+pnm (pbm, pgm, ppm and pam) | :heavy_check_mark: |  :heavy_check_mark:
+TIFF | :heavy_check_mark: |  :heavy_check_mark:
+DDS | :heavy_check_mark: |  :heavy_check_mark:
+BMP | :heavy_check_mark: |  :heavy_check_mark:
+ICO | :heavy_check_mark: |  :heavy_check_mark:
+farbfield | :heavy_check_mark: |  :heavy_check_mark:
+HDR | :heavy_check_mark: |  :white_large_square:
