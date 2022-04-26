@@ -1,21 +1,21 @@
-#[cfg(feature = "obj-io")]
-#[cfg_attr(docsrs, doc(cfg(feature = "obj-io")))]
+#[cfg(all(feature = "obj", feature = "image"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "obj", feature = "image"))))]
 mod obj;
 #[doc(inline)]
-#[cfg(feature = "obj-io")]
+#[cfg(all(feature = "obj", feature = "image"))]
 pub use obj::*;
 
-#[cfg(feature = "gltf-io")]
-#[cfg_attr(docsrs, doc(cfg(feature = "gltf-io")))]
+#[cfg(all(feature = "gltf", feature = "image"))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "gltf", feature = "image"))))]
 mod gltf;
 #[doc(inline)]
-#[cfg(feature = "gltf-io")]
+#[cfg(all(feature = "gltf", feature = "image"))]
 pub use self::gltf::*;
 
-#[cfg(feature = "image-io")]
-#[cfg_attr(docsrs, doc(cfg(feature = "image-io")))]
+#[cfg(feature = "image")]
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 mod img;
-#[cfg(feature = "image-io")]
+#[cfg(feature = "image")]
 #[doc(inline)]
 pub use img::*;
 

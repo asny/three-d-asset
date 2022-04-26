@@ -34,22 +34,19 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
 pub enum IOError {
-    #[cfg(feature = "image-io")]
+    #[cfg(feature = "image")]
     #[error("error while parsing an image file")]
     Image(#[from] image::ImageError),
-    #[cfg(feature = "3d-io")]
-    #[error("error while parsing a .3d file")]
-    ThreeD(#[from] bincode::Error),
-    #[cfg(feature = "obj-io")]
+    #[cfg(all(feature = "obj", feature = "image"))]
     #[error("error while parsing an .obj file")]
     Obj(#[from] wavefront_obj::ParseError),
-    #[cfg(feature = "gltf-io")]
+    #[cfg(all(feature = "gltf", feature = "image"))]
     #[error("error while parsing a .gltf file")]
     Gltf(#[from] ::gltf::Error),
-    #[cfg(feature = "gltf-io")]
+    #[cfg(all(feature = "gltf", feature = "image"))]
     #[error("the .gltf file contain corrupt buffer data")]
     GltfCorruptData,
-    #[cfg(feature = "gltf-io")]
+    #[cfg(all(feature = "gltf", feature = "image"))]
     #[error("the .gltf file contain missing buffer data")]
     GltfMissingData,
     #[error("the .vol file contain wrong data size")]
