@@ -8,28 +8,49 @@ use std::path::Path;
 /// Supported formats: PNG, JPEG, GIF, WebP, pnm (pbm, pgm, ppm and pam), TIFF, DDS, BMP, ICO, HDR, farbfeld.
 /// **Note:** If the image contains and you want to load high dynamic range (hdr) information, use [hdr_image_from_bytes] instead.
 ///
-pub fn image_from_bytes(bytes: &[u8]) -> IOResult<CpuTexture<u8>> {
+pub fn image_from_bytes(bytes: &[u8]) -> IOResult<CpuTexture> {
     use image::DynamicImage;
-    use image::GenericImageView;
+    use image::GenericImageView as _;
     let img = image::load_from_memory(bytes)?;
-    let format = match img {
-        DynamicImage::ImageLuma8(_) => Format::R,
-        DynamicImage::ImageLumaA8(_) => Format::RG,
-        DynamicImage::ImageRgb8(_) => Format::RGB,
-        DynamicImage::ImageRgba8(_) => Format::RGBA,
-        DynamicImage::ImageBgr8(_) => unimplemented!(),
-        DynamicImage::ImageBgra8(_) => unimplemented!(),
-        DynamicImage::ImageLuma16(_) => unimplemented!(),
-        DynamicImage::ImageLumaA16(_) => unimplemented!(),
-        DynamicImage::ImageRgb16(_) => unimplemented!(),
-        DynamicImage::ImageRgba16(_) => unimplemented!(),
+    let width = img.width();
+    let height = img.height();
+    let data = match img {
+        DynamicImage::ImageLuma8(_) => TextureData::RU8(img.into_bytes()),
+        DynamicImage::ImageLumaA8(_) => {
+            let bytes = img.as_bytes();
+            let mut data = Vec::new();
+            for i in 0..bytes.len() / 2 {
+                data.push([bytes[i * 2], bytes[i * 2 + 1]]);
+            }
+            TextureData::RgU8(data)
+        }
+        DynamicImage::ImageRgb8(_) => {
+            let bytes = img.as_bytes();
+            let mut data = Vec::new();
+            for i in 0..bytes.len() / 3 {
+                data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
+            }
+            TextureData::RgbU8(data)
+        }
+        DynamicImage::ImageRgba8(_) => {
+            let bytes = img.as_bytes();
+            let mut data = Vec::new();
+            for i in 0..bytes.len() / 4 {
+                data.push([
+                    bytes[i * 4],
+                    bytes[i * 4 + 1],
+                    bytes[i * 4 + 2],
+                    bytes[i * 4 + 3],
+                ]);
+            }
+            TextureData::RgbaU8(data)
+        }
+        _ => unimplemented!(),
     };
-
     Ok(CpuTexture {
-        data: img.to_bytes(),
-        width: img.width(),
-        height: img.height(),
-        format,
+        data,
+        width,
+        height,
         ..Default::default()
     })
 }
@@ -40,24 +61,23 @@ pub fn image_from_bytes(bytes: &[u8]) -> IOResult<CpuTexture<u8>> {
 /// The CpuTexture can then be used to create a [Texture2D] or a [TextureCubeMap] using the `new_from_equirectangular` method.
 /// Supported formats: HDR.
 ///
-pub fn hdr_image_from_bytes(bytes: &[u8]) -> IOResult<CpuTexture<f32>> {
+pub fn hdr_image_from_bytes(bytes: &[u8]) -> IOResult<CpuTexture> {
     use image::codecs::hdr::*;
     use image::*;
     let decoder = HdrDecoder::new(bytes)?;
     let metadata = decoder.metadata();
     let img = decoder.read_image_native()?;
     Ok(CpuTexture {
-        data: img
-            .iter()
-            .map(|rgbe| {
-                let Rgb(values) = rgbe.to_hdr();
-                values
-            })
-            .flatten()
-            .collect::<Vec<_>>(),
+        data: TextureData::RgbF32(
+            img.iter()
+                .map(|rgbe| {
+                    let Rgb(values) = rgbe.to_hdr();
+                    [values[0], values[1], values[2]]
+                })
+                .collect::<Vec<_>>(),
+        ),
         width: metadata.width,
         height: metadata.height,
-        format: Format::RGB,
         ..Default::default()
     })
 }
@@ -74,30 +94,140 @@ pub fn cube_image_from_bytes(
     bottom_bytes: &[u8],
     front_bytes: &[u8],
     back_bytes: &[u8],
-) -> IOResult<CpuTextureCube<u8>> {
+) -> IOResult<CpuTextureCube> {
     let right = image_from_bytes(right_bytes)?;
     let left = image_from_bytes(left_bytes)?;
     let top = image_from_bytes(top_bytes)?;
     let bottom = image_from_bytes(bottom_bytes)?;
     let front = image_from_bytes(front_bytes)?;
     let back = image_from_bytes(back_bytes)?;
+    let data = match right.data {
+        TextureData::RU8(right) => {
+            let left = if let TextureData::RU8(data) = left.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let top = if let TextureData::RU8(data) = top.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let bottom = if let TextureData::RU8(data) = bottom.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let front = if let TextureData::RU8(data) = front.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let back = if let TextureData::RU8(data) = back.data {
+                data
+            } else {
+                unreachable!()
+            };
+            TextureCubeData::RU8(right, left, top, bottom, front, back)
+        }
+        TextureData::RgU8(right) => {
+            let left = if let TextureData::RgU8(data) = left.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let top = if let TextureData::RgU8(data) = top.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let bottom = if let TextureData::RgU8(data) = bottom.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let front = if let TextureData::RgU8(data) = front.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let back = if let TextureData::RgU8(data) = back.data {
+                data
+            } else {
+                unreachable!()
+            };
+            TextureCubeData::RgU8(right, left, top, bottom, front, back)
+        }
+        TextureData::RgbU8(right) => {
+            let left = if let TextureData::RgbU8(data) = left.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let top = if let TextureData::RgbU8(data) = top.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let bottom = if let TextureData::RgbU8(data) = bottom.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let front = if let TextureData::RgbU8(data) = front.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let back = if let TextureData::RgbU8(data) = back.data {
+                data
+            } else {
+                unreachable!()
+            };
+            TextureCubeData::RgbU8(right, left, top, bottom, front, back)
+        }
+        TextureData::RgbaU8(right) => {
+            let left = if let TextureData::RgbaU8(data) = left.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let top = if let TextureData::RgbaU8(data) = top.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let bottom = if let TextureData::RgbaU8(data) = bottom.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let front = if let TextureData::RgbaU8(data) = front.data {
+                data
+            } else {
+                unreachable!()
+            };
+            let back = if let TextureData::RgbaU8(data) = back.data {
+                data
+            } else {
+                unreachable!()
+            };
+            TextureCubeData::RgbaU8(right, left, top, bottom, front, back)
+        }
+        _ => unimplemented!(),
+    };
 
     Ok(CpuTextureCube {
-        right_data: right.data,
-        left_data: left.data,
-        top_data: top.data,
-        bottom_data: bottom.data,
-        front_data: front.data,
-        back_data: back.data,
+        data,
         width: right.width,
         height: right.height,
-        format: right.format,
         min_filter: right.min_filter,
         mag_filter: right.mag_filter,
         mip_map_filter: right.mip_map_filter,
         wrap_s: right.wrap_s,
         wrap_t: right.wrap_t,
         wrap_r: right.wrap_s,
+        ..Default::default()
     })
 }
 
@@ -109,7 +239,7 @@ impl Loaded {
     /// Supported formats: PNG, JPEG, GIF, WebP, pnm (pbm, pgm, ppm and pam), TIFF, DDS, BMP, ICO, HDR, farbfeld.
     /// **Note:** If the image contains high dynamic range (hdr) information, use [hdr_image](Loaded::hdr_image) instead.
     ///
-    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> IOResult<CpuTexture<u8>> {
+    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> IOResult<CpuTexture> {
         image_from_bytes(&self.get_bytes(path)?)
     }
 
@@ -119,7 +249,7 @@ impl Loaded {
     /// The CpuTexture can then be used to create a [Texture2D] or a [TextureCubeMap] using the `new_from_equirectangular` method.
     /// Supported formats: HDR.
     ///
-    pub fn hdr_image(&mut self, path: impl AsRef<Path>) -> IOResult<CpuTexture<f32>> {
+    pub fn hdr_image(&mut self, path: impl AsRef<Path>) -> IOResult<CpuTexture> {
         hdr_image_from_bytes(&self.get_bytes(path)?)
     }
 
@@ -136,58 +266,32 @@ impl Loaded {
         bottom_path: P,
         front_path: P,
         back_path: P,
-    ) -> IOResult<CpuTextureCube<u8>> {
-        let right = self.image(right_path)?;
-        let left = self.image(left_path)?;
-        let top = self.image(top_path)?;
-        let bottom = self.image(bottom_path)?;
-        let front = self.image(front_path)?;
-        let back = self.image(back_path)?;
-
-        Ok(CpuTextureCube {
-            right_data: right.data,
-            left_data: left.data,
-            top_data: top.data,
-            bottom_data: bottom.data,
-            front_data: front.data,
-            back_data: back.data,
-            width: right.width,
-            height: right.height,
-            format: right.format,
-            min_filter: right.min_filter,
-            mag_filter: right.mag_filter,
-            mip_map_filter: right.mip_map_filter,
-            wrap_s: right.wrap_s,
-            wrap_t: right.wrap_t,
-            wrap_r: right.wrap_s,
-        })
+    ) -> IOResult<CpuTextureCube> {
+        cube_image_from_bytes(
+            self.get_bytes(right_path)?,
+            self.get_bytes(left_path)?,
+            self.get_bytes(top_path)?,
+            self.get_bytes(bottom_path)?,
+            self.get_bytes(front_path)?,
+            self.get_bytes(back_path)?,
+        )
     }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Saver {
     ///
-    /// Saves the given RGB pixels as an image.
+    /// Saves the given RGBA pixels as an image.
     ///
     pub fn save_pixels<P: AsRef<Path>>(
         path: P,
-        pixels: &[u8],
+        pixels: &[[u8; 4]],
         width: u32,
         height: u32,
     ) -> IOResult<()> {
-        let mut pixels_out = vec![0u8; width as usize * height as usize * 4];
-        for row in 0..height as usize {
-            for col in 0..width as usize {
-                for i in 0..4 {
-                    pixels_out[4 * width as usize * (height as usize - row - 1) + 4 * col + i] =
-                        pixels[4 * width as usize * row + 4 * col + i];
-                }
-            }
-        }
-
         image::save_buffer(
             path,
-            &pixels_out,
+            &pixels.iter().flatten().map(|v| *v).collect::<Vec<_>>(),
             width as u32,
             height as u32,
             image::ColorType::Rgba8,

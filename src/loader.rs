@@ -1,5 +1,4 @@
 use crate::{IOError, IOResult};
-use reqwest::Url;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -30,17 +29,17 @@ impl Loaded {
         if let Some((_, bytes)) = self.loaded.remove_entry(path.as_ref()) {
             Ok(bytes)
         } else {
+            let mut p = path.as_ref().to_str().unwrap().to_owned();
+            if p.ends_with(".jpeg") {
+                p = p[0..p.len() - 2].to_string();
+            } else if p.ends_with(".jpg") {
+                p = p[0..p.len() - 1].to_string();
+            }
             let key = self
                 .loaded
                 .iter()
-                .find(|(k, _)| {
-                    k.to_str()
-                        .unwrap()
-                        .contains(path.as_ref().to_str().unwrap())
-                })
-                .ok_or(IOError::NotLoaded(
-                    path.as_ref().to_str().unwrap().to_owned(),
-                ))?
+                .find(|(k, _)| k.to_str().unwrap().contains(&p))
+                .ok_or(IOError::NotLoaded(p))?
                 .0
                 .clone();
             Ok(self.loaded.remove(&key).unwrap())
@@ -51,21 +50,21 @@ impl Loaded {
     /// Returns a reference to the loaded byte array for the resource at the given path.
     /// The byte array then has to be deserialized to whatever type this resource is (image, 3D model etc.).
     ///
-    pub fn get_bytes(&mut self, path: impl AsRef<Path>) -> IOResult<&[u8]> {
+    pub fn get_bytes(&self, path: impl AsRef<Path>) -> IOResult<&[u8]> {
         if let Some(bytes) = self.loaded.get(path.as_ref()) {
             Ok(bytes.as_ref())
         } else {
+            let mut p = path.as_ref().to_str().unwrap().to_owned();
+            if p.ends_with(".jpeg") {
+                p = p[0..p.len() - 2].to_string();
+            } else if p.ends_with(".jpg") {
+                p = p[0..p.len() - 1].to_string();
+            }
             let key = self
                 .loaded
                 .iter()
-                .find(|(k, _)| {
-                    k.to_str()
-                        .unwrap()
-                        .contains(path.as_ref().to_str().unwrap())
-                })
-                .ok_or(IOError::NotLoaded(
-                    path.as_ref().to_str().unwrap().to_owned(),
-                ))?
+                .find(|(k, _)| k.to_str().unwrap().contains(&p))
+                .ok_or(IOError::NotLoaded(p))?
                 .0;
             Ok(self.loaded.get(key).unwrap())
         }
@@ -158,6 +157,7 @@ impl Loader {
         Ok(loaded)
     }
 
+    #[allow(rustdoc::bare_urls)]
     ///
     /// Loads all of the resources in the given paths and returns the [Loaded] resources.
     /// URLs are downloaded async and resources on disk are loaded in parallel.
@@ -204,12 +204,13 @@ fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()> 
     Ok(())
 }
 
+#[cfg(feature = "reqwest")]
 async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()> {
     if paths.len() > 0 {
         let mut handles = Vec::new();
         let client = reqwest::Client::new();
         for path in paths.drain(..) {
-            let url = Url::parse(path.to_str().unwrap())?;
+            let url = reqwest::Url::parse(path.to_str().unwrap())?;
             handles.push((path, client.get(url).send().await));
         }
         for (path, handle) in handles.drain(..) {
@@ -223,6 +224,16 @@ async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()>
         }
     }
     Ok(())
+}
+
+#[cfg(not(feature = "reqwest"))]
+async fn load_urls(paths: Vec<PathBuf>, _loaded: &mut Loaded) -> IOResult<()> {
+    if paths.is_empty() {
+        Ok(())
+    } else {
+        let url = paths[0].to_str().unwrap().to_owned();
+        Err(Box::new(IOError::FailedLoadingUrl(url)))
+    }
 }
 
 fn is_absolute_url(path: &str) -> bool {

@@ -78,8 +78,8 @@ impl Loaded {
             for mesh in object.geometry.iter() {
                 // All meshes with different materials
                 let mut positions = Vec::new();
-                let mut normals = Vec::new();
-                let mut uvs = Vec::new();
+                let mut normals: Vec<Vec3> = Vec::new();
+                let mut uvs: Vec<Vec2> = Vec::new();
                 let mut indices = Vec::new();
 
                 let mut map: HashMap<usize, usize> = HashMap::new();
@@ -92,19 +92,16 @@ impl Loaded {
 
                     if let Some(ind) = index {
                         if let Some(tex) = uvw {
-                            if ((uvs[ind * 2] - tex.u as f32) as f32).abs() > std::f32::EPSILON
-                                || ((uvs[ind * 2 + 1] - tex.v as f32) as f32).abs()
-                                    > std::f32::EPSILON
+                            if ((uvs[ind].x - tex.u as f32) as f32).abs() > std::f32::EPSILON
+                                || ((uvs[ind].y - tex.v as f32) as f32).abs() > std::f32::EPSILON
                             {
                                 index = None;
                             }
                         }
                         if let Some(n) = normal {
-                            if ((normals[ind * 3] - n.x as f32) as f32).abs() > std::f32::EPSILON
-                                || ((normals[ind * 3 + 1] - n.y as f32) as f32).abs()
-                                    > std::f32::EPSILON
-                                || ((normals[ind * 3 + 2] - n.z as f32) as f32).abs()
-                                    > std::f32::EPSILON
+                            if ((normals[ind].x - n.x as f32) as f32).abs() > std::f32::EPSILON
+                                || ((normals[ind].y - n.y as f32) as f32).abs() > std::f32::EPSILON
+                                || ((normals[ind].z - n.z as f32) as f32).abs() > std::f32::EPSILON
                             {
                                 index = None;
                             }
@@ -112,21 +109,16 @@ impl Loaded {
                     }
 
                     if index.is_none() {
-                        index = Some(positions.len() / 3);
+                        index = Some(positions.len());
                         map.insert(i.0, index.unwrap());
                         let position = object.vertices[i.0];
-                        positions.push(position.x as f32);
-                        positions.push(position.y as f32);
-                        positions.push(position.z as f32);
+                        positions.push(Vector3::new(position.x, position.y, position.z));
 
                         if let Some(tex) = uvw {
-                            uvs.push(tex.u as f32);
-                            uvs.push(1.0 - tex.v as f32);
+                            uvs.push(vec2(tex.u as f32, 1.0 - tex.v as f32));
                         }
                         if let Some(n) = normal {
-                            normals.push(n.x as f32);
-                            normals.push(n.y as f32);
-                            normals.push(n.z as f32);
+                            normals.push(vec3(n.x as f32, n.y as f32, n.z as f32));
                         }
                     }
 
@@ -144,13 +136,22 @@ impl Loaded {
                     }
                 }
 
+                let vertex_count = positions.len();
                 cpu_meshes.push(CpuMesh {
                     name: object.name.to_string(),
                     material_name: mesh.material_name.clone(),
-                    positions,
+                    positions: Positions::F64(positions),
                     indices: Some(Indices::U32(indices)),
-                    normals: Some(normals),
-                    uvs: Some(uvs),
+                    normals: if normals.len() == vertex_count {
+                        Some(normals)
+                    } else {
+                        None
+                    },
+                    uvs: if uvs.len() == vertex_count {
+                        Some(uvs)
+                    } else {
+                        None
+                    },
                     colors: None,
                     tangents: None,
                 });

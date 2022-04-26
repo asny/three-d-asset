@@ -18,11 +18,13 @@ mod saver;
 #[cfg(not(target_arch = "wasm32"))]
 pub use saver::*;
 
+/// A result for this crate.
 pub type IOResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub use three_d::{
-    Color, CpuMaterial, CpuMesh, CpuTexture, CpuTextureCube, Format, GeometryFunction, Indices,
-    LightingModel, NormalDistributionFunction,
+    core::math::*, Color, CpuMaterial, CpuMesh, CpuTexture, CpuTexture3D, CpuTextureCube,
+    CpuVolume, GeometryFunction, Indices, LightingModel, NormalDistributionFunction, Positions,
+    TextureCubeData, TextureData,
 };
 
 use thiserror::Error;
@@ -50,11 +52,17 @@ pub enum IOError {
     #[cfg(feature = "gltf-io")]
     #[error("the .gltf file contain missing buffer data")]
     GltfMissingData,
+    #[error("the .vol file contain wrong data size")]
+    VolCorruptData,
     #[cfg(not(target_arch = "wasm32"))]
     #[error("error while loading the file {0}: {1}")]
     FailedLoading(String, std::io::Error),
-    #[error("error while loading the file {0}: {1}")]
+    #[cfg(feature = "reqwest")]
+    #[error("error while loading the url {0}: {1}")]
     FailedLoadingUrl(String, reqwest::Error),
+    #[cfg(not(feature = "reqwest"))]
+    #[error("error while loading the url {0}: feature 'reqwest' not enabled")]
+    FailedLoadingUrl(String),
     #[error("tried to use {0} which was not loaded")]
     NotLoaded(String),
 }
