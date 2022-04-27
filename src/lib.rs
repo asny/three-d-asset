@@ -24,7 +24,7 @@ pub type IOResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 pub use three_d::{
     Color, CpuMaterial, CpuMesh, CpuTexture, CpuTexture3D, CpuTextureCube, CpuVolume,
     GeometryFunction, Indices, LightingModel, NormalDistributionFunction, Positions,
-    TextureCubeData, TextureData,
+    TextureCubeData, TextureData, Vector2, Vector3, Vector4,
 };
 
 use thiserror::Error;

@@ -1,7 +1,6 @@
 use crate::*;
 use std::collections::HashMap;
 use std::path::Path;
-use three_d::core::math::*;
 
 impl Loaded {
     ///
@@ -79,8 +78,8 @@ impl Loaded {
             for mesh in object.geometry.iter() {
                 // All meshes with different materials
                 let mut positions = Vec::new();
-                let mut normals: Vec<Vec3> = Vec::new();
-                let mut uvs: Vec<Vec2> = Vec::new();
+                let mut normals: Vec<Vector3<f32>> = Vec::new();
+                let mut uvs: Vec<Vector2<f32>> = Vec::new();
                 let mut indices = Vec::new();
 
                 let mut map: HashMap<usize, usize> = HashMap::new();
@@ -116,10 +115,10 @@ impl Loaded {
                         positions.push(Vector3::new(position.x, position.y, position.z));
 
                         if let Some(tex) = uvw {
-                            uvs.push(vec2(tex.u as f32, 1.0 - tex.v as f32));
+                            uvs.push(Vector2::new(tex.u as f32, 1.0 - tex.v as f32));
                         }
                         if let Some(n) = normal {
-                            normals.push(vec3(n.x as f32, n.y as f32, n.z as f32));
+                            normals.push(Vector3::new(n.x as f32, n.y as f32, n.z as f32));
                         }
                     }
 
