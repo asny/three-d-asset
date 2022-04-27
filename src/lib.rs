@@ -22,8 +22,8 @@ pub use saver::*;
 pub type IOResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 pub use three_d::{
-    core::math::*, Color, CpuMaterial, CpuMesh, CpuTexture, CpuTexture3D, CpuTextureCube,
-    CpuVolume, GeometryFunction, Indices, LightingModel, NormalDistributionFunction, Positions,
+    Color, CpuMaterial, CpuMesh, CpuTexture, CpuTexture3D, CpuTextureCube, CpuVolume,
+    GeometryFunction, Indices, LightingModel, NormalDistributionFunction, Positions,
     TextureCubeData, TextureData,
 };
 

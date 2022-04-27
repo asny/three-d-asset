@@ -1,6 +1,7 @@
 use crate::*;
 use ::gltf::Gltf;
 use std::path::Path;
+use three_d::core::math::*;
 
 impl Loaded {
     ///
