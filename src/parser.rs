@@ -1,24 +1,27 @@
-#[cfg(all(feature = "obj", feature = "image"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "obj", feature = "image"))))]
+#[cfg(feature = "obj")]
+#[cfg_attr(docsrs, doc(cfg(feature = "obj")))]
 mod obj;
 #[doc(inline)]
-#[cfg(all(feature = "obj", feature = "image"))]
+#[cfg(feature = "obj")]
 pub use obj::*;
 
-#[cfg(all(feature = "gltf", feature = "image"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "gltf", feature = "image"))))]
+#[cfg(feature = "gltf")]
+#[cfg_attr(docsrs, doc(cfg(feature = "gltf")))]
 mod gltf;
 #[doc(inline)]
-#[cfg(all(feature = "gltf", feature = "image"))]
+#[cfg(feature = "gltf")]
 pub use self::gltf::*;
 
-#[cfg(feature = "image")]
-#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
+#[cfg(any(feature = "png", feature = "jpeg"))]
+#[cfg_attr(docsrs, doc(cfg(any(feature = "png", feature = "jpeg"))))]
 mod img;
-#[cfg(feature = "image")]
+#[cfg(any(feature = "png", feature = "jpeg"))]
 #[doc(inline)]
 pub use img::*;
 
+#[cfg(feature = "vol")]
+#[cfg_attr(docsrs, doc(cfg(feature = "vol")))]
 mod vol;
+#[cfg(feature = "vol")]
 #[doc(inline)]
 pub use vol::*;

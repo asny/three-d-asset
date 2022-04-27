@@ -16,7 +16,11 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = []
+default = ["jpeg", "png", "gltf", "obj"]
+jpeg = ["image/jpeg"]
+png = ["image/png"]
+vol = []
+obj = ["wavefront_obj"]
 
 [dependencies]
 three-d = "0.11"
