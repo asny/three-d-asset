@@ -18,7 +18,9 @@ mod saver;
 #[cfg(not(target_arch = "wasm32"))]
 pub use saver::*;
 
+#[doc(hidden)]
 pub use three_d_data_types::*;
+pub use three_d_data_types::{math, model, texture, volume};
 
 /// A result for this crate.
 pub type Result<T> = std::result::Result<T, Error>;
