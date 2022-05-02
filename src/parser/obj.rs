@@ -1,4 +1,5 @@
 use crate::*;
+use cgmath::prelude::*;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -7,7 +8,7 @@ impl Loaded {
     /// Deserialize a loaded .obj file resource and .mtl material file resource (if present) into a list of meshes and materials.
     /// It uses the [wavefront-obj](https://crates.io/crates/wavefront_obj/main.rs) crate.
     ///
-    pub fn obj(&mut self, path: impl AsRef<Path>) -> IOResult<(Vec<CpuMesh>, Vec<CpuMaterial>)> {
+    pub fn obj(&mut self, path: impl AsRef<Path>) -> IOResult<(Vec<Mesh>, Vec<Material>)> {
         let obj_bytes = self.remove_bytes(path.as_ref())?;
         let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
         let p = path.as_ref().parent().unwrap();
@@ -46,7 +47,7 @@ impl Loaded {
                     None
                 };
 
-                cpu_materials.push(CpuMaterial {
+                cpu_materials.push(Material {
                     name: material.name,
                     albedo: Color::from_rgba_slice(&[
                         color.r as f32,
@@ -137,9 +138,10 @@ impl Loaded {
                 }
 
                 let vertex_count = positions.len();
-                cpu_meshes.push(CpuMesh {
+                cpu_meshes.push(Mesh {
                     name: object.name.to_string(),
                     material_name: mesh.material_name.clone(),
+                    transformation: Matrix4::identity(),
                     positions: Positions::F64(positions),
                     indices: Some(Indices::U32(indices)),
                     normals: if normals.len() == vertex_count {

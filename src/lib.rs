@@ -21,10 +21,10 @@ pub use saver::*;
 /// A result for this crate.
 pub type IOResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
-pub use three_d::{
-    Color, CpuMaterial, CpuMesh, CpuTexture, CpuTexture3D, CpuTextureCube, CpuVolume,
-    GeometryFunction, Indices, LightingModel, NormalDistributionFunction, Positions,
-    TextureCubeData, TextureData, Vector2, Vector3, Vector4,
+pub use three_d_data_types::{
+    Color, GeometryFunction, Indices, LightingModel, Material, Matrix4, Mesh,
+    NormalDistributionFunction, Positions, Texture2D, Texture3D, TextureCube, TextureCubeData,
+    TextureData, Vector2, Vector3, Vector4, Volume,
 };
 
 use thiserror::Error;

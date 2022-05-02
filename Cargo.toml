@@ -16,14 +16,20 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["jpeg", "png", "gltf", "obj"]
+default = ["img", "mesh", "vol"]
+# Image formats
+img = ["jpeg", "png"]
 jpeg = ["image/jpeg"]
 png = ["image/png"]
-vol = []
+# Mesh formats
+mesh = ["obj", "gltf"]
 obj = ["wavefront_obj"]
+# Volume formats
+vol = []
 
 [dependencies]
-three-d = "0.11"
+cgmath = "0.18"
+three-d-data-types = { path = "../three-d-data-types" }
 thiserror = "1.0"
 reqwest = {version = "0.11", optional = true }
 gltf = { version = "1.0", features = ["utils"], optional = true }

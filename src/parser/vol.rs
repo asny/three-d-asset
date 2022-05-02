@@ -3,16 +3,16 @@ use std::path::Path;
 
 impl Loaded {
     ///
-    /// Deserialize a loaded .vol file into a [CpuVolume].
+    /// Deserialize a loaded .vol file into a [Volume].
     ///
     /// **Note:** Border is not supported.
     ///
-    pub fn vol(&mut self, path: impl AsRef<Path>) -> IOResult<CpuVolume> {
+    pub fn vol(&mut self, path: impl AsRef<Path>) -> IOResult<Volume> {
         let bytes = self.remove_bytes(path.as_ref())?;
         let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
         let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
         let depth = u32::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);
-        let size = vec3(
+        let size = Vector3::<f32>::new(
             f32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]),
             f32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]),
             f32::from_be_bytes([bytes[24], bytes[25], bytes[26], bytes[27]]),
@@ -51,15 +51,15 @@ impl Loaded {
             }
             _ => Err(IOError::VolCorruptData)?,
         };
-        Ok(CpuVolume {
-            voxels: CpuTexture3D {
+        Ok(Volume {
+            voxels: Texture3D {
                 data,
                 width: depth,
                 height: width,
                 depth: height,
                 ..Default::default()
             },
-            size: vec3(size.z, size.x, size.y),
+            size: Vector3::<f32>::new(size.z, size.x, size.y),
             ..Default::default()
         })
     }

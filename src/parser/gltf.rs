@@ -1,14 +1,14 @@
 use crate::*;
 use ::gltf::Gltf;
+use cgmath::prelude::*;
 use std::path::Path;
-use three_d::core::math::*;
 
 impl Loaded {
     ///
     /// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
     /// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
     ///
-    pub fn gltf(&mut self, path: impl AsRef<Path>) -> IOResult<(Vec<CpuMesh>, Vec<CpuMaterial>)> {
+    pub fn gltf(&mut self, path: impl AsRef<Path>) -> IOResult<(Vec<Mesh>, Vec<Material>)> {
         let mut cpu_meshes = Vec::new();
         let mut cpu_materials = Vec::new();
 
@@ -32,7 +32,7 @@ impl Loaded {
         for scene in document.scenes() {
             for node in scene.nodes() {
                 parse_tree(
-                    &Mat4::identity(),
+                    &Matrix4::identity(),
                     &node,
                     self,
                     &base_path,
@@ -47,13 +47,13 @@ impl Loaded {
 }
 
 fn parse_tree<'a>(
-    parent_transform: &Mat4,
+    parent_transform: &Matrix4<f32>,
     node: &::gltf::Node,
     loaded: &mut Loaded,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
-    cpu_meshes: &mut Vec<CpuMesh>,
-    cpu_materials: &mut Vec<CpuMaterial>,
+    cpu_meshes: &mut Vec<Mesh>,
+    cpu_materials: &mut Vec<Material>,
 ) -> IOResult<()> {
     let node_transform = parse_transform(node.transform());
     if node_transform.determinant() == 0.0 {
@@ -133,7 +133,7 @@ fn parse_tree<'a>(
                     } else {
                         None
                     };
-                    cpu_materials.push(CpuMaterial {
+                    cpu_materials.push(Material {
                         name: material_name.clone(),
                         albedo: Color::from_rgba_slice(&color),
                         albedo_texture,
@@ -166,20 +166,17 @@ fn parse_tree<'a>(
                     .read_tex_coords(0)
                     .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-                let mut cpu_mesh = CpuMesh {
+                cpu_meshes.push(Mesh {
                     name: name.clone(),
                     positions: Positions::F32(positions),
+                    transformation: transform,
                     normals,
                     tangents,
                     indices,
                     colors,
                     uvs,
                     material_name: Some(material_name),
-                };
-                if transform != Mat4::identity() {
-                    cpu_mesh.transform(&transform)?;
-                }
-                cpu_meshes.push(cpu_mesh);
+                });
             }
         }
     }
@@ -203,7 +200,7 @@ fn parse_texture<'a>(
     path: &Path,
     buffers: &[::gltf::buffer::Data],
     gltf_texture: ::gltf::texture::Texture,
-) -> IOResult<CpuTexture> {
+) -> IOResult<Texture2D> {
     let gltf_image = gltf_texture.source();
     let gltf_source = gltf_image.source();
     let tex = match gltf_source {
@@ -220,7 +217,7 @@ fn parse_texture<'a>(
     Ok(tex)
 }
 
-fn parse_transform(transform: gltf::scene::Transform) -> Mat4 {
+fn parse_transform(transform: gltf::scene::Transform) -> Matrix4<f32> {
     let [c0, c1, c2, c3] = transform.matrix();
-    Mat4::from_cols(c0.into(), c1.into(), c2.into(), c3.into())
+    Matrix4::from_cols(c0.into(), c1.into(), c2.into(), c3.into())
 }
