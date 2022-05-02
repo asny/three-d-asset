@@ -6,7 +6,7 @@ use std::path::Path;
 ///
 /// **Note:** If the image contains and you want to load high dynamic range (hdr) information, use [hdr_image_from_bytes] instead.
 ///
-pub fn image_from_bytes(bytes: &[u8]) -> IOResult<Texture2D> {
+pub fn image_from_bytes(bytes: &[u8]) -> Result<Texture2D> {
     use image::DynamicImage;
     use image::GenericImageView as _;
     let img = image::load_from_memory(bytes)?;
@@ -56,7 +56,7 @@ pub fn image_from_bytes(bytes: &[u8]) -> IOResult<Texture2D> {
 ///
 /// Deserialize the given bytes representing a hdr image into a [Texture2D].
 ///
-pub fn hdr_image_from_bytes(bytes: &[u8]) -> IOResult<Texture2D> {
+pub fn hdr_image_from_bytes(bytes: &[u8]) -> Result<Texture2D> {
     use image::codecs::hdr::*;
     use image::*;
     let decoder = HdrDecoder::new(bytes)?;
@@ -87,7 +87,7 @@ pub fn cube_image_from_bytes(
     bottom_bytes: &[u8],
     front_bytes: &[u8],
     back_bytes: &[u8],
-) -> IOResult<TextureCube> {
+) -> Result<TextureCube> {
     let right = image_from_bytes(right_bytes)?;
     let left = image_from_bytes(left_bytes)?;
     let top = image_from_bytes(top_bytes)?;
@@ -230,14 +230,14 @@ impl Loaded {
     ///
     /// **Note:** If the image contains high dynamic range (hdr) information, use [hdr_image](Loaded::hdr_image) instead.
     ///
-    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> IOResult<Texture2D> {
+    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
         image_from_bytes(&self.get_bytes(path)?)
     }
 
     ///
     /// Deserialize the loaded image resource with hdr information at the given path into a [Texture2D].
     ///
-    pub fn hdr_image(&mut self, path: impl AsRef<Path>) -> IOResult<Texture2D> {
+    pub fn hdr_image(&mut self, path: impl AsRef<Path>) -> Result<Texture2D> {
         hdr_image_from_bytes(&self.get_bytes(path)?)
     }
 
@@ -252,7 +252,7 @@ impl Loaded {
         bottom_path: P,
         front_path: P,
         back_path: P,
-    ) -> IOResult<TextureCube> {
+    ) -> Result<TextureCube> {
         cube_image_from_bytes(
             self.get_bytes(right_path)?,
             self.get_bytes(left_path)?,
@@ -274,7 +274,7 @@ impl Saver {
         pixels: &[[u8; 4]],
         width: u32,
         height: u32,
-    ) -> IOResult<()> {
+    ) -> Result<()> {
         image::save_buffer(
             path,
             &pixels.iter().flatten().map(|v| *v).collect::<Vec<_>>(),

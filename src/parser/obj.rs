@@ -8,7 +8,7 @@ impl Loaded {
     /// Deserialize a loaded .obj file resource and .mtl material file resource (if present) into a list of meshes and materials.
     /// It uses the [wavefront-obj](https://crates.io/crates/wavefront_obj/main.rs) crate.
     ///
-    pub fn obj(&mut self, path: impl AsRef<Path>) -> IOResult<(Vec<Mesh>, Vec<Material>)> {
+    pub fn obj(&mut self, path: impl AsRef<Path>) -> Result<(Vec<Mesh>, Vec<Material>)> {
         let obj_bytes = self.remove_bytes(path.as_ref())?;
         let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
         let p = path.as_ref().parent().unwrap();

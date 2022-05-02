@@ -7,7 +7,7 @@ impl Loaded {
     ///
     /// **Note:** Border is not supported.
     ///
-    pub fn vol(&mut self, path: impl AsRef<Path>) -> IOResult<Volume> {
+    pub fn vol(&mut self, path: impl AsRef<Path>) -> Result<Volume> {
         let bytes = self.remove_bytes(path.as_ref())?;
         let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
         let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
@@ -49,7 +49,7 @@ impl Loaded {
                 }
                 TextureData::RgbaU8(flip(data, width as usize, height as usize, depth as usize))
             }
-            _ => Err(IOError::VolCorruptData)?,
+            _ => Err(Error::VolCorruptData)?,
         };
         Ok(Volume {
             voxels: Texture3D {

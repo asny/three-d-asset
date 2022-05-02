@@ -18,28 +18,27 @@ mod saver;
 #[cfg(not(target_arch = "wasm32"))]
 pub use saver::*;
 
-/// A result for this crate.
-pub type IOResult<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+pub use three_d_data_types::*;
 
-pub use three_d_data_types::{
-    Color, GeometryFunction, Indices, LightingModel, Material, Matrix4, Mesh,
-    NormalDistributionFunction, Positions, Texture2D, Texture3D, TextureCube, TextureCubeData,
-    TextureData, Vector2, Vector3, Vector4, Volume,
-};
+/// A result for this crate.
+pub type Result<T> = std::result::Result<T, Error>;
 
 use thiserror::Error;
 ///
-/// Error from the [io](crate::io) module.
+/// Error from this crate.
 ///
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
-pub enum IOError {
+pub enum Error {
     #[cfg(feature = "image")]
     #[error("error while parsing an image file")]
     Image(#[from] image::ImageError),
     #[cfg(all(feature = "obj", feature = "image"))]
     #[error("error while parsing an .obj file")]
     Obj(#[from] wavefront_obj::ParseError),
+    #[cfg(not(target_arch = "wasm32"))]
+    #[error("io error")]
+    IO(#[from] std::io::Error),
     #[cfg(all(feature = "gltf", feature = "image"))]
     #[error("error while parsing a .gltf file")]
     Gltf(#[from] ::gltf::Error),

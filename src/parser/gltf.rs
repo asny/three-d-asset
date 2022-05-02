@@ -8,7 +8,7 @@ impl Loaded {
     /// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
     /// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
     ///
-    pub fn gltf(&mut self, path: impl AsRef<Path>) -> IOResult<(Vec<Mesh>, Vec<Material>)> {
+    pub fn gltf(&mut self, path: impl AsRef<Path>) -> Result<(Vec<Mesh>, Vec<Material>)> {
         let mut cpu_meshes = Vec::new();
         let mut cpu_materials = Vec::new();
 
@@ -18,10 +18,10 @@ impl Loaded {
         for buffer in document.buffers() {
             let mut data = match buffer.source() {
                 ::gltf::buffer::Source::Uri(uri) => self.remove_bytes(base_path.join(uri))?,
-                ::gltf::buffer::Source::Bin => blob.take().ok_or(IOError::GltfMissingData)?,
+                ::gltf::buffer::Source::Bin => blob.take().ok_or(Error::GltfMissingData)?,
             };
             if data.len() < buffer.length() {
-                Err(IOError::GltfCorruptData)?;
+                Err(Error::GltfCorruptData)?;
             }
             while data.len() % 4 != 0 {
                 data.push(0);
@@ -54,7 +54,7 @@ fn parse_tree<'a>(
     buffers: &[::gltf::buffer::Data],
     cpu_meshes: &mut Vec<Mesh>,
     cpu_materials: &mut Vec<Material>,
-) -> IOResult<()> {
+) -> Result<()> {
     let node_transform = parse_transform(node.transform());
     if node_transform.determinant() == 0.0 {
         return Ok(()); // glTF say that if the scale is all zeroes, the node should be ignored.
@@ -200,7 +200,7 @@ fn parse_texture<'a>(
     path: &Path,
     buffers: &[::gltf::buffer::Data],
     gltf_texture: ::gltf::texture::Texture,
-) -> IOResult<Texture2D> {
+) -> Result<Texture2D> {
     let gltf_image = gltf_texture.source();
     let gltf_source = gltf_image.source();
     let tex = match gltf_source {

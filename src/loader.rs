@@ -1,4 +1,4 @@
-use crate::{IOError, IOResult};
+use crate::{Error, Result};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -25,7 +25,7 @@ impl Loaded {
     /// Remove and returns the loaded byte array for the resource at the given path.
     /// The byte array then has to be deserialized to whatever type this resource is (image, 3D model etc.).
     ///
-    pub fn remove_bytes(&mut self, path: impl AsRef<Path>) -> IOResult<Vec<u8>> {
+    pub fn remove_bytes(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
         if let Some((_, bytes)) = self.loaded.remove_entry(path.as_ref()) {
             Ok(bytes)
         } else {
@@ -39,7 +39,7 @@ impl Loaded {
                 .loaded
                 .iter()
                 .find(|(k, _)| k.to_str().unwrap().contains(&p))
-                .ok_or(IOError::NotLoaded(p))?
+                .ok_or(Error::NotLoaded(p))?
                 .0
                 .clone();
             Ok(self.loaded.remove(&key).unwrap())
@@ -50,7 +50,7 @@ impl Loaded {
     /// Returns a reference to the loaded byte array for the resource at the given path.
     /// The byte array then has to be deserialized to whatever type this resource is (image, 3D model etc.).
     ///
-    pub fn get_bytes(&self, path: impl AsRef<Path>) -> IOResult<&[u8]> {
+    pub fn get_bytes(&self, path: impl AsRef<Path>) -> Result<&[u8]> {
         if let Some(bytes) = self.loaded.get(path.as_ref()) {
             Ok(bytes.as_ref())
         } else {
@@ -64,7 +64,7 @@ impl Loaded {
                 .loaded
                 .iter()
                 .find(|(k, _)| k.to_str().unwrap().contains(&p))
-                .ok_or(IOError::NotLoaded(p))?
+                .ok_or(Error::NotLoaded(p))?
                 .0;
             Ok(self.loaded.get(key).unwrap())
         }
@@ -102,7 +102,7 @@ impl Loader {
     ///
     /// **Note:** This method must not be called from an async function. In that case, use [Loader::load_async] instead.
     ///
-    pub fn load(paths: &[impl AsRef<Path>], on_done: impl 'static + FnOnce(IOResult<Loaded>)) {
+    pub fn load(paths: &[impl AsRef<Path>], on_done: impl 'static + FnOnce(Result<Loaded>)) {
         #[cfg(target_arch = "wasm32")]
         {
             let paths: Vec<PathBuf> = paths.iter().map(|p| p.as_ref().to_path_buf()).collect();
@@ -124,7 +124,7 @@ impl Loader {
     ///
     #[cfg_attr(docsrs, doc(not(target_arch = "wasm32")))]
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn load_blocking(paths: &[impl AsRef<Path>]) -> IOResult<Loaded> {
+    pub fn load_blocking(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
         let mut loaded = Loaded::new();
         load_from_disk(
             paths
@@ -142,7 +142,7 @@ impl Loader {
     /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
     ///
     #[cfg(target_arch = "wasm32")]
-    pub async fn load_async(paths: &[impl AsRef<Path>]) -> IOResult<Loaded> {
+    pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
         let base_path = base_path();
         let mut urls = Vec::new();
         for path in paths.iter() {
@@ -165,7 +165,7 @@ impl Loader {
     /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
     ///
     #[cfg(not(target_arch = "wasm32"))]
-    pub async fn load_async(paths: &[impl AsRef<Path>]) -> IOResult<Loaded> {
+    pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
         let mut urls = Vec::new();
         let mut local_paths = Vec::new();
         for path in paths.iter() {
@@ -185,7 +185,7 @@ impl Loader {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()> {
+fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
     let mut handles = Vec::new();
     for path in paths.drain(..) {
         handles.push((
@@ -198,14 +198,14 @@ fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()> 
         let bytes = handle
             .join()
             .unwrap()
-            .map_err(|e| IOError::FailedLoading(path.to_str().unwrap().to_string(), e))?;
+            .map_err(|e| Error::FailedLoading(path.to_str().unwrap().to_string(), e))?;
         loaded.loaded.insert(path, bytes);
     }
     Ok(())
 }
 
 #[cfg(feature = "reqwest")]
-async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()> {
+async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
     if paths.len() > 0 {
         let mut handles = Vec::new();
         let client = reqwest::Client::new();
@@ -215,10 +215,10 @@ async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()>
         }
         for (path, handle) in handles.drain(..) {
             let bytes = handle
-                .map_err(|e| IOError::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
+                .map_err(|e| Error::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
                 .bytes()
                 .await
-                .map_err(|e| IOError::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
+                .map_err(|e| Error::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
                 .to_vec();
             loaded.loaded.insert(path, bytes);
         }
@@ -227,12 +227,12 @@ async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> IOResult<()>
 }
 
 #[cfg(not(feature = "reqwest"))]
-async fn load_urls(paths: Vec<PathBuf>, _loaded: &mut Loaded) -> IOResult<()> {
+async fn load_urls(paths: Vec<PathBuf>, _loaded: &mut Loaded) -> Result<()> {
     if paths.is_empty() {
         Ok(())
     } else {
         let url = paths[0].to_str().unwrap().to_owned();
-        Err(Box::new(IOError::FailedLoadingUrl(url)))
+        Err(Error::FailedLoadingUrl(url))
     }
 }
 
