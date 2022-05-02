@@ -166,17 +166,20 @@ fn parse_tree<'a>(
                     .read_tex_coords(0)
                     .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-                cpu_meshes.push(Mesh {
+                let mut cpu_mesh = Mesh {
                     name: name.clone(),
                     positions: Positions::F32(positions),
-                    transformation: transform,
                     normals,
                     tangents,
                     indices,
                     colors,
                     uvs,
                     material_name: Some(material_name),
-                });
+                };
+                if transform != Matrix4::identity() {
+                    cpu_mesh.transform(&transform)?;
+                }
+                cpu_meshes.push(cpu_mesh);
             }
         }
     }

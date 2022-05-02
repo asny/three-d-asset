@@ -18,9 +18,9 @@ mod saver;
 #[cfg(not(target_arch = "wasm32"))]
 pub use saver::*;
 
-#[doc(hidden)]
-pub use three_d_data_types::*;
 pub use three_d_data_types::{math, model, texture, volume};
+#[doc(hidden)]
+pub use three_d_data_types::{math::*, model::*, texture::*, volume::*, AxisAlignedBoundingBox};
 
 /// A result for this crate.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -63,4 +63,6 @@ pub enum Error {
     FailedLoadingUrl(String),
     #[error("tried to use {0} which was not loaded")]
     NotLoaded(String),
+    #[error("three-d-data-types error")]
+    ThreeDDataTypes(#[from] ::three_d_data_types::Error),
 }

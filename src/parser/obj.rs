@@ -1,5 +1,4 @@
 use crate::*;
-use cgmath::prelude::*;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -141,7 +140,6 @@ impl Loaded {
                 cpu_meshes.push(Mesh {
                     name: object.name.to_string(),
                     material_name: mesh.material_name.clone(),
-                    transformation: Matrix4::identity(),
                     positions: Positions::F64(positions),
                     indices: Some(Indices::U32(indices)),
                     normals: if normals.len() == vertex_count {
