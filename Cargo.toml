@@ -16,7 +16,8 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["img", "mesh", "vol", "reqwest"]
+default = ["img", "mesh", "vol"]
+https = ["reqwest"]
 # Image formats
 img = ["jpeg", "png"]
 jpeg = ["image/jpeg"]
