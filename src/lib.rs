@@ -58,6 +58,9 @@ pub enum Error {
     #[cfg(feature = "reqwest")]
     #[error("error while loading the url {0}: {1}")]
     FailedLoadingUrl(String, reqwest::Error),
+    #[cfg(feature = "reqwest")]
+    #[error("error while parsing the url {0}")]
+    FailedParsingUrl(String),
     #[cfg(not(feature = "reqwest"))]
     #[error("error while loading the url {0}: feature 'reqwest' not enabled")]
     FailedLoadingUrl(String),

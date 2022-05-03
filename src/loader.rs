@@ -210,7 +210,8 @@ async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
         let mut handles = Vec::new();
         let client = reqwest::Client::new();
         for path in paths.drain(..) {
-            let url = reqwest::Url::parse(path.to_str().unwrap())?;
+            let url = reqwest::Url::parse(path.to_str().unwrap())
+                .map_err(|_| Error::FailedParsingUrl(path.to_str().unwrap().to_string()))?;
             handles.push((path, client.get(url).send().await));
         }
         for (path, handle) in handles.drain(..) {
