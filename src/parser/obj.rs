@@ -1,13 +1,14 @@
 use crate::*;
 use std::collections::HashMap;
 use std::path::Path;
+use three_d_data_types::surface::*;
 
 impl Loaded {
     ///
-    /// Deserialize a loaded .obj file resource and .mtl material file resource (if present) into a list of meshes and materials.
+    /// Deserialize a loaded .obj file resource and .mtl material file resource (if present) into a list of triangle meshes and materials.
     /// It uses the [wavefront-obj](https://crates.io/crates/wavefront_obj/main.rs) crate.
     ///
-    pub fn obj(&mut self, path: impl AsRef<Path>) -> Result<(Vec<Mesh>, Vec<Material>)> {
+    pub fn obj(&mut self, path: impl AsRef<Path>) -> Result<(Vec<TriMesh>, Vec<Material>)> {
         let obj_bytes = self.remove_bytes(path.as_ref())?;
         let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
         let p = path.as_ref().parent().unwrap();
@@ -137,7 +138,7 @@ impl Loaded {
                 }
 
                 let vertex_count = positions.len();
-                cpu_meshes.push(Mesh {
+                cpu_meshes.push(TriMesh {
                     name: object.name.to_string(),
                     material_name: mesh.material_name.clone(),
                     positions: Positions::F64(positions),

@@ -1,5 +1,6 @@
 use crate::*;
 use std::path::Path;
+use three_d_data_types::volume::*;
 
 impl Loaded {
     ///

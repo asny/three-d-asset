@@ -1,14 +1,14 @@
 use crate::*;
 use ::gltf::Gltf;
-use cgmath::prelude::*;
 use std::path::Path;
+use three_d_data_types::surface::*;
 
 impl Loaded {
     ///
     /// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
     /// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
     ///
-    pub fn gltf(&mut self, path: impl AsRef<Path>) -> Result<(Vec<Mesh>, Vec<Material>)> {
+    pub fn gltf(&mut self, path: impl AsRef<Path>) -> Result<(Vec<TriMesh>, Vec<Material>)> {
         let mut cpu_meshes = Vec::new();
         let mut cpu_materials = Vec::new();
 
@@ -52,7 +52,7 @@ fn parse_tree<'a>(
     loaded: &mut Loaded,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
-    cpu_meshes: &mut Vec<Mesh>,
+    cpu_meshes: &mut Vec<TriMesh>,
     cpu_materials: &mut Vec<Material>,
 ) -> Result<()> {
     let node_transform = parse_transform(node.transform());
@@ -166,7 +166,7 @@ fn parse_tree<'a>(
                     .read_tex_coords(0)
                     .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-                let mut cpu_mesh = Mesh {
+                let mut cpu_mesh = TriMesh {
                     name: name.clone(),
                     positions: Positions::F32(positions),
                     normals,
