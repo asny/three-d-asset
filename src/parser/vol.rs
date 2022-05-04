@@ -6,7 +6,7 @@ use three_d_data_types::volume::*;
 
 impl Loaded {
     ///
-    /// Deserialize a loaded .vol file into a [Volume].
+    /// Deserialize a loaded .vol file into a [VoxelGrid].
     ///
     /// **Note:** Border is not supported.
     ///

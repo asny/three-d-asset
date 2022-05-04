@@ -1,7 +1,8 @@
 #![warn(missing_docs)]
 //!
-//! Contains functionality to load any type of asset runtime on both desktop and web as well as parsers for different image and 3D model formats.
-//! Also includes functionality to save data which is limited to desktop.
+//! Contains functionality to load any type of asset runtime as well as parsers for different image and 3D model formats.
+//! The parsers will output into data types defined in the [three-d-data-types](https://github.com/asny/three-d-data-types) crate.
+//! Also includes functionality to save data which is limited to native.
 //!
 
 mod loader;
