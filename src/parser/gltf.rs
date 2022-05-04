@@ -32,7 +32,7 @@ impl Loaded {
         for scene in document.scenes() {
             for node in scene.nodes() {
                 parse_tree(
-                    &Matrix4::identity(),
+                    &Mat4::identity(),
                     &node,
                     self,
                     &base_path,
@@ -47,7 +47,7 @@ impl Loaded {
 }
 
 fn parse_tree<'a>(
-    parent_transform: &Matrix4<f32>,
+    parent_transform: &Mat4,
     node: &::gltf::Node,
     loaded: &mut Loaded,
     path: &Path,
@@ -176,7 +176,7 @@ fn parse_tree<'a>(
                     uvs,
                     material_name: Some(material_name),
                 };
-                if transform != Matrix4::identity() {
+                if transform != Mat4::identity() {
                     cpu_mesh.transform(&transform)?;
                 }
                 cpu_meshes.push(cpu_mesh);
@@ -220,7 +220,7 @@ fn parse_texture<'a>(
     Ok(tex)
 }
 
-fn parse_transform(transform: gltf::scene::Transform) -> Matrix4<f32> {
+fn parse_transform(transform: gltf::scene::Transform) -> Mat4 {
     let [c0, c1, c2, c3] = transform.matrix();
-    Matrix4::from_cols(c0.into(), c1.into(), c2.into(), c3.into())
+    Mat4::from_cols(c0.into(), c1.into(), c2.into(), c3.into())
 }
