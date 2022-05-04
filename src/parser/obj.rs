@@ -1,6 +1,7 @@
 use crate::*;
 use std::collections::HashMap;
 use std::path::Path;
+use three_d_data_types::material::*;
 use three_d_data_types::prelude::*;
 use three_d_data_types::surface::*;
 
