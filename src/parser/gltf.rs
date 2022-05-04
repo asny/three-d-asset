@@ -1,14 +1,16 @@
 use crate::*;
 use ::gltf::Gltf;
 use std::path::Path;
+use three_d_data_types::prelude::*;
 use three_d_data_types::surface::*;
+use three_d_data_types::texture::*;
 
 impl Loaded {
     ///
     /// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
     /// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
     ///
-    pub fn gltf(&mut self, path: impl AsRef<Path>) -> Result<(Vec<TriMesh>, Vec<Material>)> {
+    pub fn gltf(&mut self, path: impl AsRef<Path>) -> Result<(Vec<TriMesh>, Vec<PbrMaterial>)> {
         let mut cpu_meshes = Vec::new();
         let mut cpu_materials = Vec::new();
 
@@ -53,7 +55,7 @@ fn parse_tree<'a>(
     path: &Path,
     buffers: &[::gltf::buffer::Data],
     cpu_meshes: &mut Vec<TriMesh>,
-    cpu_materials: &mut Vec<Material>,
+    cpu_materials: &mut Vec<PbrMaterial>,
 ) -> Result<()> {
     let node_transform = parse_transform(node.transform());
     if node_transform.determinant() == 0.0 {
@@ -133,7 +135,7 @@ fn parse_tree<'a>(
                     } else {
                         None
                     };
-                    cpu_materials.push(Material {
+                    cpu_materials.push(PbrMaterial {
                         name: material_name.clone(),
                         albedo: Color::from_rgba_slice(&color),
                         albedo_texture,
