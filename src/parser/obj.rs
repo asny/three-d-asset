@@ -113,7 +113,7 @@ impl Loaded {
                         index = Some(positions.len());
                         map.insert(i.0, index.unwrap());
                         let position = object.vertices[i.0];
-                        positions.push(DVec3::new(position.x, position.y, position.z));
+                        positions.push(Vector3::new(position.x, position.y, position.z));
 
                         if let Some(tex) = uvw {
                             uvs.push(Vec2::new(tex.u as f32, 1.0 - tex.v as f32));
