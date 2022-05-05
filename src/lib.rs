@@ -11,19 +11,7 @@
 //! - edited and saved again
 //!
 
-pub mod math;
-
-mod aabb;
-mod color;
-
-///
-/// Contain the basic types used by the 3D specific data types.
-///
-pub mod prelude {
-    pub use crate::aabb::*;
-    pub use crate::color::*;
-    pub use crate::math::*;
-}
+pub mod prelude;
 
 pub mod texture;
 pub use texture::*;
