@@ -1,5 +1,5 @@
 //!
-//! Contain texture data types.
+//! Contain texture asset definitions.
 //!
 
 pub use half::f16;

@@ -1,6 +1,5 @@
 //!
-//! Contains functionality to load any type of asset runtime as well as parsers for different image and 3D model formats.
-//! The parsers will output into data types defined in the [three-d-data-types](https://github.com/asny/three-d-data-types) crate.
+//! Contains functionality to load any type of asset runtime as well as parsers for common 3D assets.
 //! Also includes functionality to save data which is limited to native.
 //!
 

@@ -1,5 +1,5 @@
 //!
-//! Contain material data types, for example [PbrMaterial].
+//! Contain material asset definitions.
 //!
 
 pub use crate::{prelude::Color, texture::Texture2D};

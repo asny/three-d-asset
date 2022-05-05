@@ -1,5 +1,5 @@
 //!
-//! Contain volume data types, for example [VoxelGrid].
+//! Contain volume asset definitions.
 //!
 
 pub use crate::{math::*, texture::*};

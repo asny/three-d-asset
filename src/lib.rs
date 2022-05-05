@@ -31,8 +31,8 @@ pub use texture::*;
 pub mod material;
 pub use material::*;
 
-pub mod surface;
-pub use surface::*;
+pub mod geometry;
+pub use geometry::*;
 
 pub mod volume;
 pub use volume::*;

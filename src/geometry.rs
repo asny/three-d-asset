@@ -1,5 +1,5 @@
 //!
-//! Contain surface geometry data types, for example [TriMesh].
+//! Contain geometry asset definitions.
 //!
 
 pub use crate::{material::*, prelude::*};
