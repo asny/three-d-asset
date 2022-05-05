@@ -6,13 +6,9 @@
 //!
 
 pub mod math;
-pub use math::*;
 
 mod aabb;
-pub use aabb::*;
-
 mod color;
-pub use color::*;
 
 ///
 /// Contain the basic types used by the 3D specific data types.
@@ -20,7 +16,6 @@ pub use color::*;
 pub mod prelude {
     pub use crate::aabb::*;
     pub use crate::color::*;
-    #[doc(inline)]
     pub use crate::math::*;
 }
 

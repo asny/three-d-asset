@@ -1,4 +1,4 @@
-use crate::{math::*, texture::*, volume::*, Error, Loaded, Result};
+use crate::{math::*, volume::*, Error, Loaded, Result};
 use std::path::Path;
 
 impl Loaded {

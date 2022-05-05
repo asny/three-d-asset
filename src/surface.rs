@@ -2,9 +2,7 @@
 //! Contain surface geometry data types, for example [TriMesh].
 //!
 
-use crate::material::*;
-use crate::math::*;
-use crate::{AxisAlignedBoundingBox, Color};
+pub use crate::{material::*, prelude::*};
 use crate::{Error, Result};
 
 ///

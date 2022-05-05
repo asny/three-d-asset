@@ -1,4 +1,4 @@
-use crate::{material::*, prelude::*, surface::*, texture::*, Error, Loaded, Result};
+use crate::{prelude::*, surface::*, texture::*, Error, Loaded, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 

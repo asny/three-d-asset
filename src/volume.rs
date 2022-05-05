@@ -2,8 +2,7 @@
 //! Contain volume data types, for example [VoxelGrid].
 //!
 
-use crate::math::*;
-use crate::texture::*;
+pub use crate::{math::*, texture::*};
 
 ///
 /// Volume data consisting of voxel data inside a cube.

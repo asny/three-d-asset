@@ -2,8 +2,7 @@
 //! Contain material data types, for example [PbrMaterial].
 //!
 
-use crate::texture::*;
-use crate::Color;
+pub use crate::{prelude::Color, texture::Texture2D};
 
 /// Lighting models which specify how the lighting is computed when rendering a material.
 /// This is a trade-off between how fast the computations are versus how physically correct they look.

@@ -3,12 +3,6 @@
 //! Basic math functionality. Mostly just an re-export of [cgmath](https://crates.io/crates/cgmath).
 //!
 
-pub use half::f16;
-#[doc(hidden)]
-pub use half::slice::HalfFloatSliceExt;
-#[doc(hidden)]
-pub use half::vec::HalfFloatVecExt;
-
 pub use cgmath::ortho;
 pub use cgmath::perspective;
 #[doc(hidden)]

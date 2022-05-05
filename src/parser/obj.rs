@@ -1,4 +1,4 @@
-use crate::{material::*, prelude::*, surface::*, Loaded, Result};
+use crate::{prelude::*, surface::*, Loaded, Result};
 use std::collections::HashMap;
 use std::path::Path;
 

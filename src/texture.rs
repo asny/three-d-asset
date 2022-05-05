@@ -2,7 +2,7 @@
 //! Contain texture data types.
 //!
 
-use crate::f16;
+pub use half::f16;
 
 ///
 /// Possible modes of interpolation which determines the texture output between texture pixels.
