@@ -1,8 +1,14 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
+//#![warn(clippy::all)]
 #![warn(missing_docs)]
+
 //!
-//! Contains functionality to load any type of asset runtime as well as parsers for different image and 3D model formats.
-//! The parsers will output into data types defined in the [three-d-data-types](https://github.com/asny/three-d-data-types) crate.
-//! Also includes functionality to save data which is limited to native.
+//! A set of common assets that are useful when doing graphics, for example [TriMesh], [Texture2D] or [PbrMaterial].
+//! These assets can be loaded using the [io] module or constructed manually.
+//! When in memory, the assets can be for example be
+//! - visualised, for example using the [three-d](https://github.com/asny/three-d) crate or in a CPU ray tracer
+//! - imported into a rust-based game engine
+//! - edited and saved again
 //!
 
 pub mod math;
@@ -31,20 +37,8 @@ pub use surface::*;
 pub mod volume;
 pub use volume::*;
 
-/// A result for this crate.
-mod loader;
-#[doc(inline)]
-pub use loader::*;
-
-mod parser;
-#[doc(inline)]
-pub use parser::*;
-
-#[cfg(not(target_arch = "wasm32"))]
-mod saver;
-#[doc(inline)]
-#[cfg(not(target_arch = "wasm32"))]
-pub use saver::*;
+pub mod io;
+pub use io::*;
 
 /// A result for this crate.
 pub type Result<T> = std::result::Result<T, Error>;
