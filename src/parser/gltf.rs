@@ -1,10 +1,6 @@
-use crate::*;
+use crate::{material::*, prelude::*, surface::*, texture::*, Error, Loaded, Result};
 use ::gltf::Gltf;
 use std::path::Path;
-use three_d_data_types::material::*;
-use three_d_data_types::prelude::*;
-use three_d_data_types::surface::*;
-use three_d_data_types::texture::*;
 
 impl Loaded {
     ///
@@ -216,7 +212,7 @@ fn parse_texture<'a>(
                 unimplemented!();
             }
             let buffer = &buffers[view.buffer().index()];
-            image_from_bytes(&buffer[view.offset()..view.offset() + view.length()])?
+            crate::image_from_bytes(&buffer[view.offset()..view.offset() + view.length()])?
         }
     };
     // TODO: Parse sampling parameters

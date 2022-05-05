@@ -5,6 +5,38 @@
 //! Also includes functionality to save data which is limited to native.
 //!
 
+pub mod math;
+pub use math::*;
+
+mod aabb;
+pub use aabb::*;
+
+mod color;
+pub use color::*;
+
+///
+/// Contain the basic types used by the 3D specific data types.
+///
+pub mod prelude {
+    pub use crate::aabb::*;
+    pub use crate::color::*;
+    #[doc(inline)]
+    pub use crate::math::*;
+}
+
+pub mod texture;
+pub use texture::*;
+
+pub mod material;
+pub use material::*;
+
+pub mod surface;
+pub use surface::*;
+
+pub mod volume;
+pub use volume::*;
+
+/// A result for this crate.
 mod loader;
 #[doc(inline)]
 pub use loader::*;
@@ -29,6 +61,14 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[allow(missing_docs)]
 pub enum Error {
+    #[error("{0} buffer length must be {1}, actual length is {2}")]
+    InvalidBufferLength(String, usize, usize),
+    #[error("mesh must have both normals and uv coordinates to be able to compute tangents")]
+    FailedComputingTangents,
+    #[error("the number of vertices must be divisable by 3, actual count is {0}")]
+    InvalidNumberOfVertices(usize),
+    #[error("the transformation matrix cannot be inverted and is therefore invalid")]
+    FailedInvertingTransformationMatrix,
     #[cfg(feature = "image")]
     #[error("error while parsing an image file")]
     Image(#[from] image::ImageError),
@@ -63,6 +103,4 @@ pub enum Error {
     FailedLoadingUrl(String),
     #[error("tried to use {0} which was not loaded")]
     NotLoaded(String),
-    #[error("three-d-data-types error")]
-    ThreeDDataTypes(#[from] ::three_d_data_types::Error),
 }

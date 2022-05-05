@@ -1,8 +1,5 @@
-use crate::*;
+use crate::{math::*, texture::*, volume::*, Error, Loaded, Result};
 use std::path::Path;
-use three_d_data_types::math::*;
-use three_d_data_types::texture::*;
-use three_d_data_types::volume::*;
 
 impl Loaded {
     ///

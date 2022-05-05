@@ -1,6 +1,5 @@
-use crate::*;
+use crate::{texture::*, Loaded, Result, Saver};
 use std::path::Path;
-use three_d_data_types::texture::*;
 
 ///
 /// Deserialize the given bytes representing an image into a [Texture2D].
