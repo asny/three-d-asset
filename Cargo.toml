@@ -16,16 +16,18 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["img", "mesh", "vol"]
+default = ["texture2d", "tri-mesh", "vol"]
 https = ["reqwest"]
-# Image formats
-img = ["jpeg", "png"]
+
+texture2d = ["jpeg", "png", "dds", "hdr"]
 jpeg = ["image/jpeg"]
 png = ["image/png"]
-# Mesh formats
-mesh = ["obj", "gltf"]
+dds = ["image/dds"]
+hdr = ["image/hdr"]
+
+tri-mesh = ["obj", "gltf"]
 obj = ["wavefront_obj"]
-# Volume formats
+
 vol = []
 
 [dependencies]
