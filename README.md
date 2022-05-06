@@ -8,7 +8,7 @@ When in memory, the assets can be for example be
 - imported into a rust-based game engine
 - edited and saved again
 
-### TriMesh (all features: `tri-mesh`)
+### TriMesh
 
 TriMesh | Deserializing | Serializing | Feature| 
 | ------------ | -------------| ------------- | ------------- |
@@ -18,18 +18,14 @@ USDZ | :white_large_square: |  :white_large_square: | |
 STL | :white_large_square: |  :white_large_square: | |
 FBX | :white_large_square: |  :white_large_square: | |
 
-### Texture2D / TextureCube (all features: `texture2d`)
+### Texture2D / TextureCube
 
 | Format | Deserializing | Serializing | Feature| 
 | ------------ | ------------- | ------------- | ------------- |
 | PNG | :heavy_check_mark: |  :heavy_check_mark: | `png` |
 | JPEG | :heavy_check_mark: |  :heavy_check_mark: | `jpeg` |
-| DDS | :heavy_check_mark: |  :heavy_check_mark: | `dds` |
 | HDR | :heavy_check_mark: |  :white_large_square: | `hdr` |
-| GIF | :heavy_check_mark: |  :heavy_check_mark: | |
-| WebP | :heavy_check_mark: |  :heavy_check_mark: | |
-| PNM | :heavy_check_mark: |  :heavy_check_mark: | |
-| TIFF | :heavy_check_mark: |  :heavy_check_mark: | |
-| BMP | :heavy_check_mark: |  :heavy_check_mark: | |
-| ICO | :heavy_check_mark: |  :heavy_check_mark: | |
-| farbfield | :heavy_check_mark: |  :heavy_check_mark: | |
+| GIF | :heavy_check_mark: |  :heavy_check_mark: | `gif` |
+| TGA | :heavy_check_mark: |  :heavy_check_mark: | `tga` |
+| TIFF | :heavy_check_mark: |  :heavy_check_mark: | `tiff` |
+| BMP | :heavy_check_mark: |  :heavy_check_mark: | `bmp` |
