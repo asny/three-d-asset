@@ -2,6 +2,7 @@
 //! Contain material asset definitions.
 //!
 
+#[doc(inline)]
 pub use crate::{prelude::Color, texture::Texture2D};
 
 /// Lighting models which specify how the lighting is computed when rendering a material.

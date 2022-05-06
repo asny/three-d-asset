@@ -2,7 +2,7 @@
 //! Contain texture asset definitions.
 //!
 
-pub use half::f16;
+pub use crate::prelude::f16;
 
 ///
 /// Possible modes of interpolation which determines the texture output between texture pixels.
