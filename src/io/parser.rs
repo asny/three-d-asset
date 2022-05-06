@@ -12,10 +12,10 @@ mod gltf;
 #[cfg(feature = "gltf")]
 pub use self::gltf::*;
 
-#[cfg(any(feature = "png", feature = "jpeg"))]
-#[cfg_attr(docsrs, doc(cfg(any(feature = "png", feature = "jpeg"))))]
+#[cfg(feature = "image")]
+#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 mod img;
-#[cfg(any(feature = "png", feature = "jpeg"))]
+#[cfg(feature = "image")]
 #[doc(inline)]
 pub use img::*;
 

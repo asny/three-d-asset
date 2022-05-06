@@ -7,21 +7,17 @@ impl Texture2D {
     ///
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         use image::io::Reader;
-        use image::DynamicImage;
-        use image::GenericImageView as _;
-        use image::ImageFormat;
-        use std::io::Cursor;
-        let reader = Reader::new(Cursor::new(bytes))
+        use image::*;
+        let reader = Reader::new(std::io::Cursor::new(bytes))
             .with_guessed_format()
             .expect("Cursor io never fails");
-
-        if reader.format() == Some(ImageFormat::Hdr) {
+        #[cfg(feature = "hdr")]
+        if reader.format() == Some(image::ImageFormat::Hdr) {
             use image::codecs::hdr::*;
-            use image::*;
             let decoder = HdrDecoder::new(bytes)?;
             let metadata = decoder.metadata();
             let img = decoder.read_image_native()?;
-            Ok(Texture2D {
+            return Ok(Texture2D {
                 data: TextureData::RgbF32(
                     img.iter()
                         .map(|rgbe| {
@@ -33,51 +29,50 @@ impl Texture2D {
                 width: metadata.width,
                 height: metadata.height,
                 ..Default::default()
-            })
-        } else {
-            let img: DynamicImage = reader.decode()?;
-            let width = img.width();
-            let height = img.height();
-            let data = match img {
-                DynamicImage::ImageLuma8(_) => TextureData::RU8(img.into_bytes()),
-                DynamicImage::ImageLumaA8(_) => {
-                    let bytes = img.as_bytes();
-                    let mut data = Vec::new();
-                    for i in 0..bytes.len() / 2 {
-                        data.push([bytes[i * 2], bytes[i * 2 + 1]]);
-                    }
-                    TextureData::RgU8(data)
-                }
-                DynamicImage::ImageRgb8(_) => {
-                    let bytes = img.as_bytes();
-                    let mut data = Vec::new();
-                    for i in 0..bytes.len() / 3 {
-                        data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
-                    }
-                    TextureData::RgbU8(data)
-                }
-                DynamicImage::ImageRgba8(_) => {
-                    let bytes = img.as_bytes();
-                    let mut data = Vec::new();
-                    for i in 0..bytes.len() / 4 {
-                        data.push([
-                            bytes[i * 4],
-                            bytes[i * 4 + 1],
-                            bytes[i * 4 + 2],
-                            bytes[i * 4 + 3],
-                        ]);
-                    }
-                    TextureData::RgbaU8(data)
-                }
-                _ => unimplemented!(),
-            };
-            Ok(Self {
-                data,
-                width,
-                height,
-                ..Default::default()
-            })
+            });
         }
+        let img: DynamicImage = reader.decode()?;
+        let width = img.width();
+        let height = img.height();
+        let data = match img {
+            DynamicImage::ImageLuma8(_) => TextureData::RU8(img.into_bytes()),
+            DynamicImage::ImageLumaA8(_) => {
+                let bytes = img.as_bytes();
+                let mut data = Vec::new();
+                for i in 0..bytes.len() / 2 {
+                    data.push([bytes[i * 2], bytes[i * 2 + 1]]);
+                }
+                TextureData::RgU8(data)
+            }
+            DynamicImage::ImageRgb8(_) => {
+                let bytes = img.as_bytes();
+                let mut data = Vec::new();
+                for i in 0..bytes.len() / 3 {
+                    data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
+                }
+                TextureData::RgbU8(data)
+            }
+            DynamicImage::ImageRgba8(_) => {
+                let bytes = img.as_bytes();
+                let mut data = Vec::new();
+                for i in 0..bytes.len() / 4 {
+                    data.push([
+                        bytes[i * 4],
+                        bytes[i * 4 + 1],
+                        bytes[i * 4 + 2],
+                        bytes[i * 4 + 3],
+                    ]);
+                }
+                TextureData::RgbaU8(data)
+            }
+            _ => unimplemented!(),
+        };
+        Ok(Self {
+            data,
+            width,
+            height,
+            ..Default::default()
+        })
     }
 }
 
