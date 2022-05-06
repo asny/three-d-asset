@@ -1,4 +1,4 @@
-use crate::{texture::*, Loaded, Result, Saver};
+use crate::{texture::*, Loaded, Result};
 use std::path::Path;
 
 impl Texture2D {
@@ -255,6 +255,9 @@ impl Loaded {
         )
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+use crate::Saver;
 
 #[cfg(not(target_arch = "wasm32"))]
 impl Saver {
