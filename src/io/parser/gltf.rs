@@ -212,7 +212,7 @@ fn parse_texture<'a>(
                 unimplemented!();
             }
             let buffer = &buffers[view.buffer().index()];
-            crate::image_from_bytes(&buffer[view.offset()..view.offset() + view.length()])?
+            Texture2D::from_bytes(&buffer[view.offset()..view.offset() + view.length()])?
         }
     };
     // TODO: Parse sampling parameters
