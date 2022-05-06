@@ -5,78 +5,80 @@ impl Texture2D {
     ///
     /// Deserialize the given bytes representing an image into a [Texture2D].
     ///
-    /// **Note:** If the image contains and you want to load high dynamic range (hdr) information, use [hdr_image_from_bytes] instead.
-    ///
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        use image::io::Reader;
         use image::DynamicImage;
         use image::GenericImageView as _;
-        let img = image::load_from_memory(bytes)?;
-        let width = img.width();
-        let height = img.height();
-        let data = match img {
-            DynamicImage::ImageLuma8(_) => TextureData::RU8(img.into_bytes()),
-            DynamicImage::ImageLumaA8(_) => {
-                let bytes = img.as_bytes();
-                let mut data = Vec::new();
-                for i in 0..bytes.len() / 2 {
-                    data.push([bytes[i * 2], bytes[i * 2 + 1]]);
-                }
-                TextureData::RgU8(data)
-            }
-            DynamicImage::ImageRgb8(_) => {
-                let bytes = img.as_bytes();
-                let mut data = Vec::new();
-                for i in 0..bytes.len() / 3 {
-                    data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
-                }
-                TextureData::RgbU8(data)
-            }
-            DynamicImage::ImageRgba8(_) => {
-                let bytes = img.as_bytes();
-                let mut data = Vec::new();
-                for i in 0..bytes.len() / 4 {
-                    data.push([
-                        bytes[i * 4],
-                        bytes[i * 4 + 1],
-                        bytes[i * 4 + 2],
-                        bytes[i * 4 + 3],
-                    ]);
-                }
-                TextureData::RgbaU8(data)
-            }
-            _ => unimplemented!(),
-        };
-        Ok(Self {
-            data,
-            width,
-            height,
-            ..Default::default()
-        })
-    }
-}
+        use image::ImageFormat;
+        use std::io::Cursor;
+        let reader = Reader::new(Cursor::new(bytes))
+            .with_guessed_format()
+            .expect("Cursor io never fails");
 
-///
-/// Deserialize the given bytes representing a hdr image into a [Texture2D].
-///
-pub fn hdr_image_from_bytes(bytes: &[u8]) -> Result<Texture2D> {
-    use image::codecs::hdr::*;
-    use image::*;
-    let decoder = HdrDecoder::new(bytes)?;
-    let metadata = decoder.metadata();
-    let img = decoder.read_image_native()?;
-    Ok(Texture2D {
-        data: TextureData::RgbF32(
-            img.iter()
-                .map(|rgbe| {
-                    let Rgb(values) = rgbe.to_hdr();
-                    [values[0], values[1], values[2]]
-                })
-                .collect::<Vec<_>>(),
-        ),
-        width: metadata.width,
-        height: metadata.height,
-        ..Default::default()
-    })
+        if reader.format() == Some(ImageFormat::Hdr) {
+            use image::codecs::hdr::*;
+            use image::*;
+            let decoder = HdrDecoder::new(bytes)?;
+            let metadata = decoder.metadata();
+            let img = decoder.read_image_native()?;
+            Ok(Texture2D {
+                data: TextureData::RgbF32(
+                    img.iter()
+                        .map(|rgbe| {
+                            let Rgb(values) = rgbe.to_hdr();
+                            [values[0], values[1], values[2]]
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+                width: metadata.width,
+                height: metadata.height,
+                ..Default::default()
+            })
+        } else {
+            let img: DynamicImage = reader.decode()?;
+            let width = img.width();
+            let height = img.height();
+            let data = match img {
+                DynamicImage::ImageLuma8(_) => TextureData::RU8(img.into_bytes()),
+                DynamicImage::ImageLumaA8(_) => {
+                    let bytes = img.as_bytes();
+                    let mut data = Vec::new();
+                    for i in 0..bytes.len() / 2 {
+                        data.push([bytes[i * 2], bytes[i * 2 + 1]]);
+                    }
+                    TextureData::RgU8(data)
+                }
+                DynamicImage::ImageRgb8(_) => {
+                    let bytes = img.as_bytes();
+                    let mut data = Vec::new();
+                    for i in 0..bytes.len() / 3 {
+                        data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
+                    }
+                    TextureData::RgbU8(data)
+                }
+                DynamicImage::ImageRgba8(_) => {
+                    let bytes = img.as_bytes();
+                    let mut data = Vec::new();
+                    for i in 0..bytes.len() / 4 {
+                        data.push([
+                            bytes[i * 4],
+                            bytes[i * 4 + 1],
+                            bytes[i * 4 + 2],
+                            bytes[i * 4 + 3],
+                        ]);
+                    }
+                    TextureData::RgbaU8(data)
+                }
+                _ => unimplemented!(),
+            };
+            Ok(Self {
+                data,
+                width,
+                height,
+                ..Default::default()
+            })
+        }
+    }
 }
 
 impl TextureCube {
@@ -232,17 +234,8 @@ impl Loaded {
     ///
     /// Deserialize the loaded image resource at the given path into a [Texture2D].
     ///
-    /// **Note:** If the image contains high dynamic range (hdr) information, use [hdr_image](Loaded::hdr_image) instead.
-    ///
     pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
         Texture2D::from_bytes(&self.get_bytes(path)?)
-    }
-
-    ///
-    /// Deserialize the loaded image resource with hdr information at the given path into a [Texture2D].
-    ///
-    pub fn hdr_image(&mut self, path: impl AsRef<Path>) -> Result<Texture2D> {
-        hdr_image_from_bytes(&self.get_bytes(path)?)
     }
 
     ///
