@@ -140,7 +140,7 @@ impl Default for Texture2D {
 }
 
 ///
-/// A CPU-side version of a [Texture3D].
+/// A CPU-side version of a 3D texture.
 ///
 #[derive(Clone, Debug)]
 pub struct Texture3D {
