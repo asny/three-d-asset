@@ -2,13 +2,13 @@
 //! Contain texture asset definitions.
 //!
 
-pub mod texture2d;
+pub(crate) mod texture2d;
 pub use texture2d::*;
 
-pub mod texture3d;
+pub(crate) mod texture3d;
 pub use texture3d::*;
 
-pub mod texture_cube;
+pub(crate) mod texture_cube;
 pub use texture_cube::*;
 
 pub use crate::prelude::f16;
