@@ -1,8 +1,9 @@
 //!
 //! Contain volume asset definitions.
 //!
-
-pub use crate::{prelude::*, texture::*};
+pub use crate::prelude::*;
+#[doc(inline)]
+pub use crate::texture::texture3d::*;
 
 ///
 /// Volume data consisting of voxel data inside a cube.

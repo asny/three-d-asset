@@ -3,7 +3,7 @@
 //!
 
 #[doc(inline)]
-pub use crate::{prelude::Color, texture::Texture2D};
+pub use crate::{prelude::Color, texture::texture2d::*};
 
 /// Lighting models which specify how the lighting is computed when rendering a material.
 /// This is a trade-off between how fast the computations are versus how physically correct they look.
