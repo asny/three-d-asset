@@ -1,4 +1,4 @@
-# three-d-io
+# three-d-asset
 
 **This is an attempt to do a general crate for loading, saving and editing 3D assets. The idea is that it should be possible to use it as a base for any type of visualization or advanced editing tools, a bit like the `image` crate, just for 3D assets. Contributions are very much appreciated!**
 
@@ -8,19 +8,16 @@ When in memory, the assets can be for example be
 - imported into a rust-based game engine
 - edited and saved again
 
-### TriMesh
+### 3D model
 
-TriMesh | Deserializing | Serializing | Feature| 
+| Format | Deserializing | Serializing | Feature | 
 | ------------ | -------------| ------------- | ------------- |
-OBJ | :heavy_check_mark: |  :white_large_square: | `obj` |
-glTF | :heavy_check_mark: |  :white_large_square: | `gltf` |
-USDZ | :white_large_square: |  :white_large_square: | |
-STL | :white_large_square: |  :white_large_square: | |
-FBX | :white_large_square: |  :white_large_square: | |
+| OBJ | :heavy_check_mark: |  :white_large_square: | `obj` |
+| GLTF | :heavy_check_mark: |  :white_large_square: | `gltf` |
 
-### Texture2D / TextureCube
+### Texture
 
-| Format | Deserializing | Serializing | Feature| 
+| Format | Deserializing | Serializing | Feature | 
 | ------------ | ------------- | ------------- | ------------- |
 | PNG | :heavy_check_mark: |  :heavy_check_mark: | `png` |
 | JPEG | :heavy_check_mark: |  :heavy_check_mark: | `jpeg` |
@@ -29,3 +26,9 @@ FBX | :white_large_square: |  :white_large_square: | |
 | TGA | :heavy_check_mark: |  :heavy_check_mark: | `tga` |
 | TIFF | :heavy_check_mark: |  :heavy_check_mark: | `tiff` |
 | BMP | :heavy_check_mark: |  :heavy_check_mark: | `bmp` |
+
+### Volume
+
+| Format | Deserializing | Serializing | Feature | 
+| ------------ | ------------- | ------------- | ------------- |
+| VOL | :heavy_check_mark: |  :white_large_square: | `vol` |
