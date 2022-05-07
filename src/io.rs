@@ -7,6 +7,10 @@ mod loader;
 #[doc(inline)]
 pub use loader::*;
 
+mod loaded;
+#[doc(inline)]
+pub use loaded::*;
+
 mod parser;
 #[doc(inline)]
 pub use parser::*;
