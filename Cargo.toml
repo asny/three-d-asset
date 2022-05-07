@@ -1,12 +1,12 @@
 [package]
-name = "three-d-io"
+name = "three-d-asset"
 version = "0.1.0"
 authors = ["Asger Nyman Christiansen <asgernyman@gmail.com>"]
 edition = "2021"
 description = "Load/save functionality for 3d applications."
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/asny/three-d-io"
+repository = "https://github.com/asny/three-d-asset"
 categories = ["graphics", "rendering", "visualization", "webassembly"]
 keywords = ["3d", "gamedev", "graphics", "wasm"]
 exclude = [".gitignore"]

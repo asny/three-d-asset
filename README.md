@@ -1,4 +1,9 @@
-# three-d-asset
+# `three-d-asset`
+
+[![crates.io](https://img.shields.io/crates/v/three-d-asset.svg)](https://crates.io/crates/three-d-asset)
+[![Docs.rs](https://docs.rs/three-d-asset/badge.svg)](https://docs.rs/three-d-asset)
+[![Continuous integration](https://github.com/asny/three-d-asset/actions/workflows/rust.yml/badge.svg)](https://github.com/asny/three-d-asset/actions/workflows/rust.yml)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/asny/three-d-asset/blob/main/LICENSE)
 
 **This is an attempt to do a general crate for loading, saving and editing 3D assets. The idea is that it should be possible to use it as a base for any type of visualization or advanced editing tools, a bit like the `image` crate, just for 3D assets. Contributions are very much appreciated!**
 
