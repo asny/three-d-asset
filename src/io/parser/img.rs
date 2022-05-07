@@ -256,27 +256,22 @@ impl Loaded {
     }
 }
 
+///
+/// Saves the given RGBA pixels as an image.
+///
 #[cfg(not(target_arch = "wasm32"))]
-use crate::Saver;
-
-#[cfg(not(target_arch = "wasm32"))]
-impl Saver {
-    ///
-    /// Saves the given RGBA pixels as an image.
-    ///
-    pub fn save_pixels<P: AsRef<Path>>(
-        path: P,
-        pixels: &[[u8; 4]],
-        width: u32,
-        height: u32,
-    ) -> Result<()> {
-        image::save_buffer(
-            path,
-            &pixels.iter().flatten().map(|v| *v).collect::<Vec<_>>(),
-            width as u32,
-            height as u32,
-            image::ColorType::Rgba8,
-        )?;
-        Ok(())
-    }
+pub fn save_pixels(
+    path: impl AsRef<Path>,
+    pixels: &[[u8; 4]],
+    width: u32,
+    height: u32,
+) -> Result<()> {
+    image::save_buffer(
+        path,
+        &pixels.iter().flatten().map(|v| *v).collect::<Vec<_>>(),
+        width as u32,
+        height as u32,
+        image::ColorType::Rgba8,
+    )?;
+    Ok(())
 }
