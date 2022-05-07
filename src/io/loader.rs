@@ -1,5 +1,5 @@
 //!
-//! Functionality for loading any type of resource runtime on both desktop and web.
+//! Functionality for loading any type of asset runtime on both desktop and web.
 //!
 
 use crate::{io::Loaded, Error, Result};

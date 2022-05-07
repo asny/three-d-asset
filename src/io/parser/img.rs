@@ -1,14 +1,14 @@
-use crate::{io::Loaded, texture::*, Result};
+use crate::{io::Asset, io::Loaded, texture::*, Result};
+use image::{io::Reader, *};
+use std::io::Cursor;
 use std::path::Path;
 
-impl Texture2D {
+impl Asset for Texture2D {
     ///
     /// Deserialize the given bytes representing an image into a [Texture2D].
     ///
-    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
-        use image::io::Reader;
-        use image::*;
-        let reader = Reader::new(std::io::Cursor::new(bytes))
+    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+        let reader = Reader::new(Cursor::new(bytes))
             .with_guessed_format()
             .expect("Cursor io never fails");
         #[cfg(feature = "hdr")]
@@ -73,6 +73,17 @@ impl Texture2D {
             height,
             ..Default::default()
         })
+    }
+
+    fn to_bytes(&self) -> Result<Vec<u8>> {
+        // TODO: Put actual pixel data
+        let img = match &self.data {
+            TextureData::RgbaU8(data) => DynamicImage::new_rgba8(self.width, self.height),
+            _ => unimplemented!(),
+        };
+        let mut bytes: Vec<u8> = Vec::new();
+        img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
+        Ok(bytes)
     }
 }
 
@@ -254,24 +265,4 @@ impl Loaded {
             self.get_bytes(back_path)?,
         )
     }
-}
-
-///
-/// Saves the given RGBA pixels as an image.
-///
-#[cfg(not(target_arch = "wasm32"))]
-pub fn save_pixels(
-    path: impl AsRef<Path>,
-    pixels: &[[u8; 4]],
-    width: u32,
-    height: u32,
-) -> Result<()> {
-    image::save_buffer(
-        path,
-        &pixels.iter().flatten().map(|v| *v).collect::<Vec<_>>(),
-        width as u32,
-        height as u32,
-        image::ColorType::Rgba8,
-    )?;
-    Ok(())
 }
