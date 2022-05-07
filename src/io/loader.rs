@@ -31,7 +31,6 @@ pub fn load(paths: &[impl AsRef<Path>], on_done: impl 'static + FnOnce(Result<Lo
 ///
 /// This only loads resources from disk, if downloading resources from URLs is also needed, use the [load_async] method instead.
 ///
-#[cfg_attr(docsrs, doc(not(target_arch = "wasm32")))]
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_blocking(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
     let mut loaded = Loaded::new();

@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 ///
-/// Contains the resources loaded using one of the loader functions and/or manually inserted using the [insert_bytes](Self::insert_bytes) method.
-/// Use the [remove_bytes](crate::Loaded::remove_bytes) or [get_bytes](crate::Loaded::get_bytes) function to extract the raw byte array for the loaded resource
+/// Contains the resources loaded using one of the loader functions and/or manually inserted using the [Loaded::insert_bytes] method.
+/// Use the [Loaded::remove_bytes] or [Loaded::get_bytes] function to extract the raw byte array for the loaded resource
 /// or one of the other methods to both extract and deserialize a loaded resource.
 ///
 #[derive(Default)]

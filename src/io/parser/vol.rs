@@ -1,4 +1,4 @@
-use crate::{volume::*, Error, Loaded, Result};
+use crate::{io::Loaded, volume::*, Error, Result};
 use std::path::Path;
 
 impl Loaded {

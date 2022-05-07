@@ -1,4 +1,4 @@
-use crate::{texture::*, Loaded, Result};
+use crate::{io::Loaded, texture::*, Result};
 use std::path::Path;
 
 impl Texture2D {

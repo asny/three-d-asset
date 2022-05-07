@@ -1,4 +1,4 @@
-use crate::{geometry::*, Loaded, Result};
+use crate::{geometry::*, io::Loaded, Result};
 use std::collections::HashMap;
 use std::path::Path;
 

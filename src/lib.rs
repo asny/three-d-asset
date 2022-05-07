@@ -26,7 +26,6 @@ pub mod volume;
 pub use volume::*;
 
 pub mod io;
-pub use io::*;
 
 /// A result for this crate.
 pub type Result<T> = std::result::Result<T, Error>;
