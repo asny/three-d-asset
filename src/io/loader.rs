@@ -16,7 +16,7 @@ pub fn load(paths: &[impl AsRef<Path>], on_done: impl 'static + FnOnce(Result<Lo
     {
         let paths: Vec<PathBuf> = paths.iter().map(|p| p.as_ref().to_path_buf()).collect();
         wasm_bindgen_futures::spawn_local(async move {
-            let loaded = Self::load_async(&paths).await;
+            let loaded = load_async(&paths).await;
             on_done(loaded);
         });
     }
