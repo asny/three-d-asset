@@ -2,9 +2,22 @@
 //! Functionality for loading any type of asset runtime on both desktop and web.
 //!
 
-use crate::{io::Loaded, Error, Result};
+use crate::{
+    io::{Deserialize, Loaded},
+    Error, Result,
+};
 use std::path::{Path, PathBuf};
 
+#[cfg(not(target_arch = "wasm32"))]
+pub fn load<T: Deserialize>(path: impl AsRef<Path>) -> Result<T> {
+    let l = load_multiple(&[path])?;
+    T::deserialize(l.get_bytes("")?)
+}
+
+pub async fn load_async<T: Deserialize>(path: impl AsRef<Path>) -> Result<T> {
+    let l = load_multiple_async(&[path]).await?;
+    T::deserialize(l.get_bytes("")?)
+}
 
 ///
 /// Parallel loads all of the resources in the given paths from disk and returns the [Loaded] resources.
@@ -12,7 +25,7 @@ use std::path::{Path, PathBuf};
 /// This only loads resources from disk, if downloading resources from URLs is also needed, use the [load_async] method instead.
 ///
 #[cfg(not(target_arch = "wasm32"))]
-pub fn load_blocking(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
+pub fn load_multiple(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
     let mut loaded = Loaded::new();
     load_from_disk(
         paths
@@ -30,7 +43,7 @@ pub fn load_blocking(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
 /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
 ///
 #[cfg(target_arch = "wasm32")]
-pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
+pub async fn load_multiple_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
     let base_path = base_path();
     let mut urls = Vec::new();
     for path in paths.iter() {
@@ -53,7 +66,7 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
 /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
 ///
 #[cfg(not(target_arch = "wasm32"))]
-pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
+pub async fn load_multiple_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
     let mut urls = Vec::new();
     let mut local_paths = Vec::new();
     for path in paths.iter() {

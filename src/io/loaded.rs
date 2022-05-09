@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::{io::Deserialize, Error, Result};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -76,6 +76,10 @@ impl Loaded {
     ///
     pub fn insert_bytes(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) {
         self.loaded.insert(path.as_ref().to_path_buf(), bytes);
+    }
+
+    pub fn deserialize<T: Deserialize>(&self, path: impl AsRef<Path>) -> Result<T> {
+        T::deserialize(self.get_bytes(path)?)
     }
 }
 
