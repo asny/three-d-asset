@@ -8,9 +8,9 @@ use std::path::Path;
 ///
 /// Save the asset as a file.
 ///
-pub fn save(path: impl AsRef<Path>, asset: impl Asset) -> crate::Result<()> {
+pub fn save(path: impl AsRef<Path>, asset: impl Serialize) -> crate::Result<()> {
     let mut file = std::fs::File::create(path)?;
     use std::io::prelude::*;
-    file.write_all(&asset.to_bytes()?)?;
+    file.write_all(&asset.serialize()?)?;
     Ok(())
 }

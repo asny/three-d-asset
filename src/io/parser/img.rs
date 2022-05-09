@@ -1,13 +1,10 @@
-use crate::{io::Asset, io::Loaded, texture::*, Result};
+use crate::{io::Deserialize, io::Loaded, io::Serialize, texture::*, Result};
 use image::{io::Reader, *};
 use std::io::Cursor;
 use std::path::Path;
 
-impl Asset for Texture2D {
-    ///
-    /// Deserialize the given bytes representing an image into a [Texture2D].
-    ///
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+impl Deserialize for Texture2D {
+    fn deserialize(bytes: &[u8]) -> Result<Self> {
         let reader = Reader::new(Cursor::new(bytes))
             .with_guessed_format()
             .expect("Cursor io never fails");
@@ -74,8 +71,10 @@ impl Asset for Texture2D {
             ..Default::default()
         })
     }
+}
 
-    fn to_bytes(&self) -> Result<Vec<u8>> {
+impl Serialize for Texture2D {
+    fn serialize(&self) -> Result<Vec<u8>> {
         // TODO: Put actual pixel data
         let img = match &self.data {
             TextureData::RgbaU8(data) => DynamicImage::new_rgba8(self.width, self.height),
@@ -99,12 +98,12 @@ impl TextureCube {
         front_bytes: &[u8],
         back_bytes: &[u8],
     ) -> Result<Self> {
-        let right = Texture2D::from_bytes(right_bytes)?;
-        let left = Texture2D::from_bytes(left_bytes)?;
-        let top = Texture2D::from_bytes(top_bytes)?;
-        let bottom = Texture2D::from_bytes(bottom_bytes)?;
-        let front = Texture2D::from_bytes(front_bytes)?;
-        let back = Texture2D::from_bytes(back_bytes)?;
+        let right = Texture2D::deserialize(right_bytes)?;
+        let left = Texture2D::deserialize(left_bytes)?;
+        let top = Texture2D::deserialize(top_bytes)?;
+        let bottom = Texture2D::deserialize(bottom_bytes)?;
+        let front = Texture2D::deserialize(front_bytes)?;
+        let back = Texture2D::deserialize(back_bytes)?;
         let data = match right.data {
             TextureData::RU8(right) => {
                 let left = if let TextureData::RU8(data) = left.data {
@@ -241,7 +240,7 @@ impl Loaded {
     /// Deserialize the loaded image resource at the given path into a [Texture2D].
     ///
     pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
-        Texture2D::from_bytes(&self.get_bytes(path)?)
+        Texture2D::deserialize(&self.get_bytes(path)?)
     }
 
     ///

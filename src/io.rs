@@ -21,7 +21,13 @@ mod saver;
 #[cfg(not(target_arch = "wasm32"))]
 pub use saver::*;
 
-pub trait Asset: Sized {
-    fn from_bytes(bytes: &[u8]) -> crate::Result<Self>;
-    fn to_bytes(&self) -> crate::Result<Vec<u8>>;
+pub trait Deserialize: Sized {
+    ///
+    /// Deserialize the given bytes into the asset.
+    ///
+    fn deserialize(bytes: &[u8]) -> crate::Result<Self>;
+}
+
+pub trait Serialize: Sized {
+    fn serialize(&self) -> crate::Result<Vec<u8>>;
 }
