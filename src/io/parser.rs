@@ -48,20 +48,16 @@ impl Deserialize for Texture2D {
 
 impl Deserialize for Model {
     fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
-        match path
-            .as_ref()
-            .extension()
-            .map(|e| e.to_str().unwrap())
-            .unwrap_or("")
-        {
-            "gltf" => {
+        let path = raw_assets.match_path(path)?;
+        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+            "gltf" | "glb" => {
                 #[cfg(feature = "gltf")]
                 let result = gltf::deserialize(raw_assets, path);
 
                 #[cfg(not(feature = "gltf"))]
                 let result = Err(Error::FeatureMissing(
                     "gltf".to_string(),
-                    path.as_ref().to_str().unwrap().to_string(),
+                    path.to_str().unwrap().to_string(),
                 ));
                 result
             }
@@ -72,25 +68,19 @@ impl Deserialize for Model {
                 #[cfg(not(feature = "obj"))]
                 let result = Err(Error::FeatureMissing(
                     "obj".to_string(),
-                    path.as_ref().to_str().unwrap().to_string(),
+                    path.to_str().unwrap().to_string(),
                 ));
                 result
             }
-            _ => Err(Error::FailedDeserialize(
-                path.as_ref().to_str().unwrap().to_string(),
-            )),
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 }
 
 impl Deserialize for VoxelGrid {
     fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
-        match path
-            .as_ref()
-            .extension()
-            .map(|e| e.to_str().unwrap())
-            .unwrap_or("")
-        {
+        let path = raw_assets.match_path(path)?;
+        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "vol" => {
                 #[cfg(feature = "vol")]
                 let result = vol::deserialize(raw_assets, path);
@@ -98,13 +88,11 @@ impl Deserialize for VoxelGrid {
                 #[cfg(not(feature = "vol"))]
                 let result = Err(Error::FeatureMissing(
                     "vol".to_string(),
-                    path.as_ref().to_str().unwrap().to_string(),
+                    path.to_str().unwrap().to_string(),
                 ));
                 result
             }
-            _ => Err(Error::FailedDeserialize(
-                path.as_ref().to_str().unwrap().to_string(),
-            )),
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 }

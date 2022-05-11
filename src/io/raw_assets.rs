@@ -22,46 +22,32 @@ impl RawAssets {
     /// Remove and returns the raw byte array for the resource at the given path.
     ///
     pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
-        if let Some((_, bytes)) = self.0.remove_entry(path.as_ref()) {
-            Ok(bytes)
-        } else {
-            let mut p = path.as_ref().to_str().unwrap().to_owned();
-            if p.ends_with(".jpeg") {
-                p = p[0..p.len() - 2].to_string();
-            } else if p.ends_with(".jpg") {
-                p = p[0..p.len() - 1].to_string();
-            }
-            let key = self
-                .0
-                .iter()
-                .find(|(k, _)| k.to_str().unwrap().contains(&p))
-                .ok_or(Error::NotLoaded(p))?
-                .0
-                .clone();
-            Ok(self.0.remove(&key).unwrap())
-        }
+        Ok(self.0.remove(&self.match_path(path)?).unwrap())
     }
 
     ///
     /// Returns a reference to the raw byte array for the resource at the given path.
     ///
     pub fn get(&self, path: impl AsRef<Path>) -> Result<&[u8]> {
-        if let Some(bytes) = self.0.get(path.as_ref()) {
-            Ok(bytes.as_ref())
+        Ok(self.0.get(&self.match_path(path)?).unwrap())
+    }
+
+    pub(crate) fn match_path(&self, path: impl AsRef<Path>) -> Result<PathBuf> {
+        let path = path.as_ref();
+        if self.0.contains_key(path) {
+            Ok(path.to_path_buf())
         } else {
-            let mut p = path.as_ref().to_str().unwrap().to_owned();
+            let mut p = path.to_str().unwrap().to_owned();
             if p.ends_with(".jpeg") {
                 p = p[0..p.len() - 2].to_string();
             } else if p.ends_with(".jpg") {
                 p = p[0..p.len() - 1].to_string();
             }
-            let key = self
-                .0
+            self.0
                 .iter()
                 .find(|(k, _)| k.to_str().unwrap().contains(&p))
-                .ok_or(Error::NotLoaded(p))?
-                .0;
-            Ok(self.0.get(key).unwrap())
+                .map(|(k, _)| k.clone())
+                .ok_or(Error::NotLoaded(p))
         }
     }
 
