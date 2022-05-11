@@ -4,7 +4,14 @@ use std::io::Cursor;
 use std::path::Path;
 
 impl Deserialize for Texture2D {
-    fn deserialize(bytes: &[u8]) -> Result<Self> {
+    fn deserialize(raw_assets: &mut Loaded, path: impl AsRef<std::path::Path>) -> Result<Self> {
+        let bytes = raw_assets.remove_bytes(path)?;
+        Self::deserialize_internal(&bytes)
+    }
+}
+
+impl Texture2D {
+    pub(crate) fn deserialize_internal(bytes: &[u8]) -> Result<Self> {
         let reader = Reader::new(Cursor::new(bytes))
             .with_guessed_format()
             .expect("Cursor io never fails");
@@ -74,7 +81,7 @@ impl Deserialize for Texture2D {
 }
 
 impl Serialize for Texture2D {
-    fn serialize(&self) -> Result<Vec<u8>> {
+    fn serialize(&self, path: impl AsRef<Path>) -> Result<Loaded> {
         // TODO: Put actual pixel data
         let img = match &self.data {
             TextureData::RgbaU8(data) => DynamicImage::new_rgba8(self.width, self.height),
@@ -82,7 +89,9 @@ impl Serialize for Texture2D {
         };
         let mut bytes: Vec<u8> = Vec::new();
         img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
-        Ok(bytes)
+        let mut raw_assets = Loaded::new();
+        raw_assets.insert_bytes(path, bytes);
+        Ok(raw_assets)
     }
 }
 
@@ -91,6 +100,6 @@ impl Loaded {
     /// Deserialize the loaded image resource at the given path into a [Texture2D].
     ///
     pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
-        Texture2D::deserialize(&self.get_bytes(path)?)
+        self.deserialize(path)
     }
 }

@@ -2,47 +2,48 @@ use crate::{geometry::*, io::*, Error, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 
-impl Loaded {
-    ///
-    /// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
-    /// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
-    ///
-    pub fn gltf(&mut self, path: impl AsRef<Path>) -> Result<(Vec<TriMesh>, Vec<PbrMaterial>)> {
-        let mut cpu_meshes = Vec::new();
-        let mut cpu_materials = Vec::new();
+///
+/// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
+/// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
+///
+pub(crate) fn gltf(
+    raw_assets: &mut Loaded,
+    path: impl AsRef<Path>,
+) -> Result<(Vec<TriMesh>, Vec<PbrMaterial>)> {
+    let mut cpu_meshes = Vec::new();
+    let mut cpu_materials = Vec::new();
 
-        let Gltf { document, mut blob } = Gltf::from_slice(self.get_bytes(path.as_ref())?)?;
-        let base_path = path.as_ref().parent().unwrap();
-        let mut buffers = Vec::new();
-        for buffer in document.buffers() {
-            let mut data = match buffer.source() {
-                ::gltf::buffer::Source::Uri(uri) => self.remove_bytes(base_path.join(uri))?,
-                ::gltf::buffer::Source::Bin => blob.take().ok_or(Error::GltfMissingData)?,
-            };
-            if data.len() < buffer.length() {
-                Err(Error::GltfCorruptData)?;
-            }
-            while data.len() % 4 != 0 {
-                data.push(0);
-            }
-            buffers.push(::gltf::buffer::Data(data));
+    let Gltf { document, mut blob } = Gltf::from_slice(raw_assets.get_bytes(path.as_ref())?)?;
+    let base_path = path.as_ref().parent().unwrap_or(Path::new(""));
+    let mut buffers = Vec::new();
+    for buffer in document.buffers() {
+        let mut data = match buffer.source() {
+            ::gltf::buffer::Source::Uri(uri) => raw_assets.remove_bytes(base_path.join(uri))?,
+            ::gltf::buffer::Source::Bin => blob.take().ok_or(Error::GltfMissingData)?,
+        };
+        if data.len() < buffer.length() {
+            Err(Error::GltfCorruptData)?;
         }
-
-        for scene in document.scenes() {
-            for node in scene.nodes() {
-                parse_tree(
-                    &Mat4::identity(),
-                    &node,
-                    self,
-                    &base_path,
-                    &buffers,
-                    &mut cpu_meshes,
-                    &mut cpu_materials,
-                )?;
-            }
+        while data.len() % 4 != 0 {
+            data.push(0);
         }
-        Ok((cpu_meshes, cpu_materials))
+        buffers.push(::gltf::buffer::Data(data));
     }
+
+    for scene in document.scenes() {
+        for node in scene.nodes() {
+            parse_tree(
+                &Mat4::identity(),
+                &node,
+                raw_assets,
+                &base_path,
+                &buffers,
+                &mut cpu_meshes,
+                &mut cpu_materials,
+            )?;
+        }
+    }
+    Ok((cpu_meshes, cpu_materials))
 }
 
 fn parse_tree<'a>(
@@ -206,13 +207,13 @@ fn parse_texture<'a>(
     let gltf_image = gltf_texture.source();
     let gltf_source = gltf_image.source();
     let tex = match gltf_source {
-        ::gltf::image::Source::Uri { uri, .. } => loaded.image(path.join(Path::new(uri)))?,
+        ::gltf::image::Source::Uri { uri, .. } => loaded.deserialize(path.join(Path::new(uri)))?,
         ::gltf::image::Source::View { view, .. } => {
             if view.stride() != None {
                 unimplemented!();
             }
             let buffer = &buffers[view.buffer().index()];
-            Texture2D::deserialize(&buffer[view.offset()..view.offset() + view.length()])?
+            Texture2D::deserialize_internal(&buffer[view.offset()..view.offset() + view.length()])?
         }
     };
     // TODO: Parse sampling parameters

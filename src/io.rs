@@ -22,12 +22,12 @@ mod saver;
 pub use saver::*;
 
 pub trait Deserialize: Sized {
-    ///
-    /// Deserialize the given bytes into the asset.
-    ///
-    fn deserialize(bytes: &[u8]) -> crate::Result<Self>;
+    fn deserialize(
+        raw_assets: &mut Loaded,
+        path: impl AsRef<std::path::Path>,
+    ) -> crate::Result<Self>;
 }
 
 pub trait Serialize: Sized {
-    fn serialize(&self) -> crate::Result<Vec<u8>>;
+    fn serialize(&self, path: impl AsRef<std::path::Path>) -> crate::Result<Loaded>;
 }

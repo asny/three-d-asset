@@ -78,8 +78,12 @@ impl Loaded {
         self.loaded.insert(path.as_ref().to_path_buf(), bytes);
     }
 
-    pub fn deserialize<T: Deserialize>(&self, path: impl AsRef<Path>) -> Result<T> {
-        T::deserialize(self.get_bytes(path)?)
+    pub fn deserialize<T: Deserialize>(&mut self, path: impl AsRef<Path>) -> Result<T> {
+        T::deserialize(self, path)
+    }
+
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, PathBuf, Vec<u8>> {
+        self.loaded.iter()
     }
 }
 

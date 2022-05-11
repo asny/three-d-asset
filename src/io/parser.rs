@@ -6,11 +6,7 @@ mod obj;
 pub use obj::*;
 
 #[cfg(feature = "gltf")]
-#[cfg_attr(docsrs, doc(cfg(feature = "gltf")))]
 mod gltf;
-#[doc(inline)]
-#[cfg(feature = "gltf")]
-pub use self::gltf::*;
 
 #[cfg(feature = "image")]
 #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
@@ -25,3 +21,13 @@ mod vol;
 #[cfg(feature = "vol")]
 #[doc(inline)]
 pub use vol::*;
+
+use crate::io::Loaded;
+use crate::{Model, Result};
+use std::path::Path;
+
+impl Loaded {
+    pub fn gltf<P: AsRef<Path>>(&mut self, path: P) -> Result<Model> {
+        self.deserialize(path)
+    }
+}
