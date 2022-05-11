@@ -22,6 +22,9 @@ mod saver;
 pub use saver::*;
 
 pub trait Deserialize: Sized {
+    ///
+    /// See [RawAssets::deserialize].
+    ///
     fn deserialize(
         path: impl AsRef<std::path::Path>,
         raw_assets: &mut RawAssets,
