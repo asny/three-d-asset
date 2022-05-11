@@ -7,9 +7,9 @@ mod loader;
 #[doc(inline)]
 pub use loader::*;
 
-mod loaded;
+mod raw_assets;
 #[doc(inline)]
-pub use loaded::*;
+pub use raw_assets::*;
 
 mod parser;
 #[doc(inline)]
@@ -23,11 +23,11 @@ pub use saver::*;
 
 pub trait Deserialize: Sized {
     fn deserialize(
-        raw_assets: &mut Loaded,
+        raw_assets: &mut RawAssets,
         path: impl AsRef<std::path::Path>,
     ) -> crate::Result<Self>;
 }
 
 pub trait Serialize: Sized {
-    fn serialize(&self, path: impl AsRef<std::path::Path>) -> crate::Result<Loaded>;
+    fn serialize(&self, path: impl AsRef<std::path::Path>) -> crate::Result<RawAssets>;
 }

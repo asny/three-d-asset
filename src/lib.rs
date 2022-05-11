@@ -80,6 +80,6 @@ pub enum Error {
     #[cfg(not(feature = "reqwest"))]
     #[error("error while loading the url {0}: feature 'reqwest' not enabled")]
     FailedLoadingUrl(String),
-    #[error("tried to use {0} which was not loaded")]
+    #[error("tried to use {0} which was not loaded or otherwise added to the raw assets")]
     NotLoaded(String),
 }

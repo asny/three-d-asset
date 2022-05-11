@@ -1,10 +1,10 @@
-use crate::{io::Deserialize, io::Loaded, io::Serialize, texture::*, Result};
+use crate::{io::Deserialize, io::RawAssets, io::Serialize, texture::*, Result};
 use image::{io::Reader, *};
 use std::io::Cursor;
 use std::path::Path;
 
 impl Deserialize for Texture2D {
-    fn deserialize(raw_assets: &mut Loaded, path: impl AsRef<std::path::Path>) -> Result<Self> {
+    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let bytes = raw_assets.remove(path)?;
         Self::from_bytes(&bytes)
     }
@@ -81,7 +81,7 @@ impl Texture2D {
 }
 
 impl Serialize for Texture2D {
-    fn serialize(&self, path: impl AsRef<Path>) -> Result<Loaded> {
+    fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
         // TODO: Put actual pixel data
         let img = match &self.data {
             TextureData::RgbaU8(data) => DynamicImage::new_rgba8(self.width, self.height),
@@ -89,17 +89,8 @@ impl Serialize for Texture2D {
         };
         let mut bytes: Vec<u8> = Vec::new();
         img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
-        let mut raw_assets = Loaded::new();
+        let mut raw_assets = RawAssets::new();
         raw_assets.insert(path, bytes);
         Ok(raw_assets)
-    }
-}
-
-impl Loaded {
-    ///
-    /// Deserialize the loaded image resource at the given path into a [Texture2D].
-    ///
-    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
-        self.deserialize(path)
     }
 }

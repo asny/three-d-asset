@@ -1,7 +1,7 @@
-use crate::{io::Loaded, volume::*, Error, Result};
+use crate::{io::RawAssets, volume::*, Error, Result};
 use std::path::Path;
 
-impl Loaded {
+impl RawAssets {
     ///
     /// Deserialize a loaded .vol file into a [VoxelGrid].
     ///

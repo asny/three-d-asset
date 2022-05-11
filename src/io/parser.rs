@@ -22,18 +22,29 @@ mod vol;
 #[doc(inline)]
 pub use vol::*;
 
-use crate::io::{Deserialize, Loaded};
-use crate::{Model, PbrMaterial, Result, TriMesh};
+use crate::io::{Deserialize, RawAssets};
+use crate::{Model, PbrMaterial, Result, Texture2D, TriMesh};
 use std::path::Path;
 
-impl Loaded {
+impl RawAssets {
     pub fn gltf<P: AsRef<Path>>(&mut self, path: P) -> Result<Model> {
+        self.deserialize(path)
+    }
+
+    pub fn obj<P: AsRef<Path>>(&mut self, path: P) -> Result<Model> {
+        self.deserialize(path)
+    }
+
+    ///
+    /// Deserialize the image resource at the given path into a [Texture2D].
+    ///
+    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
         self.deserialize(path)
     }
 }
 
 impl Deserialize for Model {
-    fn deserialize(raw_assets: &mut Loaded, path: impl AsRef<Path>) -> Result<Self> {
+    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
         let geometries: Vec<TriMesh> = Vec::new();
         let materials: Vec<PbrMaterial> = Vec::new();
         #[cfg(feature = "gltf")]

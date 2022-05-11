@@ -2,34 +2,34 @@
 //! Functionality for loading any type of asset runtime on both desktop and web.
 //!
 
-use crate::{io::Loaded, Error, Result};
+use crate::{io::RawAssets, Error, Result};
 use std::path::{Path, PathBuf};
 
 ///
-/// Parallel loads all of the resources in the given paths from disk and returns the [Loaded] resources.
+/// Parallel loads all of the resources in the given paths from disk and returns the [RawAssets] resources.
 ///
 /// This only loads resources from disk, if downloading resources from URLs is also needed, use the [load_async] method instead.
 ///
 #[cfg(not(target_arch = "wasm32"))]
-pub fn load(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
-    let mut loaded = Loaded::new();
+pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+    let mut raw_assets = RawAssets::new();
     load_from_disk(
         paths
             .iter()
             .map(|p| p.as_ref().to_path_buf())
             .collect::<Vec<_>>(),
-        &mut loaded,
+        &mut raw_assets,
     )?;
-    Ok(loaded)
+    Ok(raw_assets)
 }
 
 ///
-/// Async loads all of the resources in the given paths and returns the [Loaded] resources.
+/// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
 /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
 ///
 #[cfg(target_arch = "wasm32")]
-pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
+pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let base_path = base_path();
     let mut urls = Vec::new();
     for path in paths.iter() {
@@ -39,20 +39,20 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
         }
         urls.push(p);
     }
-    let mut loaded = Loaded::new();
-    load_urls(urls, &mut loaded).await?;
-    Ok(loaded)
+    let mut raw_assets = RawAssets::new();
+    load_urls(urls, &mut raw_assets).await?;
+    Ok(raw_assets)
 }
 
 #[allow(rustdoc::bare_urls)]
 ///
-/// Loads all of the resources in the given paths and returns the [Loaded] resources.
+/// Loads all of the resources in the given paths and returns the [RawAssets] resources.
 /// URLs are downloaded async and resources on disk are loaded in parallel.
 ///
 /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
 ///
 #[cfg(not(target_arch = "wasm32"))]
-pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
+pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut urls = Vec::new();
     let mut local_paths = Vec::new();
     for path in paths.iter() {
@@ -64,14 +64,14 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<Loaded> {
         }
     }
 
-    let mut loaded = Loaded::new();
-    load_urls(urls, &mut loaded).await?;
-    load_from_disk(local_paths, &mut loaded)?;
-    Ok(loaded)
+    let mut raw_assets = RawAssets::new();
+    load_urls(urls, &mut raw_assets).await?;
+    load_from_disk(local_paths, &mut raw_assets)?;
+    Ok(raw_assets)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
+fn load_from_disk(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     let mut handles = Vec::new();
     for path in paths.drain(..) {
         handles.push((
@@ -85,13 +85,13 @@ fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
             .join()
             .unwrap()
             .map_err(|e| Error::FailedLoading(path.to_str().unwrap().to_string(), e))?;
-        loaded.insert(path, bytes);
+        raw_assets.insert(path, bytes);
     }
     Ok(())
 }
 
 #[cfg(feature = "reqwest")]
-async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
+async fn load_urls(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     if paths.len() > 0 {
         let mut handles = Vec::new();
         let client = reqwest::Client::new();
@@ -107,14 +107,14 @@ async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
                 .await
                 .map_err(|e| Error::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
                 .to_vec();
-            loaded.insert(path, bytes);
+            raw_assets.insert(path, bytes);
         }
     }
     Ok(())
 }
 
 #[cfg(not(feature = "reqwest"))]
-async fn load_urls(paths: Vec<PathBuf>, _loaded: &mut Loaded) -> Result<()> {
+async fn load_urls(paths: Vec<PathBuf>, _raw_assets: &mut RawAssets) -> Result<()> {
     if paths.is_empty() {
         Ok(())
     } else {

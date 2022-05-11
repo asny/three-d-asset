@@ -2,12 +2,8 @@ use crate::{geometry::*, io::*, Error, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 
-///
-/// Deserialize a loaded .gltf file and related .bin resource file and related texture resources or a loaded .glb file into a list of meshes and materials.
-/// It uses the [gltf](https://crates.io/crates/gltf/main.rs) crate.
-///
 pub(crate) fn gltf(
-    raw_assets: &mut Loaded,
+    raw_assets: &mut RawAssets,
     path: impl AsRef<Path>,
 ) -> Result<(Vec<TriMesh>, Vec<PbrMaterial>)> {
     let mut cpu_meshes = Vec::new();
@@ -49,7 +45,7 @@ pub(crate) fn gltf(
 fn parse_tree<'a>(
     parent_transform: &Mat4,
     node: &::gltf::Node,
-    loaded: &mut Loaded,
+    raw_assets: &mut RawAssets,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
     cpu_meshes: &mut Vec<TriMesh>,
@@ -100,20 +96,20 @@ fn parse_tree<'a>(
                     let pbr = material.pbr_metallic_roughness();
                     let color = pbr.base_color_factor();
                     let albedo_texture = if let Some(info) = pbr.base_color_texture() {
-                        Some(parse_texture(loaded, path, buffers, info.texture())?)
+                        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
                     } else {
                         None
                     };
                     let metallic_roughness_texture =
                         if let Some(info) = pbr.metallic_roughness_texture() {
-                            Some(parse_texture(loaded, path, buffers, info.texture())?)
+                            Some(parse_texture(raw_assets, path, buffers, info.texture())?)
                         } else {
                             None
                         };
                     let (normal_texture, normal_scale) =
                         if let Some(normal) = material.normal_texture() {
                             (
-                                Some(parse_texture(loaded, path, buffers, normal.texture())?),
+                                Some(parse_texture(raw_assets, path, buffers, normal.texture())?),
                                 normal.scale(),
                             )
                         } else {
@@ -122,14 +118,19 @@ fn parse_tree<'a>(
                     let (occlusion_texture, occlusion_strength) =
                         if let Some(occlusion) = material.occlusion_texture() {
                             (
-                                Some(parse_texture(loaded, path, buffers, occlusion.texture())?),
+                                Some(parse_texture(
+                                    raw_assets,
+                                    path,
+                                    buffers,
+                                    occlusion.texture(),
+                                )?),
                                 occlusion.strength(),
                             )
                         } else {
                             (None, 1.0)
                         };
                     let emissive_texture = if let Some(info) = material.emissive_texture() {
-                        Some(parse_texture(loaded, path, buffers, info.texture())?)
+                        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
                     } else {
                         None
                     };
@@ -188,7 +189,7 @@ fn parse_tree<'a>(
         parse_tree(
             &transform,
             &child,
-            loaded,
+            raw_assets,
             path,
             buffers,
             cpu_meshes,
@@ -199,7 +200,7 @@ fn parse_tree<'a>(
 }
 
 fn parse_texture<'a>(
-    loaded: &mut Loaded,
+    raw_assets: &mut RawAssets,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
     gltf_texture: ::gltf::texture::Texture,
@@ -207,7 +208,9 @@ fn parse_texture<'a>(
     let gltf_image = gltf_texture.source();
     let gltf_source = gltf_image.source();
     let tex = match gltf_source {
-        ::gltf::image::Source::Uri { uri, .. } => loaded.deserialize(path.join(Path::new(uri)))?,
+        ::gltf::image::Source::Uri { uri, .. } => {
+            raw_assets.deserialize(path.join(Path::new(uri)))?
+        }
         ::gltf::image::Source::View { view, .. } => {
             if view.stride() != None {
                 unimplemented!();
