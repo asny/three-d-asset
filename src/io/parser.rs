@@ -5,23 +5,25 @@ mod obj;
 mod gltf;
 
 #[cfg(feature = "image")]
-#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 mod img;
-#[cfg(feature = "image")]
-#[doc(inline)]
-pub use img::*;
 
 #[cfg(feature = "vol")]
 mod vol;
 
-use crate::io::{Deserialize, RawAssets};
+use crate::io::{Deserialize, RawAssets, Serialize};
 use crate::{Error, Model, Result, Texture2D, VoxelGrid};
 use std::path::Path;
 
 impl Deserialize for Texture2D {
     fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let bytes = raw_assets.remove(path)?;
-        Self::from_bytes(&bytes)
+        img::deserialize_img(&bytes)
+    }
+}
+
+impl Serialize for Texture2D {
+    fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
+        img::serialize_img(self, path)
     }
 }
 
@@ -31,7 +33,7 @@ impl Deserialize for Model {
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "gltf" | "glb" => {
                 #[cfg(feature = "gltf")]
-                let result = gltf::deserialize(raw_assets, path);
+                let result = gltf::deserialize_gltf(raw_assets, path);
 
                 #[cfg(not(feature = "gltf"))]
                 let result = Err(Error::FeatureMissing(
@@ -42,7 +44,7 @@ impl Deserialize for Model {
             }
             "obj" => {
                 #[cfg(feature = "obj")]
-                let result = obj::deserialize(raw_assets, path);
+                let result = obj::deserialize_obj(raw_assets, path);
 
                 #[cfg(not(feature = "obj"))]
                 let result = Err(Error::FeatureMissing(
@@ -62,7 +64,7 @@ impl Deserialize for VoxelGrid {
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "vol" => {
                 #[cfg(feature = "vol")]
-                let result = vol::deserialize(raw_assets, path);
+                let result = vol::deserialize_vol(raw_assets, path);
 
                 #[cfg(not(feature = "vol"))]
                 let result = Err(Error::FeatureMissing(

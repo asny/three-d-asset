@@ -2,7 +2,7 @@ use crate::{io::*, model::*, Error, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 
-pub fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
+pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
     let mut cpu_meshes = Vec::new();
     let mut cpu_materials = Vec::new();
 
@@ -216,7 +216,7 @@ fn parse_texture<'a>(
                 unimplemented!();
             }
             let buffer = &buffers[view.buffer().index()];
-            Texture2D::from_bytes(&buffer[view.offset()..view.offset() + view.length()])?
+            super::img::deserialize_img(&buffer[view.offset()..view.offset() + view.length()])?
         }
     };
     // TODO: Parse sampling parameters

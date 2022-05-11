@@ -6,7 +6,7 @@ use std::path::Path;
 ///
 /// **Note:** Border is not supported.
 ///
-pub fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<VoxelGrid> {
+pub fn deserialize_vol(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<VoxelGrid> {
     let bytes = raw_assets.remove(path.as_ref())?;
     let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
     let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
