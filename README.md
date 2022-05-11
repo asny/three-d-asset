@@ -13,16 +13,16 @@ When in memory, the assets can be for example be
 - imported into a rust-based game engine
 - edited and saved again
 
-### 3D model
+### Model
 
-| Format | Deserializing | Serializing | Feature | 
+| Format | Deserialize | Serialize | Feature | 
 | ------------ | -------------| ------------- | ------------- |
-| OBJ | :heavy_check_mark: |  :white_large_square: | `obj` |
-| GLTF | :heavy_check_mark: |  :white_large_square: | `gltf` |
+| OBJ/MTL | :heavy_check_mark: |  :white_large_square: | `obj` |
+| GLTF/GLB | :heavy_check_mark: |  :white_large_square: | `gltf` |
 
-### Texture
+### Texture2D
 
-| Format | Deserializing | Serializing | Feature | 
+| Format | Deserialize | Serialize | Feature | 
 | ------------ | ------------- | ------------- | ------------- |
 | PNG | :heavy_check_mark: |  :heavy_check_mark: | `png` |
 | JPEG | :heavy_check_mark: |  :heavy_check_mark: | `jpeg` |
@@ -32,8 +32,8 @@ When in memory, the assets can be for example be
 | TIFF | :heavy_check_mark: |  :heavy_check_mark: | `tiff` |
 | BMP | :heavy_check_mark: |  :heavy_check_mark: | `bmp` |
 
-### Volume
+### VoxelGrid
 
-| Format | Deserializing | Serializing | Feature | 
+| Format | Deserialize | Serialize | Feature | 
 | ------------ | ------------- | ------------- | ------------- |
 | VOL | :heavy_check_mark: |  :white_large_square: | `vol` |
