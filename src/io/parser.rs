@@ -120,9 +120,11 @@ mod test {
 
     #[test]
     pub fn deserialize_png() {
-        let png = include_bytes!("../../test_data/test.png").to_vec();
         let tex: crate::Texture2D = crate::io::RawAssets::new()
-            .insert("test.png", png)
+            .insert(
+                "test.png",
+                include_bytes!("../../test_data/test.png").to_vec(),
+            )
             .deserialize("")
             .unwrap();
         if let crate::TextureData::RgbaU8(data) = tex.data {
@@ -162,5 +164,23 @@ mod test {
             include_bytes!("../../test_data/test.png"),
             img.get("test.png").unwrap()
         );
+    }
+
+    #[test]
+    pub fn deserialize_hdr() {
+        let tex: crate::Texture2D = crate::io::RawAssets::new()
+            .insert(
+                "test.hdr",
+                include_bytes!("../../test_data/test.hdr").to_vec(),
+            )
+            .deserialize("")
+            .unwrap();
+        if let crate::TextureData::RgbF32(data) = tex.data {
+            assert_eq!(data[0], [0.16503906, 0.24609375, 0.20019531]);
+        } else {
+            panic!("Wrong texture data")
+        }
+        assert_eq!(tex.width, 1024);
+        assert_eq!(tex.height, 512);
     }
 }
