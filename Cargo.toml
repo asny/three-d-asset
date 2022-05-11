@@ -9,7 +9,7 @@ readme = "README.md"
 repository = "https://github.com/asny/three-d-asset"
 categories = ["graphics", "rendering", "visualization", "webassembly"]
 keywords = ["3d", "gamedev", "graphics", "wasm"]
-exclude = [".gitignore"]
+exclude = ["/test_data", ".gitignore"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
