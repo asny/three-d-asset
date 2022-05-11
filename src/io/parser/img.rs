@@ -72,9 +72,15 @@ pub fn deserialize_img(bytes: &[u8]) -> Result<Texture2D> {
 }
 
 pub fn serialize_img(tex: &Texture2D, path: impl AsRef<Path>) -> Result<RawAssets> {
-    // TODO: Put actual pixel data
     let img = match &tex.data {
-        TextureData::RgbaU8(data) => DynamicImage::new_rgba8(tex.width, tex.height),
+        TextureData::RgbaU8(data) => DynamicImage::ImageRgba8(
+            ImageBuffer::from_raw(
+                tex.width,
+                tex.height,
+                data.iter().flat_map(|v| *v).collect::<Vec<_>>(),
+            )
+            .unwrap(),
+        ),
         _ => unimplemented!(),
     };
     let mut bytes: Vec<u8> = Vec::new();
