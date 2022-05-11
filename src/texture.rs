@@ -8,9 +8,6 @@ pub use texture2d::*;
 pub(crate) mod texture3d;
 pub use texture3d::*;
 
-pub(crate) mod texture_cube;
-pub use texture_cube::*;
-
 pub use crate::prelude::f16;
 
 ///
