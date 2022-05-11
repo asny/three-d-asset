@@ -82,4 +82,8 @@ pub enum Error {
     FailedLoadingUrl(String),
     #[error("tried to use {0} which was not loaded or otherwise added to the raw assets")]
     NotLoaded(String),
+    #[error("the feature {0} is necessary to deserialize the file {1}")]
+    FeatureMissing(String, String),
+    #[error("failed to deserialize the file {0}")]
+    FailedDeserialize(String),
 }

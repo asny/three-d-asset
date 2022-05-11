@@ -1,11 +1,8 @@
-use crate::{geometry::*, io::RawAssets, Result};
+use crate::{io::RawAssets, model::*, Result};
 use std::collections::HashMap;
 use std::path::Path;
 
-fn obj(
-    raw_assets: &mut RawAssets,
-    path: impl AsRef<Path>,
-) -> Result<(Vec<TriMesh>, Vec<PbrMaterial>)> {
+pub fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
     let obj_bytes = raw_assets.remove(path.as_ref())?;
     let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
     let p = path.as_ref().parent().unwrap();
@@ -155,5 +152,8 @@ fn obj(
             });
         }
     }
-    Ok((cpu_meshes, cpu_materials))
+    Ok(Model {
+        geometries: cpu_meshes,
+        materials: cpu_materials,
+    })
 }

@@ -1,68 +1,66 @@
 use crate::{io::RawAssets, volume::*, Error, Result};
 use std::path::Path;
 
-impl RawAssets {
-    ///
-    /// Deserialize a loaded .vol file into a [VoxelGrid].
-    ///
-    /// **Note:** Border is not supported.
-    ///
-    pub fn vol(&mut self, path: impl AsRef<Path>) -> Result<VoxelGrid> {
-        let bytes = self.remove(path.as_ref())?;
-        let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
-        let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
-        let depth = u32::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);
-        let size = Vec3::new(
-            f32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]),
-            f32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]),
-            f32::from_be_bytes([bytes[24], bytes[25], bytes[26], bytes[27]]),
-        );
-        let bytes = &bytes[28..];
-        let data = match bytes.len() as u32 / (width * height * depth) {
-            1 => {
-                let data = bytes.to_vec();
-                TextureData::RU8(flip(data, width as usize, height as usize, depth as usize))
+///
+/// Deserialize a loaded .vol file into a [VoxelGrid].
+///
+/// **Note:** Border is not supported.
+///
+pub fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<VoxelGrid> {
+    let bytes = raw_assets.remove(path.as_ref())?;
+    let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+    let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
+    let depth = u32::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);
+    let size = Vec3::new(
+        f32::from_be_bytes([bytes[16], bytes[17], bytes[18], bytes[19]]),
+        f32::from_be_bytes([bytes[20], bytes[21], bytes[22], bytes[23]]),
+        f32::from_be_bytes([bytes[24], bytes[25], bytes[26], bytes[27]]),
+    );
+    let bytes = &bytes[28..];
+    let data = match bytes.len() as u32 / (width * height * depth) {
+        1 => {
+            let data = bytes.to_vec();
+            TextureData::RU8(flip(data, width as usize, height as usize, depth as usize))
+        }
+        2 => {
+            let mut data = Vec::new();
+            for i in 0..bytes.len() / 2 {
+                data.push([bytes[i * 2], bytes[i * 2 + 1]]);
             }
-            2 => {
-                let mut data = Vec::new();
-                for i in 0..bytes.len() / 2 {
-                    data.push([bytes[i * 2], bytes[i * 2 + 1]]);
-                }
-                TextureData::RgU8(flip(data, width as usize, height as usize, depth as usize))
+            TextureData::RgU8(flip(data, width as usize, height as usize, depth as usize))
+        }
+        3 => {
+            let mut data = Vec::new();
+            for i in 0..bytes.len() / 3 {
+                data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
             }
-            3 => {
-                let mut data = Vec::new();
-                for i in 0..bytes.len() / 3 {
-                    data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
-                }
-                TextureData::RgbU8(flip(data, width as usize, height as usize, depth as usize))
+            TextureData::RgbU8(flip(data, width as usize, height as usize, depth as usize))
+        }
+        4 => {
+            let mut data = Vec::new();
+            for i in 0..bytes.len() / 4 {
+                data.push([
+                    bytes[i * 4],
+                    bytes[i * 4 + 1],
+                    bytes[i * 4 + 2],
+                    bytes[i * 4 + 3],
+                ]);
             }
-            4 => {
-                let mut data = Vec::new();
-                for i in 0..bytes.len() / 4 {
-                    data.push([
-                        bytes[i * 4],
-                        bytes[i * 4 + 1],
-                        bytes[i * 4 + 2],
-                        bytes[i * 4 + 3],
-                    ]);
-                }
-                TextureData::RgbaU8(flip(data, width as usize, height as usize, depth as usize))
-            }
-            _ => Err(Error::VolCorruptData)?,
-        };
-        Ok(VoxelGrid {
-            voxels: Texture3D {
-                data,
-                width: depth,
-                height: width,
-                depth: height,
-                ..Default::default()
-            },
-            size: Vec3::new(size.z, size.x, size.y),
+            TextureData::RgbaU8(flip(data, width as usize, height as usize, depth as usize))
+        }
+        _ => Err(Error::VolCorruptData)?,
+    };
+    Ok(VoxelGrid {
+        voxels: Texture3D {
+            data,
+            width: depth,
+            height: width,
+            depth: height,
             ..Default::default()
-        })
-    }
+        },
+        size: Vec3::new(size.z, size.x, size.y),
+        ..Default::default()
+    })
 }
 
 fn flip<T: Default + Clone>(data: Vec<T>, width: usize, height: usize, depth: usize) -> Vec<T> {

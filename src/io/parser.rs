@@ -1,9 +1,5 @@
 #[cfg(feature = "obj")]
-#[cfg_attr(docsrs, doc(cfg(feature = "obj")))]
 mod obj;
-#[doc(inline)]
-#[cfg(feature = "obj")]
-pub use obj::*;
 
 #[cfg(feature = "gltf")]
 mod gltf;
@@ -16,14 +12,10 @@ mod img;
 pub use img::*;
 
 #[cfg(feature = "vol")]
-#[cfg_attr(docsrs, doc(cfg(feature = "vol")))]
 mod vol;
-#[cfg(feature = "vol")]
-#[doc(inline)]
-pub use vol::*;
 
 use crate::io::{Deserialize, RawAssets};
-use crate::{Model, PbrMaterial, Result, Texture2D, TriMesh};
+use crate::{Error, Model, Result, Texture2D, VoxelGrid};
 use std::path::Path;
 
 impl RawAssets {
@@ -32,6 +24,10 @@ impl RawAssets {
     }
 
     pub fn obj<P: AsRef<Path>>(&mut self, path: P) -> Result<Model> {
+        self.deserialize(path)
+    }
+
+    pub fn vol<P: AsRef<Path>>(&mut self, path: P) -> Result<VoxelGrid> {
         self.deserialize(path)
     }
 
@@ -45,13 +41,52 @@ impl RawAssets {
 
 impl Deserialize for Model {
     fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
-        let geometries: Vec<TriMesh> = Vec::new();
-        let materials: Vec<PbrMaterial> = Vec::new();
-        #[cfg(feature = "gltf")]
-        let (geometries, materials) = gltf::gltf(raw_assets, path)?;
-        Ok(Model {
-            geometries,
-            materials,
-        })
+        match path
+            .as_ref()
+            .extension()
+            .map(|e| e.to_str().unwrap())
+            .unwrap_or("")
+        {
+            "gltf" => {
+                #[cfg(feature = "gltf")]
+                let result = gltf::deserialize(raw_assets, path);
+
+                #[cfg(not(feature = "gltf"))]
+                let result = Err(Error::FeatureMissing(
+                    "gltf".to_string(),
+                    path.as_ref().to_str().unwrap().to_string(),
+                ));
+                result
+            }
+            _ => Err(Error::FailedDeserialize(
+                path.as_ref().to_str().unwrap().to_string(),
+            )),
+        }
+    }
+}
+
+impl Deserialize for VoxelGrid {
+    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
+        match path
+            .as_ref()
+            .extension()
+            .map(|e| e.to_str().unwrap())
+            .unwrap_or("")
+        {
+            "vol" => {
+                #[cfg(feature = "vol")]
+                let result = vol::deserialize(raw_assets, path);
+
+                #[cfg(not(feature = "vol"))]
+                let result = Err(Error::FeatureMissing(
+                    "vol".to_string(),
+                    path.as_ref().to_str().unwrap().to_string(),
+                ));
+                result
+            }
+            _ => Err(Error::FailedDeserialize(
+                path.as_ref().to_str().unwrap().to_string(),
+            )),
+        }
     }
 }

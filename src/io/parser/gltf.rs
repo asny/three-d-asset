@@ -1,11 +1,8 @@
-use crate::{geometry::*, io::*, Error, Result};
+use crate::{io::*, model::*, Error, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 
-pub(crate) fn gltf(
-    raw_assets: &mut RawAssets,
-    path: impl AsRef<Path>,
-) -> Result<(Vec<TriMesh>, Vec<PbrMaterial>)> {
+pub fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
     let mut cpu_meshes = Vec::new();
     let mut cpu_materials = Vec::new();
 
@@ -39,7 +36,10 @@ pub(crate) fn gltf(
             )?;
         }
     }
-    Ok((cpu_meshes, cpu_materials))
+    Ok(Model {
+        geometries: cpu_meshes,
+        materials: cpu_materials,
+    })
 }
 
 fn parse_tree<'a>(
