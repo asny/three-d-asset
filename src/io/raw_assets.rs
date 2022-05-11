@@ -55,8 +55,9 @@ impl RawAssets {
     /// Inserts the given bytes into the set of raw assets which is useful if you want to add data from an unsuported source
     /// to be able to use either the [RawAssets::deserialize] functionality or [crate::io::save] functionality.
     ///
-    pub fn insert(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) {
+    pub fn insert(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) -> &mut Self {
         self.0.insert(path.as_ref().to_path_buf(), bytes);
+        self
     }
 
     pub fn extend(&mut self, mut raw_assets: Self) -> &mut Self {
@@ -67,7 +68,7 @@ impl RawAssets {
     }
 
     pub fn deserialize<T: Deserialize>(&mut self, path: impl AsRef<Path>) -> Result<T> {
-        T::deserialize(self, path)
+        T::deserialize(path, self)
     }
 
     pub fn iter(&self) -> std::collections::hash_map::Iter<'_, PathBuf, Vec<u8>> {

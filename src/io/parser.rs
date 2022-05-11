@@ -15,7 +15,7 @@ use crate::{Error, Model, Result, Texture2D, VoxelGrid};
 use std::path::Path;
 
 impl Deserialize for Texture2D {
-    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<std::path::Path>) -> Result<Self> {
+    fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let bytes = raw_assets.remove(path)?;
         img::deserialize_img(&bytes)
     }
@@ -28,7 +28,7 @@ impl Serialize for Texture2D {
 }
 
 impl Deserialize for Model {
-    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
+    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path)?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "gltf" | "glb" => {
@@ -59,7 +59,7 @@ impl Deserialize for Model {
 }
 
 impl Deserialize for VoxelGrid {
-    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
+    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path)?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "vol" => {

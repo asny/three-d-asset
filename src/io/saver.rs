@@ -5,7 +5,7 @@
 use super::*;
 
 ///
-/// Save the asset as a file.
+/// Save the assets as files.
 ///
 pub fn save(raw_assets: &RawAssets) -> crate::Result<()> {
     use std::io::prelude::*;

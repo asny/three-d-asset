@@ -23,8 +23,8 @@ pub use saver::*;
 
 pub trait Deserialize: Sized {
     fn deserialize(
-        raw_assets: &mut RawAssets,
         path: impl AsRef<std::path::Path>,
+        raw_assets: &mut RawAssets,
     ) -> crate::Result<Self>;
 }
 
