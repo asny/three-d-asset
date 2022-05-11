@@ -13,12 +13,12 @@ pub(crate) fn gltf(
     let mut cpu_meshes = Vec::new();
     let mut cpu_materials = Vec::new();
 
-    let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove_bytes(path.as_ref())?)?;
+    let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove(path.as_ref())?)?;
     let base_path = path.as_ref().parent().unwrap_or(Path::new(""));
     let mut buffers = Vec::new();
     for buffer in document.buffers() {
         let mut data = match buffer.source() {
-            ::gltf::buffer::Source::Uri(uri) => raw_assets.remove_bytes(base_path.join(uri))?,
+            ::gltf::buffer::Source::Uri(uri) => raw_assets.remove(base_path.join(uri))?,
             ::gltf::buffer::Source::Bin => blob.take().ok_or(Error::GltfMissingData)?,
         };
         if data.len() < buffer.length() {

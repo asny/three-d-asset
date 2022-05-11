@@ -25,7 +25,7 @@ impl Loaded {
     /// Remove and returns the loaded byte array for the resource at the given path.
     /// The byte array then has to be deserialized to whatever type this resource is (image, 3D model etc.).
     ///
-    pub fn remove_bytes(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
+    pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
         if let Some((_, bytes)) = self.loaded.remove_entry(path.as_ref()) {
             Ok(bytes)
         } else {
@@ -50,7 +50,7 @@ impl Loaded {
     /// Returns a reference to the loaded byte array for the resource at the given path.
     /// The byte array then has to be deserialized to whatever type this resource is (image, 3D model etc.).
     ///
-    pub fn get_bytes(&self, path: impl AsRef<Path>) -> Result<&[u8]> {
+    pub fn get(&self, path: impl AsRef<Path>) -> Result<&[u8]> {
         if let Some(bytes) = self.loaded.get(path.as_ref()) {
             Ok(bytes.as_ref())
         } else {
@@ -74,7 +74,7 @@ impl Loaded {
     /// Inserts the given bytes into the set of loaded files which is useful if you want to load the data from an unsuported source.
     /// The files can then be parsed as usual using the functionality on Loaded.
     ///
-    pub fn insert_bytes(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) {
+    pub fn insert(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) {
         self.loaded.insert(path.as_ref().to_path_buf(), bytes);
     }
 

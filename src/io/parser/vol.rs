@@ -8,7 +8,7 @@ impl Loaded {
     /// **Note:** Border is not supported.
     ///
     pub fn vol(&mut self, path: impl AsRef<Path>) -> Result<VoxelGrid> {
-        let bytes = self.remove_bytes(path.as_ref())?;
+        let bytes = self.remove(path.as_ref())?;
         let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
         let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
         let depth = u32::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);

@@ -85,7 +85,7 @@ fn load_from_disk(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
             .join()
             .unwrap()
             .map_err(|e| Error::FailedLoading(path.to_str().unwrap().to_string(), e))?;
-        loaded.insert_bytes(path, bytes);
+        loaded.insert(path, bytes);
     }
     Ok(())
 }
@@ -107,7 +107,7 @@ async fn load_urls(mut paths: Vec<PathBuf>, loaded: &mut Loaded) -> Result<()> {
                 .await
                 .map_err(|e| Error::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
                 .to_vec();
-            loaded.insert_bytes(path, bytes);
+            loaded.insert(path, bytes);
         }
     }
     Ok(())

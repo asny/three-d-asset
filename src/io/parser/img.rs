@@ -5,7 +5,7 @@ use std::path::Path;
 
 impl Deserialize for Texture2D {
     fn deserialize(raw_assets: &mut Loaded, path: impl AsRef<std::path::Path>) -> Result<Self> {
-        let bytes = raw_assets.remove_bytes(path)?;
+        let bytes = raw_assets.remove(path)?;
         Self::from_bytes(&bytes)
     }
 }
@@ -90,7 +90,7 @@ impl Serialize for Texture2D {
         let mut bytes: Vec<u8> = Vec::new();
         img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
         let mut raw_assets = Loaded::new();
-        raw_assets.insert_bytes(path, bytes);
+        raw_assets.insert(path, bytes);
         Ok(raw_assets)
     }
 }
