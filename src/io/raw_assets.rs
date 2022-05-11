@@ -71,6 +71,10 @@ impl RawAssets {
         T::deserialize(path, self)
     }
 
+    pub fn save(&mut self) -> Result<()> {
+        crate::io::save(self)
+    }
+
     pub fn iter(&self) -> std::collections::hash_map::Iter<'_, PathBuf, Vec<u8>> {
         self.0.iter()
     }
