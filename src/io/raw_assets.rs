@@ -71,6 +71,7 @@ impl RawAssets {
         T::deserialize(path, self)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn save(&mut self) -> Result<()> {
         crate::io::save(self)
     }
