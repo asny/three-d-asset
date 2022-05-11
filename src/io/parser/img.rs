@@ -6,12 +6,12 @@ use std::path::Path;
 impl Deserialize for Texture2D {
     fn deserialize(raw_assets: &mut Loaded, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let bytes = raw_assets.remove_bytes(path)?;
-        Self::deserialize_internal(&bytes)
+        Self::from_bytes(&bytes)
     }
 }
 
 impl Texture2D {
-    pub(crate) fn deserialize_internal(bytes: &[u8]) -> Result<Self> {
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let reader = Reader::new(Cursor::new(bytes))
             .with_guessed_format()
             .expect("Cursor io never fails");

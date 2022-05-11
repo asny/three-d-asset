@@ -13,7 +13,7 @@ pub(crate) fn gltf(
     let mut cpu_meshes = Vec::new();
     let mut cpu_materials = Vec::new();
 
-    let Gltf { document, mut blob } = Gltf::from_slice(raw_assets.get_bytes(path.as_ref())?)?;
+    let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove_bytes(path.as_ref())?)?;
     let base_path = path.as_ref().parent().unwrap_or(Path::new(""));
     let mut buffers = Vec::new();
     for buffer in document.buffers() {
@@ -213,7 +213,7 @@ fn parse_texture<'a>(
                 unimplemented!();
             }
             let buffer = &buffers[view.buffer().index()];
-            Texture2D::deserialize_internal(&buffer[view.offset()..view.offset() + view.length()])?
+            Texture2D::from_bytes(&buffer[view.offset()..view.offset() + view.length()])?
         }
     };
     // TODO: Parse sampling parameters
