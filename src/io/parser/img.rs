@@ -1,4 +1,4 @@
-use crate::{io::Deserialize, io::RawAssets, io::Serialize, texture::*, Result};
+use crate::{io::RawAssets, io::Serialize, texture::*, Result};
 use image::{io::Reader, *};
 use std::io::Cursor;
 use std::path::Path;

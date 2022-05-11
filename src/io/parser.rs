@@ -18,27 +18,6 @@ use crate::io::{Deserialize, RawAssets};
 use crate::{Error, Model, Result, Texture2D, VoxelGrid};
 use std::path::Path;
 
-impl RawAssets {
-    pub fn gltf<P: AsRef<Path>>(&mut self, path: P) -> Result<Model> {
-        self.deserialize(path)
-    }
-
-    pub fn obj<P: AsRef<Path>>(&mut self, path: P) -> Result<Model> {
-        self.deserialize(path)
-    }
-
-    pub fn vol<P: AsRef<Path>>(&mut self, path: P) -> Result<VoxelGrid> {
-        self.deserialize(path)
-    }
-
-    ///
-    /// Deserialize the image resource at the given path into a [Texture2D].
-    ///
-    pub fn image<P: AsRef<Path>>(&mut self, path: P) -> Result<Texture2D> {
-        self.deserialize(path)
-    }
-}
-
 impl Deserialize for Texture2D {
     fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<std::path::Path>) -> Result<Self> {
         let bytes = raw_assets.remove(path)?;
