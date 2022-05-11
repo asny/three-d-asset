@@ -2,7 +2,7 @@
 //! Contain geometry asset definitions.
 //!
 
-pub use crate::{material::*, prelude::*};
+pub use crate::prelude::*;
 use crate::{Error, Result};
 
 ///
@@ -143,7 +143,7 @@ impl std::fmt::Debug for Positions {
 pub struct TriMesh {
     /// Name.
     pub name: String,
-    /// Name of the associated material, use this to match with [PbrMaterial::name].
+    /// Name of the associated material, use this to match with [PbrMaterial::name](crate::material::PbrMaterial::name).
     pub material_name: Option<String>,
     /// The positions of the vertices.
     /// If there is no indices associated with this mesh, three contiguous positions defines a triangle, in that case, the length must be divisable by 3.
@@ -193,18 +193,6 @@ impl std::fmt::Debug for TriMesh {
 }
 
 impl TriMesh {
-    ///
-    /// Returns the material for this mesh in the given list of materials. Returns `None` if no suitable material can be found.
-    ///
-    pub fn material<'a>(&self, materials: &'a [PbrMaterial]) -> Option<&'a PbrMaterial> {
-        self.material_name.as_ref().and_then(|name| {
-            materials
-                .iter()
-                .position(|mat| &mat.name == name)
-                .map(|index| &materials[index])
-        })
-    }
-
     ///
     /// Transforms the mesh by the given transformation.
     ///
