@@ -90,17 +90,26 @@ pub fn serialize_img(tex: &Texture2D, path: impl AsRef<Path>) -> Result<RawAsset
     Ok(raw_assets)
 }
 
+#[cfg(test)]
 mod test {
+    fn tex() -> crate::Texture2D {
+        crate::Texture2D {
+            data: crate::TextureData::RgbaU8(vec![
+                [0, 0, 0, 255],
+                [255, 0, 0, 255],
+                [0, 255, 0, 255],
+                [0, 0, 255, 255],
+            ]),
+            width: 2,
+            height: 2,
+            ..Default::default()
+        }
+    }
 
-    #[test]
-    pub fn deserialize_png() {
-        let tex: crate::Texture2D = crate::io::RawAssets::new()
-            .insert(
-                "test.png",
-                include_bytes!("../../test_data/test.png").to_vec(),
-            )
-            .deserialize("")
-            .unwrap();
+    fn test_deserialize(format: &str) {
+        let path = format!("test_data/test.{}", format);
+        let tex: crate::Texture2D = crate::io::load(&[&path]).unwrap().deserialize("").unwrap();
+
         if let crate::TextureData::RgbaU8(data) = tex.data {
             assert_eq!(
                 data,
@@ -118,35 +127,58 @@ mod test {
         assert_eq!(tex.height, 2);
     }
 
-    #[test]
-    pub fn serialize_png() {
+    fn test_serialize(format: &str) {
+        let path = format!("test_data/test.{}", format);
         use crate::io::Serialize;
-        let tex = crate::Texture2D {
-            data: crate::TextureData::RgbaU8(vec![
-                [0, 0, 0, 255],
-                [255, 0, 0, 255],
-                [0, 255, 0, 255],
-                [0, 0, 255, 255],
-            ]),
-            width: 2,
-            height: 2,
-            ..Default::default()
-        };
-        let img = tex.serialize("test.png").unwrap();
+        let mut img = tex().serialize(&path).unwrap();
+        img.save().unwrap();
 
         assert_eq!(
-            include_bytes!("../../test_data/test.png"),
-            img.get("test.png").unwrap()
+            crate::io::load(&[path]).unwrap().get("").unwrap(),
+            img.get("").unwrap()
         );
     }
 
     #[test]
-    pub fn deserialize_hdr() {
-        let tex: crate::Texture2D = crate::io::RawAssets::new()
-            .insert(
-                "test.hdr",
-                include_bytes!("../../test_data/test.hdr").to_vec(),
-            )
+    pub fn png() {
+        test_serialize("png");
+        test_deserialize("png");
+    }
+
+    #[test]
+    pub fn jpeg() {
+        test_serialize("jpeg");
+        test_deserialize("jpeg");
+    }
+
+    #[test]
+    pub fn gif() {
+        test_serialize("gif");
+        test_deserialize("gif");
+    }
+
+    #[test]
+    pub fn tga() {
+        test_serialize("tga");
+        test_deserialize("tga");
+    }
+
+    #[test]
+    pub fn tiff() {
+        test_serialize("tiff");
+        test_deserialize("tiff");
+    }
+
+    #[test]
+    pub fn bmp() {
+        test_serialize("bmp");
+        test_deserialize("bmp");
+    }
+
+    #[test]
+    pub fn hdr() {
+        let tex: crate::Texture2D = crate::io::load(&["test_data/test.hdr"])
+            .unwrap()
             .deserialize("")
             .unwrap();
         if let crate::TextureData::RgbF32(data) = tex.data {

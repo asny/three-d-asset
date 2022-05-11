@@ -228,6 +228,7 @@ fn parse_transform(transform: ::gltf::scene::Transform) -> Mat4 {
     Mat4::from_cols(c0.into(), c1.into(), c2.into(), c3.into())
 }
 
+#[cfg(test)]
 mod test {
 
     #[test]

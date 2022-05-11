@@ -158,6 +158,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
     })
 }
 
+#[cfg(test)]
 mod test {
 
     #[test]
