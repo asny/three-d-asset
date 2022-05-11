@@ -39,6 +39,13 @@ impl RawAssets {
     }
 }
 
+impl Deserialize for Texture2D {
+    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<std::path::Path>) -> Result<Self> {
+        let bytes = raw_assets.remove(path)?;
+        Self::from_bytes(&bytes)
+    }
+}
+
 impl Deserialize for Model {
     fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Self> {
         match path
@@ -54,6 +61,17 @@ impl Deserialize for Model {
                 #[cfg(not(feature = "gltf"))]
                 let result = Err(Error::FeatureMissing(
                     "gltf".to_string(),
+                    path.as_ref().to_str().unwrap().to_string(),
+                ));
+                result
+            }
+            "obj" => {
+                #[cfg(feature = "obj")]
+                let result = obj::deserialize(raw_assets, path);
+
+                #[cfg(not(feature = "obj"))]
+                let result = Err(Error::FeatureMissing(
+                    "obj".to_string(),
                     path.as_ref().to_str().unwrap().to_string(),
                 ));
                 result

@@ -3,13 +3,6 @@ use image::{io::Reader, *};
 use std::io::Cursor;
 use std::path::Path;
 
-impl Deserialize for Texture2D {
-    fn deserialize(raw_assets: &mut RawAssets, path: impl AsRef<std::path::Path>) -> Result<Self> {
-        let bytes = raw_assets.remove(path)?;
-        Self::from_bytes(&bytes)
-    }
-}
-
 impl Texture2D {
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         let reader = Reader::new(Cursor::new(bytes))
