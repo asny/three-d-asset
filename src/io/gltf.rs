@@ -223,7 +223,35 @@ fn parse_texture<'a>(
     Ok(tex)
 }
 
-fn parse_transform(transform: gltf::scene::Transform) -> Mat4 {
+fn parse_transform(transform: ::gltf::scene::Transform) -> Mat4 {
     let [c0, c1, c2, c3] = transform.matrix();
     Mat4::from_cols(c0.into(), c1.into(), c2.into(), c3.into())
+}
+
+mod test {
+
+    #[test]
+    pub fn deserialize_gltf() {
+        let model: crate::Model = crate::io::RawAssets::new()
+            .insert(
+                "Cube.gltf",
+                include_bytes!("../../test_data/Cube.gltf").to_vec(),
+            )
+            .insert(
+                "Cube.bin",
+                include_bytes!("../../test_data/Cube.bin").to_vec(),
+            )
+            .insert(
+                "Cube_BaseColor.png",
+                include_bytes!("../../test_data/Cube_BaseColor.png").to_vec(),
+            )
+            .insert(
+                "Cube_MetallicRoughness.png",
+                include_bytes!("../../test_data/Cube_MetallicRoughness.png").to_vec(),
+            )
+            .deserialize("gltf")
+            .unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 1);
+    }
 }

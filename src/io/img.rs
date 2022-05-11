@@ -89,3 +89,72 @@ pub fn serialize_img(tex: &Texture2D, path: impl AsRef<Path>) -> Result<RawAsset
     raw_assets.insert(path, bytes);
     Ok(raw_assets)
 }
+
+mod test {
+
+    #[test]
+    pub fn deserialize_png() {
+        let tex: crate::Texture2D = crate::io::RawAssets::new()
+            .insert(
+                "test.png",
+                include_bytes!("../../test_data/test.png").to_vec(),
+            )
+            .deserialize("")
+            .unwrap();
+        if let crate::TextureData::RgbaU8(data) = tex.data {
+            assert_eq!(
+                data,
+                vec![
+                    [0, 0, 0, 255],
+                    [255, 0, 0, 255],
+                    [0, 255, 0, 255],
+                    [0, 0, 255, 255],
+                ]
+            );
+        } else {
+            panic!("Wrong texture data")
+        }
+        assert_eq!(tex.width, 2);
+        assert_eq!(tex.height, 2);
+    }
+
+    #[test]
+    pub fn serialize_png() {
+        use crate::io::Serialize;
+        let tex = crate::Texture2D {
+            data: crate::TextureData::RgbaU8(vec![
+                [0, 0, 0, 255],
+                [255, 0, 0, 255],
+                [0, 255, 0, 255],
+                [0, 0, 255, 255],
+            ]),
+            width: 2,
+            height: 2,
+            ..Default::default()
+        };
+        let img = tex.serialize("test.png").unwrap();
+
+        assert_eq!(
+            include_bytes!("../../test_data/test.png"),
+            img.get("test.png").unwrap()
+        );
+    }
+
+    #[test]
+    pub fn deserialize_hdr() {
+        let tex: crate::Texture2D = crate::io::RawAssets::new()
+            .insert(
+                "test.hdr",
+                include_bytes!("../../test_data/test.hdr").to_vec(),
+            )
+            .deserialize("")
+            .unwrap();
+        if let crate::TextureData::RgbF32(data) = tex.data {
+            assert_eq!(data[0], [0.16503906, 0.24609375, 0.20019531]);
+        } else {
+            panic!("Wrong texture data")
+        }
+        assert_eq!(tex.width, 1024);
+        assert_eq!(tex.height, 512);
+    }
+}

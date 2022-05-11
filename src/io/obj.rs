@@ -157,3 +157,19 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
         materials: cpu_materials,
     })
 }
+
+mod test {
+
+    #[test]
+    pub fn deserialize_obj() {
+        let model: crate::Model = crate::io::RawAssets::new()
+            .insert(
+                "cube.obj",
+                include_bytes!("../../test_data/cube.obj").to_vec(),
+            )
+            .deserialize("")
+            .unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 0);
+    }
+}
