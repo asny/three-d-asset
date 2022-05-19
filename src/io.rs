@@ -56,7 +56,7 @@ impl Serialize for crate::Texture2D {
     }
 }
 
-impl Deserialize for crate::Model {
+impl Deserialize for crate::Models {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path)?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {

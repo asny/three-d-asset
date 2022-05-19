@@ -25,8 +25,8 @@ pub use geometry::*;
 pub mod volume;
 pub use volume::*;
 
-pub mod model;
-pub use model::*;
+pub mod models;
+pub use models::*;
 
 pub mod io;
 

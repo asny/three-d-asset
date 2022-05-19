@@ -1,8 +1,8 @@
-use crate::{io::*, model::*, Error, Result};
+use crate::{io::*, models::*, Error, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 
-pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
+pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Models> {
     let mut cpu_meshes = Vec::new();
     let mut cpu_materials = Vec::new();
 
@@ -36,7 +36,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> R
             )?;
         }
     }
-    Ok(Model {
+    Ok(Models {
         geometries: cpu_meshes,
         materials: cpu_materials,
     })
