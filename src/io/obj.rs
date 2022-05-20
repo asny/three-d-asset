@@ -163,7 +163,7 @@ mod test {
 
     #[test]
     pub fn deserialize_obj() {
-        let model: crate::Model = crate::io::RawAssets::new()
+        let model: crate::Models = crate::io::RawAssets::new()
             .insert(
                 "cube.obj",
                 include_bytes!("../../test_data/cube.obj").to_vec(),

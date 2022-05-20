@@ -233,7 +233,7 @@ mod test {
 
     #[test]
     pub fn deserialize_gltf() {
-        let model: crate::Model = crate::io::RawAssets::new()
+        let model: crate::Models = crate::io::RawAssets::new()
             .insert(
                 "Cube.gltf",
                 include_bytes!("../../test_data/Cube.gltf").to_vec(),
