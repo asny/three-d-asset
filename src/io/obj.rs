@@ -1,4 +1,4 @@
-use crate::{io::RawAssets, models::*, Result};
+use crate::{geometry::*, io::RawAssets, material::*, Models, Result};
 use std::collections::HashMap;
 use std::path::Path;
 

@@ -1,4 +1,4 @@
-use crate::{io::*, models::*, Error, Result};
+use crate::{geometry::*, io::*, material::*, Error, Models, Result};
 use ::gltf::Gltf;
 use std::path::Path;
 
