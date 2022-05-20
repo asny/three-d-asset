@@ -162,6 +162,21 @@ pub struct TriMesh {
     pub colors: Option<Vec<Color>>,
 }
 
+impl TriMesh {
+    ///
+    /// Returns the material for this mesh in the given list of materials. Returns `None` if no suitable material can be found.
+    ///
+    pub fn material<'a>(
+        &self,
+        materials: &'a [crate::PbrMaterial],
+    ) -> Option<&'a crate::PbrMaterial> {
+        materials
+            .iter()
+            .position(|mat| Some(&mat.name) == self.material_name.as_ref())
+            .map(|index| &materials[index])
+    }
+}
+
 impl std::default::Default for TriMesh {
     fn default() -> Self {
         Self {
