@@ -74,17 +74,19 @@ impl RawAssets {
         if self.0.contains_key(path) {
             Ok(path.to_path_buf())
         } else {
-            let mut p = path.to_str().unwrap().to_owned();
-            if p.ends_with(".jpeg") {
-                p = p[0..p.len() - 2].to_string();
+            let p = path.to_str().unwrap();
+            let p2 = if p.ends_with(".jpeg") {
+                p[0..p.len() - 2].to_string()
             } else if p.ends_with(".jpg") {
-                p = p[0..p.len() - 1].to_string();
-            }
+                p[0..p.len() - 1].to_string()
+            } else {
+                p.to_owned()
+            };
             self.0
                 .iter()
-                .find(|(k, _)| k.to_str().unwrap().contains(&p))
+                .find(|(k, _)| k.to_str().unwrap().contains(&p2))
                 .map(|(k, _)| k.clone())
-                .ok_or(Error::NotLoaded(p))
+                .ok_or(Error::NotLoaded(p.to_owned()))
         }
     }
 
