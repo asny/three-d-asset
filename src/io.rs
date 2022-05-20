@@ -26,6 +26,9 @@ mod img;
 #[cfg(feature = "vol")]
 mod vol;
 
+///
+/// Implemented for assets that can be deserialized after being loaded (see also [load] and [RawAssets::deserialize]).
+///
 pub trait Deserialize: Sized {
     ///
     /// See [RawAssets::deserialize].
@@ -36,7 +39,14 @@ pub trait Deserialize: Sized {
     ) -> crate::Result<Self>;
 }
 
+///
+/// Implemented for assets that can be serialized before being saved (see also [save]).
+///
 pub trait Serialize: Sized {
+    ///
+    /// Serialize the asset into a list of raw assets which consist of byte arrays and related path to where they should be saved (see also [save]).
+    /// The path given as input is the path to the main raw asset.
+    ///
     fn serialize(&self, path: impl AsRef<std::path::Path>) -> crate::Result<RawAssets>;
 }
 
