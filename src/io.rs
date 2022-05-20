@@ -45,8 +45,8 @@ use std::path::Path;
 
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let bytes = raw_assets.remove(path)?;
-        img::deserialize_img(&bytes)
+        let bytes = raw_assets.get(path)?;
+        img::deserialize_img(bytes)
     }
 }
 
