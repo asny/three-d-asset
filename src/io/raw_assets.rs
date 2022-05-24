@@ -9,15 +9,6 @@ use std::path::{Path, PathBuf};
 /// Use the [RawAssets::remove] or [RawAssets::get] function to extract the raw byte array for the assets
 /// or [RawAssets::deserialize] to deserialize an asset or [RawAssets::save] to save the assets.
 ///
-/// A typical usecase is to load an deserialize some assets:
-/// ```
-/// # use three_d_asset::io::*;
-/// # use three_d_asset::{Texture2D, Models};
-/// let mut assets = load(&["test_data/test.png", "test_data/cube.obj"]).unwrap();
-/// let texture: Texture2D = assets.deserialize("test.png").unwrap();
-/// let model: Models = assets.deserialize("cube.obj").unwrap();
-/// ```
-///
 #[derive(Default)]
 pub struct RawAssets(HashMap<PathBuf, Vec<u8>>);
 

@@ -2,6 +2,15 @@
 //! Contains functionality to load any type of asset runtime as well as parsers for common 3D assets.
 //! Also includes functionality to save data which is limited to native.
 //!
+//!
+//! A typical usecase is to load an deserialize some assets:
+//! ```
+//! use three_d_asset::io::*;
+//! use three_d_asset::{Texture2D, Models};
+//! let mut assets = load(&["test_data/test.png", "test_data/cube.obj"]).unwrap();
+//! let texture: Texture2D = assets.deserialize("test.png").unwrap();
+//! let model: Models = assets.deserialize("cube.obj").unwrap();
+//! ```
 
 mod loader;
 pub use loader::*;
