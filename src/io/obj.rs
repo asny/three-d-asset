@@ -1,8 +1,8 @@
-use crate::{geometry::*, io::RawAssets, material::*, Models, Result};
+use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
 use std::collections::HashMap;
 use std::path::Path;
 
-pub fn deserialize_obj(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Models> {
+pub fn deserialize_obj(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
     let obj_bytes = raw_assets.remove(path.as_ref())?;
     let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
     let p = path.as_ref().parent().unwrap();
@@ -152,7 +152,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
             });
         }
     }
-    Ok(Models {
+    Ok(Model {
         geometries: cpu_meshes,
         materials: cpu_materials,
     })
@@ -163,7 +163,7 @@ mod test {
 
     #[test]
     pub fn deserialize_obj() {
-        let model: crate::Models = crate::io::RawAssets::new()
+        let model: crate::Model = crate::io::RawAssets::new()
             .insert(
                 "cube.obj",
                 include_bytes!("../../test_data/cube.obj").to_vec(),

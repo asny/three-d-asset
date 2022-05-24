@@ -6,10 +6,10 @@
 //! A typical usecase is to load an deserialize some assets:
 //! ```
 //! use three_d_asset::io::*;
-//! use three_d_asset::{Texture2D, Models};
+//! use three_d_asset::{Texture2D, Model};
 //! let mut assets = load(&["test_data/test.png", "test_data/cube.obj"]).unwrap();
 //! let texture: Texture2D = assets.deserialize("test.png").unwrap();
-//! let model: Models = assets.deserialize("cube.obj").unwrap();
+//! let model: Model = assets.deserialize("cube.obj").unwrap();
 //! ```
 
 mod loader;
@@ -75,7 +75,7 @@ impl Serialize for crate::Texture2D {
     }
 }
 
-impl Deserialize for crate::Models {
+impl Deserialize for crate::Model {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path)?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
