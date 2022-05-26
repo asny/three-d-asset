@@ -3,14 +3,36 @@
 //! Also includes functionality to save data which is limited to native.
 //!
 //!
-//! A typical usecase is to load an deserialize some assets:
+//! A typical use-case is to load and deserialize assets:
 //! ```
 //! use three_d_asset::io::*;
 //! use three_d_asset::{Texture2D, Model};
+//!
 //! let mut assets = load(&["test_data/test.png", "test_data/cube.obj"]).unwrap();
 //! let texture: Texture2D = assets.deserialize("test.png").unwrap();
 //! let model: Model = assets.deserialize("cube.obj").unwrap();
 //! ```
+//!
+//! Or serialize and save assets:
+//! ```
+//! use three_d_asset::io::*;
+//! use three_d_asset::{Texture2D, TextureData};
+//!
+//! let texture = Texture2D {
+//!     data: TextureData::RgbaU8(vec![
+//!         [0, 0, 0, 255],
+//!         [255, 0, 0, 255],
+//!         [0, 255, 0, 255],
+//!         [0, 0, 255, 255],
+//!     ]),
+//!     width: 2,
+//!     height: 2,
+//!     ..Default::default()
+//! };
+//! let assets = texture.serialize("test_data/test.png").unwrap();
+//! save(&assets).unwrap();
+//! ```
+//!
 
 mod loader;
 pub use loader::*;
