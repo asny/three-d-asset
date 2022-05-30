@@ -26,9 +26,10 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 ///
 /// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
-/// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
+/// Supports local URLs relative to the base URL ("/my/asset.png") and, if the `http` feature is enabled, absolute urls ("https://example.com/my/asset.png").
 ///
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(feature = "reqwest", target_arch = "wasm32"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "http")))]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let base_path = base_path();
     let mut urls = Vec::new();
@@ -47,7 +48,7 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 #[allow(rustdoc::bare_urls)]
 ///
 /// Loads all of the resources in the given paths and returns the [RawAssets] resources.
-/// URLs are downloaded async and resources on disk are loaded in parallel.
+/// URLs are downloaded async (requires the `http` feature) and resources on disk are loaded in parallel.
 ///
 /// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
 ///
