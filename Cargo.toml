@@ -19,8 +19,6 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["png", "jpeg"]
-
 http = ["reqwest"]
 
 png = ["image/png"]
