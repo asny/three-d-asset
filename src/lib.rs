@@ -95,4 +95,6 @@ pub enum Error {
     FeatureMissing(String, String),
     #[error("failed to deserialize the file {0}")]
     FailedDeserialize(String),
+    #[error("failed to serialize the file {0}")]
+    FailedSerialize(String),
 }

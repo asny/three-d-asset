@@ -86,13 +86,38 @@ use std::path::Path;
 
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let bytes = raw_assets.get(path)?;
-        img::deserialize_img(bytes)
+        let path = raw_assets.match_path(path)?;
+        #[allow(unused_variables)]
+        let bytes = raw_assets.get(&path)?;
+
+        #[cfg(not(feature = "image"))]
+        return Err(Error::FeatureMissing(
+            path.extension()
+                .map(|e| e.to_str().unwrap())
+                .unwrap_or("image")
+                .to_string(),
+            path.to_str().unwrap().to_string(),
+        ));
+
+        #[cfg(feature = "image")]
+        img::deserialize_img(path, bytes)
     }
 }
 
 impl Serialize for crate::Texture2D {
     fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
+        let path = path.as_ref();
+
+        #[cfg(not(feature = "image"))]
+        return Err(Error::FeatureMissing(
+            path.extension()
+                .map(|e| e.to_str().unwrap())
+                .unwrap_or("image")
+                .to_string(),
+            path.to_str().unwrap().to_string(),
+        ));
+
+        #[cfg(feature = "image")]
         img::serialize_img(self, path)
     }
 }
@@ -102,26 +127,24 @@ impl Deserialize for crate::Model {
         let path = raw_assets.match_path(path)?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "gltf" | "glb" => {
-                #[cfg(feature = "gltf")]
-                let result = gltf::deserialize_gltf(raw_assets, path);
-
                 #[cfg(not(feature = "gltf"))]
-                let result = Err(Error::FeatureMissing(
+                return Err(Error::FeatureMissing(
                     "gltf".to_string(),
                     path.to_str().unwrap().to_string(),
                 ));
-                result
+
+                #[cfg(feature = "gltf")]
+                gltf::deserialize_gltf(raw_assets, path)
             }
             "obj" => {
-                #[cfg(feature = "obj")]
-                let result = obj::deserialize_obj(raw_assets, path);
-
                 #[cfg(not(feature = "obj"))]
-                let result = Err(Error::FeatureMissing(
+                return Err(Error::FeatureMissing(
                     "obj".to_string(),
                     path.to_str().unwrap().to_string(),
                 ));
-                result
+
+                #[cfg(feature = "obj")]
+                obj::deserialize_obj(raw_assets, path)
             }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }

@@ -216,7 +216,7 @@ fn parse_texture<'a>(
                 unimplemented!();
             }
             let buffer = &buffers[view.buffer().index()];
-            super::img::deserialize_img(&buffer[view.offset()..view.offset() + view.length()])?
+            super::img::deserialize_img("", &buffer[view.offset()..view.offset() + view.length()])?
         }
     };
     // TODO: Parse sampling parameters

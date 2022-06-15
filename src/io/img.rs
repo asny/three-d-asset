@@ -1,12 +1,16 @@
-use crate::{io::RawAssets, texture::*, Result};
+use crate::{io::RawAssets, texture::*, Error, Result};
 use image::{io::Reader, *};
 use std::io::Cursor;
 use std::path::Path;
 
-pub fn deserialize_img(bytes: &[u8]) -> Result<Texture2D> {
-    let reader = Reader::new(Cursor::new(bytes))
+pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D> {
+    let mut reader = Reader::new(Cursor::new(bytes))
         .with_guessed_format()
         .expect("Cursor io never fails");
+
+    if reader.format().is_none() {
+        reader.set_format(ImageFormat::from_path(path)?);
+    }
     #[cfg(feature = "hdr")]
     if reader.format() == Some(image::ImageFormat::Hdr) {
         use image::codecs::hdr::*;
@@ -71,7 +75,64 @@ pub fn deserialize_img(bytes: &[u8]) -> Result<Texture2D> {
     })
 }
 
-pub fn serialize_img(tex: &Texture2D, path: impl AsRef<Path>) -> Result<RawAssets> {
+pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
+    let format: image::ImageOutputFormat = match path.extension().unwrap().to_str().unwrap() {
+        "png" => {
+            #[cfg(not(feature = "png"))]
+            return Err(Error::FeatureMissing(
+                "png".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "png")]
+            image::ImageOutputFormat::Png
+        }
+        "jpeg" | "jpg" => {
+            #[cfg(not(feature = "jpeg"))]
+            return Err(Error::FeatureMissing(
+                "jpeg".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "jpeg")]
+            image::ImageOutputFormat::Jpeg(100)
+        }
+        "bmp" => {
+            #[cfg(not(feature = "bmp"))]
+            return Err(Error::FeatureMissing(
+                "bmp".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "bmp")]
+            image::ImageOutputFormat::Bmp
+        }
+        "tga" => {
+            #[cfg(not(feature = "tga"))]
+            return Err(Error::FeatureMissing(
+                "tga".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "tga")]
+            image::ImageOutputFormat::Tga
+        }
+        "tiff" | "tif" => {
+            #[cfg(not(feature = "tiff"))]
+            return Err(Error::FeatureMissing(
+                "tiff".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "tiff")]
+            image::ImageOutputFormat::Tiff
+        }
+        "gif" => {
+            #[cfg(not(feature = "gif"))]
+            return Err(Error::FeatureMissing(
+                "gif".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "gif")]
+            image::ImageOutputFormat::Gif
+        }
+        _ => return Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
+    };
     let img = match &tex.data {
         TextureData::RgbaU8(data) => DynamicImage::ImageRgba8(
             ImageBuffer::from_raw(
@@ -84,7 +145,7 @@ pub fn serialize_img(tex: &Texture2D, path: impl AsRef<Path>) -> Result<RawAsset
         _ => unimplemented!(),
     };
     let mut bytes: Vec<u8> = Vec::new();
-    img.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
+    img.write_to(&mut Cursor::new(&mut bytes), format)?;
     let mut raw_assets = RawAssets::new();
     raw_assets.insert(path, bytes);
     Ok(raw_assets)
@@ -110,18 +171,26 @@ mod test {
         let path = format!("test_data/test.{}", format);
         let tex: crate::Texture2D = crate::io::load(&[&path]).unwrap().deserialize("").unwrap();
 
-        if let crate::TextureData::RgbaU8(data) = tex.data {
-            assert_eq!(
-                data,
-                vec![
-                    [0, 0, 0, 255],
-                    [255, 0, 0, 255],
-                    [0, 255, 0, 255],
-                    [0, 0, 255, 255],
-                ]
-            );
+        if format == "jpeg" || format == "jpg" {
+            if let crate::TextureData::RgbU8(data) = tex.data {
+                assert_eq!(data, vec![[4, 0, 0], [250, 0, 1], [0, 254, 1], [1, 2, 253]]);
+            } else {
+                panic!("Wrong texture data: {:?}", tex.data)
+            }
         } else {
-            panic!("Wrong texture data")
+            if let crate::TextureData::RgbaU8(data) = tex.data {
+                assert_eq!(
+                    data,
+                    vec![
+                        [0, 0, 0, 255],
+                        [255, 0, 0, 255],
+                        [0, 255, 0, 255],
+                        [0, 0, 255, 255],
+                    ]
+                );
+            } else {
+                panic!("Wrong texture data: {:?}", tex.data)
+            }
         }
         assert_eq!(tex.width, 2);
         assert_eq!(tex.height, 2);
@@ -149,6 +218,8 @@ mod test {
     pub fn jpeg() {
         test_serialize("jpeg");
         test_deserialize("jpeg");
+        test_serialize("jpg");
+        test_deserialize("jpg");
     }
 
     #[test]
@@ -167,6 +238,8 @@ mod test {
     pub fn tiff() {
         test_serialize("tiff");
         test_deserialize("tiff");
+        test_serialize("tif");
+        test_deserialize("tif");
     }
 
     #[test]
