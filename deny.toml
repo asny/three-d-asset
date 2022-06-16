@@ -21,6 +21,11 @@ wildcards = "allow"        # at least until https://github.com/EmbarkStudios/car
 deny = []
 
 skip = [
+    { name = "num-rational" },              # gltf uses an old version
+    { name = "jpeg-decoder" },              # gltf uses an old version
+    { name = "png" },              # gltf uses an old version
+    { name = "deflate" },              # gltf uses an old version
+    { name = "image" },              # gltf uses an old version
     { name = "base64" },              # gltf uses an old version
     { name = "miniz_oxide" },         # image crate depends on an old version
 ]
@@ -38,8 +43,6 @@ allow = [
     "BSD-2-Clause", # https://tldrlegal.com/license/bsd-2-clause-license-(freebsd)
     "BSD-3-Clause", # https://tldrlegal.com/license/bsd-3-clause-license-(revised)
     "BSL-1.0",      # https://tldrlegal.com/license/boost-software-license-1.0-explained
-    "CC0-1.0",      # https://creativecommons.org/publicdomain/zero/1.0/
-    "ISC",          # https://tldrlegal.com/license/-isc-license
     "MIT",          # https://tldrlegal.com/license/mit-license
     # "MPL-2.0",      # https://www.mozilla.org/en-US/MPL/2.0/FAQ/ - see Q11
     # "OpenSSL",      # https://www.openssl.org/source/license.html
