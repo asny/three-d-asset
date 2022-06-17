@@ -60,19 +60,19 @@ pub enum Error {
     #[cfg(feature = "image")]
     #[error("error while parsing an image file")]
     Image(#[from] image::ImageError),
-    #[cfg(all(feature = "obj", feature = "image"))]
+    #[cfg(feature = "obj")]
     #[error("error while parsing an .obj file")]
     Obj(#[from] wavefront_obj::ParseError),
     #[cfg(not(target_arch = "wasm32"))]
     #[error("io error")]
     IO(#[from] std::io::Error),
-    #[cfg(all(feature = "gltf", feature = "image"))]
+    #[cfg(feature = "gltf")]
     #[error("error while parsing a .gltf file")]
     Gltf(#[from] ::gltf::Error),
-    #[cfg(all(feature = "gltf", feature = "image"))]
+    #[cfg(feature = "gltf")]
     #[error("the .gltf file contain corrupt buffer data")]
     GltfCorruptData,
-    #[cfg(all(feature = "gltf", feature = "image"))]
+    #[cfg(feature = "gltf")]
     #[error("the .gltf file contain missing buffer data")]
     GltfMissingData,
     #[error("the .vol file contain wrong data size")]
