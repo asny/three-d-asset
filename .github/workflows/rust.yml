@@ -31,6 +31,42 @@ jobs:
           command: check
           args: --all-features
 
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features gltf
+
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features obj
+
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features png
+
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features hdr
+
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features vol
+
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --features http
+
       - name: Rustfmt
         uses: actions-rs/cargo@v1
         with:
