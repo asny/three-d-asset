@@ -215,7 +215,14 @@ fn parse_texture<'a>(
             if view.stride() != None {
                 unimplemented!();
             }
+            #[allow(unused_variables)]
             let buffer = &buffers[view.buffer().index()];
+            #[cfg(not(feature = "image"))]
+            return Err(Error::FeatureMissing(
+                "image".to_string(),
+                path.to_str().unwrap().to_string(),
+            ));
+            #[cfg(feature = "image")]
             super::img::deserialize_img("", &buffer[view.offset()..view.offset() + view.length()])?
         }
     };
