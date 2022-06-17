@@ -76,6 +76,8 @@ pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D
 }
 
 pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
+    #![allow(unreachable_code)]
+    #![allow(unused_variables)]
     let format: image::ImageOutputFormat = match path.extension().unwrap().to_str().unwrap() {
         "png" => {
             #[cfg(not(feature = "png"))]
