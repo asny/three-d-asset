@@ -282,4 +282,17 @@ mod test {
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
+
+    #[test]
+    pub fn deserialize_gltf_with_data_url() {
+        let model: crate::Model = crate::io::RawAssets::new()
+            .insert(
+                "data_url.gltf",
+                include_bytes!("../../test_data/data_url.gltf").to_vec(),
+            )
+            .deserialize("gltf")
+            .unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 1);
+    }
 }
