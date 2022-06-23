@@ -17,23 +17,23 @@ When in memory, the assets can be for example be
 
 | Format | Deserialize | Serialize | Feature | 
 | ------------ | -------------| ------------- | ------------- |
-| OBJ/MTL | :heavy_check_mark: |  :white_large_square: | `obj` |
-| GLTF/GLB | :heavy_check_mark: |  :white_large_square: | `gltf` |
+| OBJ/MTL | :white_check_mark: |  :x: | `obj` |
+| GLTF/GLB | :white_check_mark: |  :x: | `gltf` |
 
 ### Texture2D
 
 | Format | Deserialize | Serialize | Feature | 
 | ------------ | ------------- | ------------- | ------------- |
-| PNG | :heavy_check_mark: |  :heavy_check_mark: | `png` |
-| JPEG | :heavy_check_mark: |  :heavy_check_mark: | `jpeg` |
-| HDR | :heavy_check_mark: |  :white_large_square: | `hdr` |
-| GIF | :heavy_check_mark: |  :heavy_check_mark: | `gif` |
-| TGA | :heavy_check_mark: |  :heavy_check_mark: | `tga` |
-| TIFF | :heavy_check_mark: |  :heavy_check_mark: | `tiff` |
-| BMP | :heavy_check_mark: |  :heavy_check_mark: | `bmp` |
+| PNG | :white_check_mark: |  :white_check_mark: | `png` |
+| JPEG | :white_check_mark: |  :white_check_mark: | `jpeg` |
+| HDR | :white_check_mark: |  :x: | `hdr` |
+| GIF | :white_check_mark: |  :white_check_mark: | `gif` |
+| TGA | :white_check_mark: |  :white_check_mark: | `tga` |
+| TIFF | :white_check_mark: |  :white_check_mark: | `tiff` |
+| BMP | :white_check_mark: |  :white_check_mark: | `bmp` |
 
 ### VoxelGrid
 
 | Format | Deserialize | Serialize | Feature | 
 | ------------ | ------------- | ------------- | ------------- |
-| VOL | :heavy_check_mark: |  :white_large_square: | `vol` |
+| VOL | :white_check_mark: |  :x: | `vol` |
