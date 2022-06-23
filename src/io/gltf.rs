@@ -11,7 +11,27 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> R
     let mut buffers = Vec::new();
     for buffer in document.buffers() {
         let mut data = match buffer.source() {
-            ::gltf::buffer::Source::Uri(uri) => raw_assets.remove(base_path.join(uri))?,
+            ::gltf::buffer::Source::Uri(uri) => {
+                if uri.starts_with("data:") {
+                    #[cfg(feature = "data-url")]
+                    {
+                        let url = data_url::DataUrl::process(uri).map_err(|e| {
+                            Error::FailedParsingDataUrl(uri.to_string(), format!("{:?}", e))
+                        })?;
+                        let (body, _) = url.decode_to_vec().map_err(|e| {
+                            Error::FailedParsingDataUrl(uri.to_string(), format!("{:?}", e))
+                        })?;
+                        body
+                    }
+                    #[cfg(not(feature = "data-url"))]
+                    return Err(Error::FeatureMissing(
+                        "data-url".to_string(),
+                        uri.to_string(),
+                    ));
+                } else {
+                    raw_assets.remove(base_path.join(uri))?
+                }
+            }
             ::gltf::buffer::Source::Bin => blob.take().ok_or(Error::GltfMissingData)?,
         };
         if data.len() < buffer.length() {
