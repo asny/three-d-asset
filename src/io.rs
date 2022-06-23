@@ -86,7 +86,7 @@ use std::path::Path;
 
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let path = raw_assets.match_path(path)?;
+        let path = raw_assets.match_path(path.as_ref())?;
         #[allow(unused_variables)]
         let bytes = raw_assets.get(&path)?;
 
@@ -124,7 +124,7 @@ impl Serialize for crate::Texture2D {
 
 impl Deserialize for crate::Model {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let path = raw_assets.match_path(path)?;
+        let path = raw_assets.match_path(path.as_ref())?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "gltf" | "glb" => {
                 #[cfg(not(feature = "gltf"))]
@@ -153,7 +153,7 @@ impl Deserialize for crate::Model {
 
 impl Deserialize for crate::VoxelGrid {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let path = raw_assets.match_path(path)?;
+        let path = raw_assets.match_path(path.as_ref())?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "vol" => {
                 #[cfg(feature = "vol")]

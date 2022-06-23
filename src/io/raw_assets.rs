@@ -37,7 +37,31 @@ impl RawAssets {
     /// ```
     ///
     pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
-        Ok(self.0.remove(&self.match_path(path)?).unwrap())
+        let path = path.as_ref();
+        if path
+            .to_str()
+            .map(|s| s.starts_with("data:"))
+            .unwrap_or(false)
+        {
+            let path = path.to_str().unwrap();
+            #[cfg(feature = "data-url")]
+            {
+                let url = data_url::DataUrl::process(path).map_err(|e| {
+                    Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e))
+                })?;
+                let (body, _) = url.decode_to_vec().map_err(|e| {
+                    Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e))
+                })?;
+                Ok(body)
+            }
+            #[cfg(not(feature = "data-url"))]
+            Err(Error::FeatureMissing(
+                "data-url".to_string(),
+                path.to_string(),
+            ))
+        } else {
+            Ok(self.0.remove(&self.match_path(path)?).unwrap())
+        }
     }
 
     ///
@@ -57,11 +81,10 @@ impl RawAssets {
     /// ```
     ///
     pub fn get(&self, path: impl AsRef<Path>) -> Result<&[u8]> {
-        Ok(self.0.get(&self.match_path(path)?).unwrap())
+        Ok(self.0.get(&self.match_path(path.as_ref())?).unwrap())
     }
 
-    pub(crate) fn match_path(&self, path: impl AsRef<Path>) -> Result<PathBuf> {
-        let path = path.as_ref();
+    pub(crate) fn match_path(&self, path: &Path) -> Result<PathBuf> {
         if self.0.contains_key(path) {
             Ok(path.to_path_buf())
         } else {
