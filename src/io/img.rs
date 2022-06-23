@@ -210,12 +210,14 @@ mod test {
         );
     }
 
+    #[cfg(feature = "png")]
     #[test]
     pub fn png() {
         test_serialize("png");
         test_deserialize("png");
     }
 
+    #[cfg(feature = "jpeg")]
     #[test]
     pub fn jpeg() {
         test_serialize("jpeg");
@@ -224,18 +226,21 @@ mod test {
         test_deserialize("jpg");
     }
 
+    #[cfg(feature = "gif")]
     #[test]
     pub fn gif() {
         test_serialize("gif");
         test_deserialize("gif");
     }
 
+    #[cfg(feature = "tga")]
     #[test]
     pub fn tga() {
         test_serialize("tga");
         test_deserialize("tga");
     }
 
+    #[cfg(feature = "tiff")]
     #[test]
     pub fn tiff() {
         test_serialize("tiff");
@@ -244,12 +249,14 @@ mod test {
         test_deserialize("tif");
     }
 
+    #[cfg(feature = "bmp")]
     #[test]
     pub fn bmp() {
         test_serialize("bmp");
         test_deserialize("bmp");
     }
 
+    #[cfg(feature = "hdr")]
     #[test]
     pub fn hdr() {
         let tex: crate::Texture2D = crate::io::load(&["test_data/test.hdr"])
