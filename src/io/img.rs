@@ -81,55 +81,37 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
     let format: image::ImageOutputFormat = match path.extension().unwrap().to_str().unwrap() {
         "png" => {
             #[cfg(not(feature = "png"))]
-            return Err(Error::FeatureMissing(
-                "png".to_string(),
-                path.to_str().unwrap().to_string(),
-            ));
+            return Err(Error::FeatureMissing("png".to_string()));
             #[cfg(feature = "png")]
             image::ImageOutputFormat::Png
         }
         "jpeg" | "jpg" => {
             #[cfg(not(feature = "jpeg"))]
-            return Err(Error::FeatureMissing(
-                "jpeg".to_string(),
-                path.to_str().unwrap().to_string(),
-            ));
+            return Err(Error::FeatureMissing("jpeg".to_string()));
             #[cfg(feature = "jpeg")]
             image::ImageOutputFormat::Jpeg(100)
         }
         "bmp" => {
             #[cfg(not(feature = "bmp"))]
-            return Err(Error::FeatureMissing(
-                "bmp".to_string(),
-                path.to_str().unwrap().to_string(),
-            ));
+            return Err(Error::FeatureMissing("bmp".to_string()));
             #[cfg(feature = "bmp")]
             image::ImageOutputFormat::Bmp
         }
         "tga" => {
             #[cfg(not(feature = "tga"))]
-            return Err(Error::FeatureMissing(
-                "tga".to_string(),
-                path.to_str().unwrap().to_string(),
-            ));
+            return Err(Error::FeatureMissing("tga".to_string()));
             #[cfg(feature = "tga")]
             image::ImageOutputFormat::Tga
         }
         "tiff" | "tif" => {
             #[cfg(not(feature = "tiff"))]
-            return Err(Error::FeatureMissing(
-                "tiff".to_string(),
-                path.to_str().unwrap().to_string(),
-            ));
+            return Err(Error::FeatureMissing("tiff".to_string()));
             #[cfg(feature = "tiff")]
             image::ImageOutputFormat::Tiff
         }
         "gif" => {
             #[cfg(not(feature = "gif"))]
-            return Err(Error::FeatureMissing(
-                "gif".to_string(),
-                path.to_str().unwrap().to_string(),
-            ));
+            return Err(Error::FeatureMissing("gif".to_string()));
             #[cfg(feature = "gif")]
             image::ImageOutputFormat::Gif
         }

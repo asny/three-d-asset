@@ -86,16 +86,13 @@ pub enum Error {
     #[cfg(feature = "reqwest")]
     #[error("error while parsing the url {0}")]
     FailedParsingUrl(String),
-    #[cfg(not(feature = "reqwest"))]
-    #[error("error while loading the url {0}: feature 'reqwest' not enabled")]
-    FailedLoadingUrl(String),
     #[cfg(feature = "data-url")]
     #[error("error while parsing data-url {0}: {1}")]
     FailedParsingDataUrl(String, String),
     #[error("tried to use {0} which was not loaded or otherwise added to the raw assets")]
     NotLoaded(String),
-    #[error("the feature {0} is necessary to deserialize the file {1}")]
-    FeatureMissing(String, String),
+    #[error("the feature {0} is needed")]
+    FeatureMissing(String),
     #[error("failed to deserialize the file {0}")]
     FailedDeserialize(String),
     #[error("failed to serialize the file {0}")]

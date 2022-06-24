@@ -33,8 +33,7 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 ///
 /// Supports local URLs relative to the base URL ("/my/asset.png") and, if the `http` feature is enabled, absolute urls ("https://example.com/my/asset.png").
 ///
-#[cfg(all(feature = "reqwest", target_arch = "wasm32"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "http")))]
+#[cfg(target_arch = "wasm32")]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let base_path = base_path();
     let mut urls = Vec::new();
@@ -86,9 +85,9 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn load_from_disk(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+fn load_from_disk(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     let mut handles = Vec::new();
-    for path in paths.drain(..) {
+    for path in paths {
         handles.push((
             path.clone(),
             std::thread::spawn(move || std::fs::read(path)),
@@ -105,12 +104,13 @@ fn load_from_disk(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result
     Ok(())
 }
 
-#[cfg(feature = "reqwest")]
-async fn load_urls(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+#[allow(unused_variables)]
+async fn load_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+    #[cfg(feature = "reqwest")]
     if paths.len() > 0 {
         let mut handles = Vec::new();
         let client = reqwest::Client::new();
-        for path in paths.drain(..) {
+        for path in paths {
             let url = reqwest::Url::parse(path.to_str().unwrap())
                 .map_err(|_| Error::FailedParsingUrl(path.to_str().unwrap().to_string()))?;
             handles.push((path, client.get(url).send().await));
@@ -125,27 +125,22 @@ async fn load_urls(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Resul
             raw_assets.insert(path, bytes);
         }
     }
+    #[cfg(not(feature = "reqwest"))]
+    if paths.len() > 0 {
+        return Err(Error::FeatureMissing("reqwest".to_string()));
+    }
     Ok(())
 }
 
-#[cfg(not(feature = "reqwest"))]
-async fn load_urls(paths: Vec<PathBuf>, _raw_assets: &mut RawAssets) -> Result<()> {
-    if paths.is_empty() {
-        Ok(())
-    } else {
-        let url = paths[0].to_str().unwrap().to_owned();
-        Err(Error::FailedLoadingUrl(url))
-    }
-}
-
-fn parse_data_urls(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
-    for path in paths.drain(..) {
+fn parse_data_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+    for path in paths {
         let bytes = crate::io::parse_data_url(path.to_str().unwrap())?;
         raw_assets.insert(path, bytes);
     }
     Ok(())
 }
 
+#[allow(unused_variables)]
 pub(crate) fn parse_data_url(path: &str) -> Result<Vec<u8>> {
     #[cfg(feature = "data-url")]
     {
@@ -157,10 +152,7 @@ pub(crate) fn parse_data_url(path: &str) -> Result<Vec<u8>> {
         Ok(body)
     }
     #[cfg(not(feature = "data-url"))]
-    Err(Error::FeatureMissing(
-        "data-url".to_string(),
-        path.to_string(),
-    ))
+    Err(Error::FeatureMissing("data-url".to_string()))
 }
 
 fn is_absolute_url(path: &Path) -> bool {

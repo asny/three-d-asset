@@ -96,7 +96,6 @@ impl Deserialize for crate::Texture2D {
                 .map(|e| e.to_str().unwrap())
                 .unwrap_or("image")
                 .to_string(),
-            path.to_str().unwrap().to_string(),
         ));
 
         #[cfg(feature = "image")]
@@ -114,7 +113,6 @@ impl Serialize for crate::Texture2D {
                 .map(|e| e.to_str().unwrap())
                 .unwrap_or("image")
                 .to_string(),
-            path.to_str().unwrap().to_string(),
         ));
 
         #[cfg(feature = "image")]
@@ -128,20 +126,14 @@ impl Deserialize for crate::Model {
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "gltf" | "glb" => {
                 #[cfg(not(feature = "gltf"))]
-                return Err(Error::FeatureMissing(
-                    "gltf".to_string(),
-                    path.to_str().unwrap().to_string(),
-                ));
+                return Err(Error::FeatureMissing("gltf".to_string()));
 
                 #[cfg(feature = "gltf")]
                 gltf::deserialize_gltf(raw_assets, path)
             }
             "obj" => {
                 #[cfg(not(feature = "obj"))]
-                return Err(Error::FeatureMissing(
-                    "obj".to_string(),
-                    path.to_str().unwrap().to_string(),
-                ));
+                return Err(Error::FeatureMissing("obj".to_string()));
 
                 #[cfg(feature = "obj")]
                 obj::deserialize_obj(raw_assets, path)
@@ -160,10 +152,7 @@ impl Deserialize for crate::VoxelGrid {
                 let result = vol::deserialize_vol(raw_assets, path);
 
                 #[cfg(not(feature = "vol"))]
-                let result = Err(Error::FeatureMissing(
-                    "vol".to_string(),
-                    path.to_str().unwrap().to_string(),
-                ));
+                let result = Err(Error::FeatureMissing("vol".to_string()));
                 result
             }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
