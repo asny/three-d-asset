@@ -12,14 +12,19 @@ use std::path::{Path, PathBuf};
 ///
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+    let mut data_urls = Vec::new();
+    let mut local_paths = Vec::new();
+    for path in paths.iter() {
+        let path = path.as_ref().to_path_buf();
+        if is_data_url(&path) {
+            data_urls.push(path);
+        } else {
+            local_paths.push(path);
+        }
+    }
     let mut raw_assets = RawAssets::new();
-    load_from_disk(
-        paths
-            .iter()
-            .map(|p| p.as_ref().to_path_buf())
-            .collect::<Vec<_>>(),
-        &mut raw_assets,
-    )?;
+    load_from_disk(local_paths, &mut raw_assets)?;
+    parse_data_urls(data_urls, &mut raw_assets)?;
     Ok(raw_assets)
 }
 
@@ -33,15 +38,20 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let base_path = base_path();
     let mut urls = Vec::new();
+    let mut data_urls = Vec::new();
     for path in paths.iter() {
-        let mut p = path.as_ref().to_path_buf();
-        if !is_absolute_url(p.to_str().unwrap()) {
-            p = base_path.join(p);
+        let path = path.as_ref().to_path_buf();
+        if is_data_url(&path) {
+            data_urls.push(path);
+        } else if is_absolute_url(&path) {
+            urls.push(path);
+        } else {
+            urls.push(base_path.join(path));
         }
-        urls.push(p);
     }
     let mut raw_assets = RawAssets::new();
     load_urls(urls, &mut raw_assets).await?;
+    parse_data_urls(data_urls, &mut raw_assets)?;
     Ok(raw_assets)
 }
 
@@ -55,10 +65,13 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut urls = Vec::new();
+    let mut data_urls = Vec::new();
     let mut local_paths = Vec::new();
     for path in paths.iter() {
         let path = path.as_ref().to_path_buf();
-        if is_absolute_url(path.to_str().unwrap()) {
+        if is_data_url(&path) {
+            data_urls.push(path);
+        } else if is_absolute_url(&path) {
             urls.push(path);
         } else {
             local_paths.push(path);
@@ -68,6 +81,7 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = RawAssets::new();
     load_urls(urls, &mut raw_assets).await?;
     load_from_disk(local_paths, &mut raw_assets)?;
+    parse_data_urls(data_urls, &mut raw_assets)?;
     Ok(raw_assets)
 }
 
@@ -124,9 +138,44 @@ async fn load_urls(paths: Vec<PathBuf>, _raw_assets: &mut RawAssets) -> Result<(
     }
 }
 
-fn is_absolute_url(path: &str) -> bool {
-    path.find("://").map(|i| i > 0).unwrap_or(false)
-        || path.find("//").map(|i| i == 0).unwrap_or(false)
+fn parse_data_urls(mut paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+    for path in paths.drain(..) {
+        let bytes = crate::io::parse_data_url(path.to_str().unwrap())?;
+        raw_assets.insert(path, bytes);
+    }
+    Ok(())
+}
+
+pub(crate) fn parse_data_url(path: &str) -> Result<Vec<u8>> {
+    #[cfg(feature = "data-url")]
+    {
+        let url = data_url::DataUrl::process(path)
+            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
+        let (body, _) = url
+            .decode_to_vec()
+            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
+        Ok(body)
+    }
+    #[cfg(not(feature = "data-url"))]
+    Err(Error::FeatureMissing(
+        "data-url".to_string(),
+        path.to_string(),
+    ))
+}
+
+fn is_absolute_url(path: &Path) -> bool {
+    path.to_str()
+        .map(|s| {
+            s.find("://").map(|i| i > 0).unwrap_or(false)
+                || s.find("//").map(|i| i == 0).unwrap_or(false)
+        })
+        .unwrap_or(false)
+}
+
+fn is_data_url(path: &Path) -> bool {
+    path.to_str()
+        .map(|s| s.starts_with("data:"))
+        .unwrap_or(false)
 }
 
 #[cfg(target_arch = "wasm32")]

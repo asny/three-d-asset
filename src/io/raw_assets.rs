@@ -38,29 +38,16 @@ impl RawAssets {
     ///
     pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
         let path = path.as_ref();
-        if path
-            .to_str()
-            .map(|s| s.starts_with("data:"))
-            .unwrap_or(false)
-        {
-            let path = path.to_str().unwrap();
-            #[cfg(feature = "data-url")]
-            {
-                let url = data_url::DataUrl::process(path).map_err(|e| {
-                    Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e))
-                })?;
-                let (body, _) = url.decode_to_vec().map_err(|e| {
-                    Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e))
-                })?;
-                Ok(body)
+        match self.match_path(path) {
+            Ok(ref path) => Ok(self.0.remove(path).unwrap()),
+            Err(error) => {
+                let path = path.to_str().unwrap();
+                if path.starts_with("data:") {
+                    crate::io::parse_data_url(path)
+                } else {
+                    Err(error)
+                }
             }
-            #[cfg(not(feature = "data-url"))]
-            Err(Error::FeatureMissing(
-                "data-url".to_string(),
-                path.to_string(),
-            ))
-        } else {
-            Ok(self.0.remove(&self.match_path(path)?).unwrap())
         }
     }
 
