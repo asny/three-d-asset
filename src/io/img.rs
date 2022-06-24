@@ -118,6 +118,25 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
         _ => return Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
     };
     let img = match &tex.data {
+        TextureData::RU8(data) => DynamicImage::ImageLuma8(
+            ImageBuffer::from_raw(tex.width, tex.height, data.clone()).unwrap(),
+        ),
+        TextureData::RgU8(data) => DynamicImage::ImageLumaA8(
+            ImageBuffer::from_raw(
+                tex.width,
+                tex.height,
+                data.iter().flat_map(|v| *v).collect::<Vec<_>>(),
+            )
+            .unwrap(),
+        ),
+        TextureData::RgbU8(data) => DynamicImage::ImageRgb8(
+            ImageBuffer::from_raw(
+                tex.width,
+                tex.height,
+                data.iter().flat_map(|v| *v).collect::<Vec<_>>(),
+            )
+            .unwrap(),
+        ),
         TextureData::RgbaU8(data) => DynamicImage::ImageRgba8(
             ImageBuffer::from_raw(
                 tex.width,
