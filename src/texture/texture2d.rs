@@ -4,7 +4,7 @@ pub use crate::texture::{Interpolation, TextureData, Wrapping};
 ///
 /// A CPU-side version of a 2D texture.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Texture2D {
     /// The pixel data for the image
     pub data: TextureData,

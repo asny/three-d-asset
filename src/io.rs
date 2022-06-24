@@ -88,7 +88,7 @@ impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
         #[allow(unused_variables)]
-        let bytes = raw_assets.get(&path)?;
+        let bytes = raw_assets.remove(&path)?;
 
         #[cfg(not(feature = "image"))]
         return Err(Error::FeatureMissing(
@@ -99,7 +99,7 @@ impl Deserialize for crate::Texture2D {
         ));
 
         #[cfg(feature = "image")]
-        img::deserialize_img(path, bytes)
+        img::deserialize_img(path, &bytes)
     }
 }
 

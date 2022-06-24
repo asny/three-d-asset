@@ -57,7 +57,7 @@ pub enum Wrapping {
 /// ]
 /// ```
 ///
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum TextureData {
     /// One byte in the red channel.
     RU8(Vec<u8>),
