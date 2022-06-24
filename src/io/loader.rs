@@ -6,9 +6,13 @@ use crate::{io::RawAssets, Error, Result};
 use std::path::{Path, PathBuf};
 
 ///
-/// Parallel loads all of the resources in the given paths from disk and returns the [RawAssets] resources.
+/// Loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
-/// This only loads resources from disk, if downloading resources from URLs is also needed, use the [load_async] method instead.
+/// Supported functionality:
+/// - Loading from disk (relative and absolute paths)
+/// - Parsing from data URLs (requires the `data-url` feature flag)
+///
+/// If downloading resources is also needed, use the [load_async] method instead.
 ///
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
@@ -31,7 +35,9 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 ///
 /// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
-/// Supports local URLs relative to the base URL ("/my/asset.png") and, if the `http` feature is enabled, absolute urls ("https://example.com/my/asset.png").
+/// Supported functionality:
+/// - Downloading from URLs relative to the base URL and absolute urls (requires the `http` or `reqwest` feature flag)
+/// - Parsing from data URLs (requires the `data-url` feature flag)
 ///
 #[cfg(target_arch = "wasm32")]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
@@ -56,10 +62,12 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 
 #[allow(rustdoc::bare_urls)]
 ///
-/// Loads all of the resources in the given paths and returns the [RawAssets] resources.
-/// URLs are downloaded async (requires the `http` feature) and resources on disk are loaded in parallel.
+/// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
-/// Supports local URLs relative to the base URL ("/my/asset.png") and absolute urls ("https://example.com/my/asset.png").
+/// Supported functionality:
+/// - Downloading from URLs relative to the base URL and absolute urls (requires the `http` or `reqwest` feature flag)
+/// - Loading from disk (relative and absolute paths)
+/// - Parsing from data URLs (requires the `data-url` feature flag)
 ///
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
