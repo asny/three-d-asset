@@ -37,18 +37,7 @@ impl RawAssets {
     /// ```
     ///
     pub fn remove(&mut self, path: impl AsRef<Path>) -> Result<Vec<u8>> {
-        let path = path.as_ref();
-        match self.match_path(path) {
-            Ok(ref path) => Ok(self.0.remove(path).unwrap()),
-            Err(error) => {
-                let path = path.to_str().unwrap();
-                if path.starts_with("data:") {
-                    crate::io::parse_data_url(path)
-                } else {
-                    Err(error)
-                }
-            }
-        }
+        Ok(self.0.remove(&self.match_path(path.as_ref())?).unwrap())
     }
 
     ///
