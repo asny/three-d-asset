@@ -33,7 +33,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
         let mut data = match buffer.source() {
             ::gltf::buffer::Source::Uri(uri) => {
                 if uri.starts_with("data:") {
-                    raw_assets.remove(PathBuf::from(uri))?
+                    raw_assets.remove(uri)?
                 } else {
                     raw_assets.remove(base_path.join(uri))?
                 }
@@ -235,7 +235,11 @@ fn parse_texture<'a>(
     let gltf_source = gltf_image.source();
     let tex = match gltf_source {
         ::gltf::image::Source::Uri { uri, .. } => {
-            raw_assets.deserialize(path.join(Path::new(uri)))?
+            if uri.starts_with("data:") {
+                raw_assets.deserialize(uri)?
+            } else {
+                raw_assets.deserialize(path.join(uri))?
+            }
         }
         ::gltf::image::Source::View { view, .. } => {
             if view.stride() != None {
