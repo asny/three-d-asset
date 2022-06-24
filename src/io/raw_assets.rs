@@ -144,6 +144,21 @@ impl RawAssets {
     pub fn iter(&self) -> std::collections::hash_map::Iter<'_, PathBuf, Vec<u8>> {
         self.0.iter()
     }
+
+    pub(super) fn dependencies(&self) -> Vec<PathBuf> {
+        #[allow(unused_mut)]
+        let mut dependencies = Vec::new();
+        for path in self.0.keys() {
+            match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+                "gltf" | "glb" => {
+                    #[cfg(feature = "gltf")]
+                    dependencies.extend(super::gltf::dependencies(self, path));
+                }
+                _ => {}
+            }
+        }
+        dependencies
+    }
 }
 
 impl std::fmt::Debug for RawAssets {

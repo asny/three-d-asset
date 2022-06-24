@@ -1,17 +1,43 @@
 use crate::{geometry::*, io::*, material::*, Error, Model, Result};
 use ::gltf::Gltf;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
-pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
+pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
+    let mut dependencies = Vec::new();
+    if let Ok(Gltf { document, .. }) = Gltf::from_slice(raw_assets.get(path).unwrap()) {
+        let base_path = path.parent().unwrap_or(Path::new(""));
+        for buffer in document.buffers() {
+            match buffer.source() {
+                ::gltf::buffer::Source::Uri(uri) => {
+                    if uri.starts_with("data:") {
+                        dependencies.push(PathBuf::from(uri))
+                    } else {
+                        dependencies.push(base_path.join(uri))
+                    }
+                }
+                _ => {}
+            };
+        }
+    }
+    dependencies
+}
+
+pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
     let mut cpu_meshes = Vec::new();
     let mut cpu_materials = Vec::new();
 
-    let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove(path.as_ref())?)?;
-    let base_path = path.as_ref().parent().unwrap_or(Path::new(""));
+    let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove(path)?)?;
+    let base_path = path.parent().unwrap_or(Path::new(""));
     let mut buffers = Vec::new();
     for buffer in document.buffers() {
         let mut data = match buffer.source() {
-            ::gltf::buffer::Source::Uri(uri) => raw_assets.remove(base_path.join(uri))?,
+            ::gltf::buffer::Source::Uri(uri) => {
+                if uri.starts_with("data:") {
+                    raw_assets.remove(PathBuf::from(uri))?
+                } else {
+                    raw_assets.remove(base_path.join(uri))?
+                }
+            }
             ::gltf::buffer::Source::Bin => blob.take().ok_or(Error::GltfMissingData)?,
         };
         if data.len() < buffer.length() {
@@ -262,12 +288,9 @@ mod test {
 
     #[test]
     pub fn deserialize_gltf_with_data_url() {
-        let model: crate::Model = crate::io::RawAssets::new()
-            .insert(
-                "data_url.gltf",
-                include_bytes!("../../test_data/data_url.gltf").to_vec(),
-            )
-            .deserialize("gltf")
+        let model: crate::Model = crate::io::load(&["test_data/data_url.gltf"])
+            .unwrap()
+            .deserialize("test_data/data_url.gltf")
             .unwrap();
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);

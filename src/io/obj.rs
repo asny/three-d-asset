@@ -1,11 +1,11 @@
 use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
 use std::collections::HashMap;
-use std::path::Path;
+use std::path::PathBuf;
 
-pub fn deserialize_obj(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Model> {
-    let obj_bytes = raw_assets.remove(path.as_ref())?;
+pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
+    let obj_bytes = raw_assets.remove(path)?;
     let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
-    let p = path.as_ref().parent().unwrap();
+    let p = path.parent().unwrap();
 
     // Parse materials
     let mut cpu_materials = Vec::new();

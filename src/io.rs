@@ -129,14 +129,14 @@ impl Deserialize for crate::Model {
                 return Err(Error::FeatureMissing("gltf".to_string()));
 
                 #[cfg(feature = "gltf")]
-                gltf::deserialize_gltf(raw_assets, path)
+                gltf::deserialize_gltf(raw_assets, &path)
             }
             "obj" => {
                 #[cfg(not(feature = "obj"))]
                 return Err(Error::FeatureMissing("obj".to_string()));
 
                 #[cfg(feature = "obj")]
-                obj::deserialize_obj(raw_assets, path)
+                obj::deserialize_obj(raw_assets, &path)
             }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
