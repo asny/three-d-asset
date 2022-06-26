@@ -62,21 +62,21 @@ impl RawAssets {
 
     pub(crate) fn match_path(&self, path: &Path) -> Result<PathBuf> {
         if self.0.contains_key(path) {
-            Ok(path.to_path_buf())
+            Ok(path.into())
         } else {
-            let p = path.to_str().unwrap();
-            let p2 = if p.ends_with(".jpeg") {
+            let p = path.to_str().unwrap().replace("\\", "/");
+            let p = if p.ends_with(".jpeg") {
                 p[0..p.len() - 2].to_string()
             } else if p.ends_with(".jpg") {
                 p[0..p.len() - 1].to_string()
             } else {
-                p.to_owned()
+                p
             };
             self.0
                 .iter()
-                .find(|(k, _)| k.to_str().unwrap().contains(&p2))
+                .find(|(k, _)| k.to_str().unwrap().contains(&p))
                 .map(|(k, _)| k.clone())
-                .ok_or(Error::NotLoaded(p.to_owned()))
+                .ok_or(Error::NotLoaded(path.to_str().unwrap().to_string()))
         }
     }
 
@@ -94,7 +94,8 @@ impl RawAssets {
     /// ```
     ///
     pub fn insert(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) -> &mut Self {
-        self.0.insert(path.as_ref().to_path_buf(), bytes);
+        let key = path.as_ref().to_str().unwrap().replace("\\", "/").into();
+        self.0.insert(key, bytes);
         self
     }
 
@@ -103,7 +104,7 @@ impl RawAssets {
     ///
     pub fn extend(&mut self, mut raw_assets: Self) -> &mut Self {
         for (k, v) in raw_assets.0.drain() {
-            self.0.insert(k, v);
+            self.insert(k, v);
         }
         self
     }
