@@ -146,14 +146,14 @@ async fn load_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()
 
 fn parse_data_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     for path in paths {
-        let bytes = crate::io::parse_data_url(path.to_str().unwrap())?;
+        let bytes = parse_data_url(path.to_str().unwrap())?;
         raw_assets.insert(path, bytes);
     }
     Ok(())
 }
 
 #[allow(unused_variables)]
-pub(crate) fn parse_data_url(path: &str) -> Result<Vec<u8>> {
+fn parse_data_url(path: &str) -> Result<Vec<u8>> {
     #[cfg(feature = "data-url")]
     {
         let url = data_url::DataUrl::process(path)
