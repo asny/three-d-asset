@@ -138,12 +138,13 @@ impl RawAssets {
     pub fn save(&mut self) -> Result<()> {
         crate::io::save(self)
     }
+}
 
-    ///
-    /// An iterator visiting all pairs of [PathBuf] (indicating the source or destination path for the raw asset) and `Vec<u8>` which are the raw serialized bytes.
-    ///
-    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, PathBuf, Vec<u8>> {
-        self.0.iter()
+impl std::ops::Deref for RawAssets {
+    type Target = HashMap<PathBuf, Vec<u8>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
