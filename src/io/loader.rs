@@ -32,6 +32,11 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     Ok(raw_assets)
 }
 
+///
+/// Same as [load] except that it also loads dependencies for the loaded assets.
+/// For example, a GLTF file might depend on a image file to load correctly. Using this function,
+/// only the gltf path needs to be specified, whereas if using [load] both the GLTF file path and image file path needs to be specified.
+///
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = load(paths)?;
@@ -44,6 +49,11 @@ pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     Ok(raw_assets)
 }
 
+///
+/// Same as [load_async] except that it also loads dependencies for the loaded assets.
+/// For example, a GLTF file might depend on a image file to load correctly. Using this function,
+/// only the gltf path needs to be specified, whereas if using [load_async] both the GLTF file path and image file path needs to be specified.
+///
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn load_async_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = load_async(paths).await?;
