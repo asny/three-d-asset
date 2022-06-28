@@ -44,6 +44,18 @@ pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     Ok(raw_assets)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+pub async fn load_async_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+    let mut raw_assets = load_async(paths).await?;
+    let mut dependencies = super::dependencies(&raw_assets);
+    while !dependencies.is_empty() {
+        let deps = load_async(&dependencies).await?;
+        dependencies = super::dependencies(&deps);
+        raw_assets.extend(deps);
+    }
+    Ok(raw_assets)
+}
+
 ///
 /// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
