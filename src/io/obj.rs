@@ -222,7 +222,7 @@ mod test {
 
     #[test]
     pub fn deserialize_obj_with_material() {
-        let model: crate::Model = crate::io::load(&["test_data/suzanne.obj"])
+        let model: crate::Model = crate::io::load_with_dependencies(&["test_data/suzanne.obj"])
             .unwrap()
             .deserialize("obj")
             .unwrap();

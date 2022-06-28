@@ -29,9 +29,17 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = RawAssets::new();
     load_from_disk(local_paths, &mut raw_assets)?;
     parse_data_urls(data_urls, &mut raw_assets)?;
-    let dependencies = super::dependencies(&raw_assets);
-    if !dependencies.is_empty() {
-        raw_assets.extend(load(&dependencies)?);
+    Ok(raw_assets)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+    let mut raw_assets = load(paths)?;
+    let mut dependencies = super::dependencies(&raw_assets);
+    while !dependencies.is_empty() {
+        let deps = load(&dependencies)?;
+        dependencies = super::dependencies(&deps);
+        raw_assets.extend(deps);
     }
     Ok(raw_assets)
 }

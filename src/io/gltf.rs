@@ -292,7 +292,7 @@ mod test {
 
     #[test]
     pub fn deserialize_gltf_with_data_url() {
-        let model: crate::Model = crate::io::load(&["test_data/data_url.gltf"])
+        let model: crate::Model = crate::io::load_with_dependencies(&["test_data/data_url.gltf"])
             .unwrap()
             .deserialize("test_data/data_url.gltf")
             .unwrap();
