@@ -3,6 +3,7 @@
 //!
 
 use crate::{io::RawAssets, Error, Result};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 ///
@@ -16,14 +17,14 @@ use std::path::{Path, PathBuf};
 ///
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
-    let mut data_urls = Vec::new();
-    let mut local_paths = Vec::new();
+    let mut data_urls = HashSet::new();
+    let mut local_paths = HashSet::new();
     for path in paths.iter() {
         let path = path.as_ref().to_path_buf();
         if is_data_url(&path) {
-            data_urls.push(path);
+            data_urls.insert(path);
         } else {
-            local_paths.push(path);
+            local_paths.insert(path);
         }
     }
     let mut raw_assets = RawAssets::new();
@@ -105,17 +106,17 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 ///
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
-    let mut urls = Vec::new();
-    let mut data_urls = Vec::new();
-    let mut local_paths = Vec::new();
+    let mut urls = HashSet::new();
+    let mut data_urls = HashSet::new();
+    let mut local_paths = HashSet::new();
     for path in paths.iter() {
         let path = path.as_ref().to_path_buf();
         if is_data_url(&path) {
-            data_urls.push(path);
+            data_urls.insert(path);
         } else if is_absolute_url(&path) {
-            urls.push(path);
+            urls.insert(path);
         } else {
-            local_paths.push(path);
+            local_paths.insert(path);
         }
     }
 
@@ -127,7 +128,7 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn load_from_disk(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+fn load_from_disk(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     let mut handles = Vec::new();
     for path in paths {
         handles.push((
@@ -147,7 +148,7 @@ fn load_from_disk(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()>
 }
 
 #[allow(unused_variables)]
-async fn load_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+async fn load_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     #[cfg(feature = "reqwest")]
     if paths.len() > 0 {
         let mut handles = Vec::new();
@@ -174,7 +175,7 @@ async fn load_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()
     Ok(())
 }
 
-fn parse_data_urls(paths: Vec<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
+fn parse_data_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     for path in paths {
         let bytes = parse_data_url(path.to_str().unwrap())?;
         raw_assets.insert(path, bytes);
