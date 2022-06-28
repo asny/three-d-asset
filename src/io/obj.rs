@@ -1,22 +1,22 @@
 use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
-    let mut dependencies = Vec::new();
+pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
+    let mut dependencies = HashSet::new();
     if let Ok(Ok(obj)) =
         std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::obj::parse(s))
     {
         let base_path = path.parent().unwrap_or(Path::new(""));
         if let Some(material_library) = obj.material_library {
-            dependencies.push(base_path.join(material_library));
+            dependencies.insert(base_path.join(material_library));
         }
     }
     dependencies
 }
 
-pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
-    let mut dependencies = Vec::new();
+pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
+    let mut dependencies = HashSet::new();
     if let Ok(Ok(materials)) =
         std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::mtl::parse(s))
     {
@@ -24,28 +24,28 @@ pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> 
         for material in materials.materials {
             material
                 .ambient_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .diffuse_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .specular_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .specular_exponent_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .displacement_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .dissolve_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .decal_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
             material
                 .bump_map
-                .map(|p| dependencies.push(base_path.join(p)));
+                .map(|p| dependencies.insert(base_path.join(p)));
         }
     }
     dependencies

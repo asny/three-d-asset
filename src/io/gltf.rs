@@ -1,18 +1,19 @@
 use crate::{geometry::*, io::*, material::*, Error, Model, Result};
 use ::gltf::Gltf;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
-    let mut dependencies = Vec::new();
+pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
+    let mut dependencies = HashSet::new();
     if let Ok(Gltf { document, .. }) = Gltf::from_slice(raw_assets.get(path).unwrap()) {
         let base_path = path.parent().unwrap_or(Path::new(""));
         for buffer in document.buffers() {
             match buffer.source() {
                 ::gltf::buffer::Source::Uri(uri) => {
                     if uri.starts_with("data:") {
-                        dependencies.push(PathBuf::from(uri))
+                        dependencies.insert(PathBuf::from(uri));
                     } else {
-                        dependencies.push(base_path.join(uri))
+                        dependencies.insert(base_path.join(uri));
                     }
                 }
                 _ => {}
@@ -28,7 +29,7 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
     dependencies
 }
 
-fn parse_tree_deps(node: &::gltf::Node, dependencies: &mut Vec<PathBuf>, base_path: &Path) {
+fn parse_tree_deps(node: &::gltf::Node, dependencies: &mut HashSet<PathBuf>, base_path: &Path) {
     if let Some(mesh) = node.mesh() {
         for primitive in mesh.primitives() {
             let material = primitive.material();
@@ -55,7 +56,7 @@ fn parse_tree_deps(node: &::gltf::Node, dependencies: &mut Vec<PathBuf>, base_pa
 }
 
 fn add_texture_dep<'a>(
-    dependencies: &mut Vec<PathBuf>,
+    dependencies: &mut HashSet<PathBuf>,
     base_path: &Path,
     gltf_texture: ::gltf::texture::Texture,
 ) {
@@ -63,9 +64,9 @@ fn add_texture_dep<'a>(
         ::gltf::image::Source::Uri { uri, .. } => {
             if uri.starts_with("data:") {
                 use std::str::FromStr;
-                dependencies.push(PathBuf::from_str(uri).unwrap());
+                dependencies.insert(PathBuf::from_str(uri).unwrap());
             } else {
-                dependencies.push(base_path.join(uri));
+                dependencies.insert(base_path.join(uri));
             }
         }
         _ => {}
