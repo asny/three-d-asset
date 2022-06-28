@@ -29,7 +29,7 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = RawAssets::new();
     load_from_disk(local_paths, &mut raw_assets)?;
     parse_data_urls(data_urls, &mut raw_assets)?;
-    let dependencies = raw_assets.dependencies();
+    let dependencies = super::dependencies(&raw_assets);
     if !dependencies.is_empty() {
         raw_assets.extend(load(&dependencies)?);
     }

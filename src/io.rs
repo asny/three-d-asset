@@ -82,7 +82,7 @@ pub trait Serialize: Sized {
 }
 
 use crate::{Error, Result};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
@@ -158,4 +158,23 @@ impl Deserialize for crate::VoxelGrid {
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
+}
+
+fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
+    #[allow(unused_mut)]
+    let mut dependencies = Vec::new();
+    for (path, _) in raw_assets.iter() {
+        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+            "gltf" | "glb" => {
+                #[cfg(feature = "gltf")]
+                dependencies.extend(gltf::dependencies(raw_assets, path));
+            }
+            "obj" => {
+                #[cfg(feature = "obj")]
+                dependencies.extend(obj::dependencies(raw_assets, path));
+            }
+            _ => {}
+        }
+    }
+    dependencies
 }

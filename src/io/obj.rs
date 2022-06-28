@@ -2,9 +2,21 @@ use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
+    let mut dependencies = Vec::new();
+    if let Ok(Ok(obj)) =
+        std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::obj::parse(s))
+    {
+        if let Some(material_library) = obj.material_library {
+            dependencies.push(path.parent().unwrap().join(material_library));
+        }
+    }
+    dependencies
+}
+
 pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
     let obj_bytes = raw_assets.remove(path)?;
-    let obj = wavefront_obj::obj::parse(String::from_utf8(obj_bytes).unwrap())?;
+    let obj = wavefront_obj::obj::parse(std::str::from_utf8(&obj_bytes).unwrap())?;
     let p = path.parent().unwrap();
 
     // Parse materials
@@ -163,14 +175,21 @@ mod test {
 
     #[test]
     pub fn deserialize_obj() {
-        let model: crate::Model = crate::io::RawAssets::new()
-            .insert(
-                "cube.obj",
-                include_bytes!("../../test_data/cube.obj").to_vec(),
-            )
+        let model: crate::Model = crate::io::load(&["test_data/cube.obj"])
+            .unwrap()
             .deserialize("")
             .unwrap();
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 0);
+    }
+
+    #[test]
+    pub fn deserialize_obj_with_material() {
+        let model: crate::Model = crate::io::load(&["test_data/suzanne.obj"])
+            .unwrap()
+            .deserialize("obj")
+            .unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 1);
     }
 }
