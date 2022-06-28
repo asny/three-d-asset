@@ -1,13 +1,13 @@
 use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
     let mut dependencies = Vec::new();
     if let Ok(Ok(obj)) =
         std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::obj::parse(s))
     {
-        let base_path = path.parent().unwrap();
+        let base_path = path.parent().unwrap_or(Path::new(""));
         if let Some(material_library) = obj.material_library {
             dependencies.push(base_path.join(material_library));
         }
@@ -20,7 +20,7 @@ pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> 
     if let Ok(Ok(materials)) =
         std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::mtl::parse(s))
     {
-        let base_path = path.parent().unwrap();
+        let base_path = path.parent().unwrap_or(Path::new(""));
         for material in materials.materials {
             material
                 .ambient_map
@@ -54,7 +54,7 @@ pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> 
 pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
     let obj_bytes = raw_assets.remove(path)?;
     let obj = wavefront_obj::obj::parse(std::str::from_utf8(&obj_bytes).unwrap())?;
-    let p = path.parent().unwrap();
+    let p = path.parent().unwrap_or(Path::new(""));
 
     // Parse materials
     let mut cpu_materials = Vec::new();
