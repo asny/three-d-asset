@@ -17,6 +17,18 @@ use std::path::{Path, PathBuf};
 ///
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+    let mut raw_assets = load_single(paths)?;
+    let mut dependencies = super::get_dependencies(&raw_assets);
+    while !dependencies.is_empty() {
+        let deps = load_single(&dependencies)?;
+        dependencies = super::get_dependencies(&deps);
+        raw_assets.extend(deps);
+    }
+    Ok(raw_assets)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn load_single(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut data_urls = HashSet::new();
     let mut local_paths = HashSet::new();
     for path in paths.iter() {
@@ -34,48 +46,26 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 }
 
 ///
-/// Same as [load] except that it also loads dependencies for the loaded assets.
-/// For example, a GLTF file might depend on a image file to load correctly. Using this function,
-/// only the gltf path needs to be specified, whereas if using [load] both the GLTF file path and image file path needs to be specified.
-///
-#[cfg(not(target_arch = "wasm32"))]
-pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
-    let mut raw_assets = load(paths)?;
-    let mut dependencies = super::get_dependencies(&raw_assets);
-    while !dependencies.is_empty() {
-        let deps = load(&dependencies)?;
-        dependencies = super::get_dependencies(&deps);
-        raw_assets.extend(deps);
-    }
-    Ok(raw_assets)
-}
-
-///
-/// Same as [load_async] except that it also loads dependencies for the loaded assets.
-/// For example, a GLTF file might depend on a image file to load correctly. Using this function,
-/// only the gltf path needs to be specified, whereas if using [load_async] both the GLTF file path and image file path needs to be specified.
-///
-#[cfg(not(target_arch = "wasm32"))]
-pub async fn load_async_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
-    let mut raw_assets = load_async(paths).await?;
-    let mut dependencies = super::get_dependencies(&raw_assets);
-    while !dependencies.is_empty() {
-        let deps = load_async(&dependencies).await?;
-        dependencies = super::get_dependencies(&deps);
-        raw_assets.extend(deps);
-    }
-    Ok(raw_assets)
-}
-
-///
 /// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
 ///
 /// Supported functionality:
 /// - Downloading from URLs relative to the base URL and absolute urls (requires the `http` or `reqwest` feature flag)
 /// - Parsing from data URLs (requires the `data-url` feature flag)
+/// - *** Native only *** Loading from disk (relative and absolute paths)
 ///
-#[cfg(target_arch = "wasm32")]
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+    let mut raw_assets = load_async_single(paths).await?;
+    let mut dependencies = super::get_dependencies(&raw_assets);
+    while !dependencies.is_empty() {
+        let deps = load_async_single(&dependencies).await?;
+        dependencies = super::get_dependencies(&deps);
+        raw_assets.extend(deps);
+    }
+    Ok(raw_assets)
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn load_async_single(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let base_path = base_path();
     let mut urls = Vec::new();
     let mut data_urls = Vec::new();
@@ -95,17 +85,8 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     Ok(raw_assets)
 }
 
-#[allow(rustdoc::bare_urls)]
-///
-/// Async loads all of the resources in the given paths and returns the [RawAssets] resources.
-///
-/// Supported functionality:
-/// - Downloading from URLs relative to the base URL and absolute urls (requires the `http` or `reqwest` feature flag)
-/// - Loading from disk (relative and absolute paths)
-/// - Parsing from data URLs (requires the `data-url` feature flag)
-///
 #[cfg(not(target_arch = "wasm32"))]
-pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
+async fn load_async_single(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut urls = HashSet::new();
     let mut data_urls = HashSet::new();
     let mut local_paths = HashSet::new();
