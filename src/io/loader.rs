@@ -67,16 +67,16 @@ pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 #[cfg(target_arch = "wasm32")]
 async fn load_async_single(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let base_path = base_path();
-    let mut urls = Vec::new();
-    let mut data_urls = Vec::new();
+    let mut urls = HashSet::new();
+    let mut data_urls = HashSet::new();
     for path in paths.iter() {
         let path = path.as_ref().to_path_buf();
         if is_data_url(&path) {
-            data_urls.push(path);
+            data_urls.insert(path);
         } else if is_absolute_url(&path) {
-            urls.push(path);
+            urls.insert(path);
         } else {
-            urls.push(base_path.join(path));
+            urls.insert(base_path.join(path));
         }
     }
     let mut raw_assets = RawAssets::new();
