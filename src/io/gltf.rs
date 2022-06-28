@@ -18,8 +18,58 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
                 _ => {}
             };
         }
+
+        for scene in document.scenes() {
+            for node in scene.nodes() {
+                parse_tree_deps(&node, &mut dependencies, &base_path);
+            }
+        }
     }
     dependencies
+}
+
+fn parse_tree_deps(node: &::gltf::Node, dependencies: &mut Vec<PathBuf>, base_path: &Path) {
+    if let Some(mesh) = node.mesh() {
+        for primitive in mesh.primitives() {
+            let material = primitive.material();
+            let pbr = material.pbr_metallic_roughness();
+            pbr.base_color_texture()
+                .map(|info| add_texture_dep(dependencies, base_path, info.texture()));
+            pbr.metallic_roughness_texture()
+                .map(|info| add_texture_dep(dependencies, base_path, info.texture()));
+            material
+                .normal_texture()
+                .map(|info| add_texture_dep(dependencies, base_path, info.texture()));
+            material
+                .occlusion_texture()
+                .map(|info| add_texture_dep(dependencies, base_path, info.texture()));
+            material
+                .emissive_texture()
+                .map(|info| add_texture_dep(dependencies, base_path, info.texture()));
+        }
+    }
+
+    for child in node.children() {
+        parse_tree_deps(&child, dependencies, base_path);
+    }
+}
+
+fn add_texture_dep<'a>(
+    dependencies: &mut Vec<PathBuf>,
+    base_path: &Path,
+    gltf_texture: ::gltf::texture::Texture,
+) {
+    match gltf_texture.source().source() {
+        ::gltf::image::Source::Uri { uri, .. } => {
+            if uri.starts_with("data:") {
+                use std::str::FromStr;
+                dependencies.push(PathBuf::from_str(uri).unwrap());
+            } else {
+                dependencies.push(base_path.join(uri));
+            }
+        }
+        _ => {}
+    };
 }
 
 pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
