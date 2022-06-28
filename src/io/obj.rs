@@ -2,13 +2,50 @@ use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
+pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
     let mut dependencies = Vec::new();
     if let Ok(Ok(obj)) =
         std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::obj::parse(s))
     {
+        let base_path = path.parent().unwrap();
         if let Some(material_library) = obj.material_library {
-            dependencies.push(path.parent().unwrap().join(material_library));
+            dependencies.push(base_path.join(material_library));
+        }
+    }
+    dependencies
+}
+
+pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> Vec<PathBuf> {
+    let mut dependencies = Vec::new();
+    if let Ok(Ok(materials)) =
+        std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::mtl::parse(s))
+    {
+        let base_path = path.parent().unwrap();
+        for material in materials.materials {
+            material
+                .ambient_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .diffuse_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .specular_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .specular_exponent_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .displacement_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .dissolve_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .decal_map
+                .map(|p| dependencies.push(base_path.join(p)));
+            material
+                .bump_map
+                .map(|p| dependencies.push(base_path.join(p)));
         }
     }
     dependencies
@@ -23,7 +60,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
     let mut cpu_materials = Vec::new();
     if let Some(material_library) = obj.material_library {
         let bytes = raw_assets.remove(p.join(material_library).to_str().unwrap())?;
-        let materials = wavefront_obj::mtl::parse(String::from_utf8(bytes).unwrap())?.materials;
+        let materials = wavefront_obj::mtl::parse(std::str::from_utf8(&bytes).unwrap())?.materials;
 
         for material in materials {
             let color = if material.color_diffuse.r != material.color_diffuse.g

@@ -171,7 +171,11 @@ fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
             }
             "obj" => {
                 #[cfg(feature = "obj")]
-                dependencies.extend(obj::dependencies(raw_assets, path));
+                dependencies.extend(obj::dependencies_obj(raw_assets, path));
+            }
+            "mtl" => {
+                #[cfg(feature = "obj")]
+                dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
             _ => {}
         }
