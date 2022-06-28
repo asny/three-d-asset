@@ -41,10 +41,10 @@ pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = load(paths)?;
-    let mut dependencies = super::dependencies(&raw_assets);
+    let mut dependencies = super::get_dependencies(&raw_assets);
     while !dependencies.is_empty() {
         let deps = load(&dependencies)?;
-        dependencies = super::dependencies(&deps);
+        dependencies = super::get_dependencies(&deps);
         raw_assets.extend(deps);
     }
     Ok(raw_assets)
@@ -58,10 +58,10 @@ pub fn load_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 #[cfg(not(target_arch = "wasm32"))]
 pub async fn load_async_with_dependencies(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = load_async(paths).await?;
-    let mut dependencies = super::dependencies(&raw_assets);
+    let mut dependencies = super::get_dependencies(&raw_assets);
     while !dependencies.is_empty() {
         let deps = load_async(&dependencies).await?;
-        dependencies = super::dependencies(&deps);
+        dependencies = super::get_dependencies(&deps);
         raw_assets.extend(deps);
     }
     Ok(raw_assets)

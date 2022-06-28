@@ -161,7 +161,7 @@ impl Deserialize for crate::VoxelGrid {
     }
 }
 
-fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
+fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
@@ -181,5 +181,8 @@ fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
             _ => {}
         }
     }
-    dependencies.into_iter().collect()
+    dependencies
+        .into_iter()
+        .filter(|d| !raw_assets.contains_key(d))
+        .collect()
 }
