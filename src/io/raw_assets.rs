@@ -61,9 +61,9 @@ impl RawAssets {
     }
 
     pub(crate) fn match_path(&self, path: impl AsRef<Path>) -> Result<PathBuf> {
-        let path = path.as_ref();
-        if self.0.contains_key(path) {
-            Ok(path.to_path_buf())
+        let path: PathBuf = path.as_ref().to_str().unwrap().replace("\\", "/").into();
+        if self.0.contains_key(&path) {
+            Ok(path)
         } else {
             let p = path.to_str().unwrap();
             let p2 = if p.ends_with(".jpeg") {
@@ -95,7 +95,8 @@ impl RawAssets {
     /// ```
     ///
     pub fn insert(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) -> &mut Self {
-        self.0.insert(path.as_ref().to_path_buf(), bytes);
+        let key = path.as_ref().to_str().unwrap().replace("\\", "/");
+        self.0.insert(key.into(), bytes);
         self
     }
 
@@ -104,7 +105,7 @@ impl RawAssets {
     ///
     pub fn extend(&mut self, mut raw_assets: Self) -> &mut Self {
         for (k, v) in raw_assets.0.drain() {
-            self.0.insert(k, v);
+            self.insert(k, v);
         }
         self
     }
