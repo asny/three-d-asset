@@ -76,7 +76,7 @@ pub enum ProjectionType {
 }
 
 ///
-/// Used in a render call to define how to view the 3D world.
+/// Represents a camera used for viewing 3D assets.
 ///
 #[derive(Clone, Debug)]
 pub struct Camera {
@@ -157,9 +157,9 @@ impl Camera {
 
     ///
     /// Specify the camera to use orthographic projection with the given height and depth.
-    /// The view frustum height is +/- height/2
-    /// The view frustum width is calculated as height * viewport.width / viewport.height.
-    /// The view frustum depth is z_near to z_far.
+    /// The view frustum height is `+/- height/2`.
+    /// The view frustum width is calculated as `height * viewport.width / viewport.height`.
+    /// The view frustum depth is `z_near` to `z_far`.
     ///
     pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
         assert!(z_near < z_far, "Wrong orthographic camera parameters");
@@ -274,8 +274,8 @@ impl Camera {
 
     ///
     /// Returns the 3D position at the given pixel coordinate.
-    /// The pixel coordinate must be in physical pixels, where (viewport.x, viewport.y) indicate the bottom left corner of the viewport
-    /// and (viewport.x + viewport.width, viewport.y + viewport.height) indicate the top right corner.
+    /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
+    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
     ///
     pub fn position_at_pixel(&self, pixel: (f32, f32)) -> Vec3 {
         match self.projection_type() {
@@ -288,9 +288,9 @@ impl Camera {
     }
 
     ///
-    /// Returns the 3D position at the given uv coordinates of the viewport.
-    /// The uv coordinates must be between (0, 0) indicating the bottom left corner of the viewport
-    /// and (1, 1) indicating the top right corner.
+    /// Returns the 3D position at the given uv coordinate of the viewport.
+    /// The uv coordinate must be between `(0, 0)` indicating the bottom left corner of the viewport
+    /// and `(1, 1)` indicating the top right corner.
     ///
     pub fn position_at_uv_coordinates(&self, coords: (f32, f32)) -> Vec3 {
         match self.projection_type() {
@@ -304,8 +304,8 @@ impl Camera {
 
     ///
     /// Returns the 3D view direction at the given pixel coordinate.
-    /// The pixel coordinate must be in physical pixels, where (viewport.x, viewport.y) indicate the bottom left corner of the viewport
-    /// and (viewport.x + viewport.width, viewport.y + viewport.height) indicate the top right corner.
+    /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
+    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
     ///
     pub fn view_direction_at_pixel(&self, pixel: (f32, f32)) -> Vec3 {
         match self.projection_type() {
@@ -318,9 +318,9 @@ impl Camera {
     }
 
     ///
-    /// Returns the 3D view direction at the given uv coordinates of the viewport.
-    /// The uv coordinates must be between (0, 0) indicating the bottom left corner of the viewport
-    /// and (1, 1) indicating the top right corner.
+    /// Returns the 3D view direction at the given uv coordinate of the viewport.
+    /// The uv coordinate must be between `(0, 0)` indicating the bottom left corner of the viewport
+    /// and `(1, 1)` indicating the top right corner.
     ///
     pub fn view_direction_at_uv_coordinates(&self, coords: (f32, f32)) -> Vec3 {
         match self.projection_type() {
@@ -334,9 +334,9 @@ impl Camera {
 
     ///
     /// Returns the uv coordinate for the given pixel coordinate.
-    /// The pixel coordinate must be in physical pixels, where (viewport.x, viewport.y) indicate the bottom left corner of the viewport
-    /// and (viewport.x + viewport.width, viewport.y + viewport.height) indicate the top right corner.
-    /// The returned uv coordinate are between 0 and 1 where (0,0) indicate the bottom left corner of the viewport and (1,1) indicate the top right corner.
+    /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
+    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
+    /// The returned uv coordinate are between 0 and 1 where `(0,0)` indicate the bottom left corner of the viewport and `(1,1)` indicate the top right corner.
     ///
     pub fn uv_coordinates_at_pixel(&self, pixel: (f32, f32)) -> (f32, f32) {
         (
@@ -347,8 +347,8 @@ impl Camera {
 
     ///
     /// Returns the uv coordinate for the given world position.
-    /// The returned uv coordinate are between 0 and 1 where (0,0) indicate a position that maps to the top left corner of the viewport
-    /// and (1,1) indicate a position that maps to the bottom right corner.
+    /// The returned uv coordinate are between 0 and 1 where `(0,0)` indicate a position that maps to the bottom left corner of the viewport
+    /// and (1,1) indicate a position that maps to the top right corner.
     ///
     pub fn uv_coordinates_at_position(&self, position: Vec3) -> (f32, f32) {
         let proj = self.projection() * self.view() * position.extend(1.0);
