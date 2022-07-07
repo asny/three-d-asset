@@ -37,11 +37,11 @@ vol = []
 
 [dependencies]
 cgmath = "0.18"
-half = {version="1.8", features=["std", "num-traits", "zerocopy"]}
-thiserror = "1.0"
+half = {version="2", features=["std", "num-traits", "zerocopy"]}
+thiserror = "1"
 reqwest = {version = "0.11", optional = true }
-gltf = { version = "1.0", optional = true }
-wavefront_obj = { version = "10.0", optional = true }
+gltf = { version = "1", optional = true }
+wavefront_obj = { version = "10", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
 data-url = {version = "0.1", optional = true }
 
