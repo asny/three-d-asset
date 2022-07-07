@@ -13,6 +13,9 @@
 
 pub mod prelude;
 
+mod camera;
+pub use camera::*;
+
 pub mod texture;
 pub use texture::*;
 
