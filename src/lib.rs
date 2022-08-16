@@ -66,6 +66,11 @@ pub enum Error {
     #[cfg(feature = "obj")]
     #[error("error while parsing an .obj file")]
     Obj(#[from] wavefront_obj::ParseError),
+
+    #[cfg(feature = "pcd")]
+    #[error("error while parsing an .pcd file")]
+    Pcd(#[from] pcd_rs::anyhow::Error),
+
     #[cfg(not(target_arch = "wasm32"))]
     #[error("io error")]
     IO(#[from] std::io::Error),

@@ -2,11 +2,13 @@
 //! Contain geometry asset definitions.
 //!
 
+mod point_cloud;
+pub use point_cloud::*;
+
 mod tri_mesh;
 pub use tri_mesh::*;
 
 pub use crate::prelude::*;
-use crate::{Error, Result};
 
 ///
 /// An array of indices. Supports different data types.
