@@ -57,6 +57,9 @@ mod img;
 #[cfg(feature = "vol")]
 mod vol;
 
+#[cfg(feature = "pcd")]
+mod pcd;
+
 ///
 /// Implemented for assets that can be deserialized after being loaded (see also [load] and [RawAssets::deserialize]).
 ///
@@ -154,6 +157,23 @@ impl Deserialize for crate::VoxelGrid {
 
                 #[cfg(not(feature = "vol"))]
                 let result = Err(Error::FeatureMissing("vol".to_string()));
+                result
+            }
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+        }
+    }
+}
+
+impl Deserialize for crate::PointCloud {
+    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+        let path = raw_assets.match_path(path.as_ref())?;
+        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+            "pcd" => {
+                #[cfg(feature = "pcd")]
+                let result = pcd::deserialize_pcd(raw_assets, path);
+
+                #[cfg(not(feature = "pcd"))]
+                let result = Err(Error::FeatureMissing("pcd".to_string()));
                 result
             }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),

@@ -33,6 +33,8 @@ bmp = ["image/bmp"]
 obj = ["wavefront_obj"]
 gltf = ["dep:gltf"]
 
+pcd = ["pcd-rs"]
+
 vol = []
 
 [dependencies]
@@ -43,6 +45,7 @@ reqwest = {version = "0.11", optional = true }
 gltf = { version = "1", optional = true }
 wavefront_obj = { version = "10", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
+pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
 data-url = {version = "0.1", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
