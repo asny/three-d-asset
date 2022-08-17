@@ -1,7 +1,7 @@
 use crate::geometry::{PointCloud, Positions};
 use crate::prelude::*;
 use crate::{io::RawAssets, Error, Result};
-use pcd_rs::{PcdDeserialize, Reader};
+use pcd_rs::{DynReader, PcdDeserialize};
 use std::mem;
 use std::path::Path;
 
@@ -20,9 +20,9 @@ struct PcdPointWithColor {
     pub rgb: f32,
 }
 
-fn decode_color(PcdPointWithColor { rgb, .. }: &PcdPointWithColor) -> Color {
+fn decode_color(rgb: f32) -> Color {
     unsafe {
-        let rgb: u32 = mem::transmute_copy(rgb);
+        let rgb: u32 = mem::transmute_copy(&rgb);
         let r = ((rgb >> 16) & 255).try_into().unwrap();
         let g = ((rgb >> 8) & 255).try_into().unwrap();
         let b = (rgb & 255).try_into().unwrap();
@@ -51,16 +51,51 @@ fn normalize_point(point: &Vector3<f32>, min: f32, max: f32) -> Vector3<f32> {
 }
 
 pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<PointCloud> {
-    let reader = Reader::from_bytes(raw_assets.get(path)?)?;
-    let points = reader.collect::<pcd_rs::anyhow::Result<Vec<PcdPoint>>>()?;
-    let positions: Vec<_> = points
+    /*let reader = Reader::open(path)?;
+    let points: pcd_rs::anyhow::Result<Vec<PcdPointWithColor>> = reader.collect();
+    let points = points?;*/
+    let reader = DynReader::from_bytes(raw_assets.get(path)?)?;
+    let schema = reader.meta().field_defs.fields.clone();
+    dbg!(&schema);
+    let x_index = schema.iter().position(|f| f.name == "x").unwrap();
+    let y_index = schema.iter().position(|f| f.name == "y").unwrap();
+    let z_index = schema.iter().position(|f| f.name == "z").unwrap();
+    let rgb_index = schema.iter().position(|f| f.name == "rgb");
+
+    let points = reader.collect::<pcd_rs::anyhow::Result<Vec<_>>>()?;
+    let positions = points
         .iter()
-        .map(|p| Vec3 {
-            x: p.x,
-            y: p.y,
-            z: p.z,
+        .map(|p| {
+            //dbg!(p);
+            vec3(
+                p.0[x_index].to_value::<f32>().unwrap(),
+                p.0[y_index].to_value::<f32>().unwrap(),
+                p.0[z_index].to_value::<f32>().unwrap(),
+            )
         })
         .collect();
+
+    let colors = rgb_index.map(|i| {
+        points
+            .iter()
+            .map(|p| {
+                let rgb = p.0[i].to_value::<f32>().unwrap();
+                decode_color(rgb)
+            })
+            .collect()
+    });
+
+    /*let meta = reader.meta();
+    println!("{:?}", meta);
+
+    let positions: Vec<_> = if meta.field_defs.fields.any(|f| f.name == "rgb") {
+        reader
+            .map(|p: PcdPointWithColor| vec3(0.0, 0.0, 0.0))
+            .collect()
+    } else {
+        reader.map(|p: PcdPoint| vec3(0.0, 0.0, 0.0)).collect()
+    };*/
+    //let points = reader.collect::<pcd_rs::anyhow::Result<Vec<_>>>()?;
     /*let (mut positions, colors) = if color {
         let colored_points: Result<Vec<PcdPointWithColor>> = reader.collect();
         let colored_points = colored_points?;
@@ -101,6 +136,23 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
     }*/
     Ok(PointCloud {
         positions: Positions::F32(positions),
+        colors,
         ..Default::default()
     })
+}
+
+#[cfg(test)]
+mod test {
+
+    #[test]
+    pub fn deserialize_pcd() {
+        let point_cloud: crate::PointCloud = crate::io::RawAssets::new()
+            .insert(
+                "test_data/hand.pcd",
+                include_bytes!("../../test_data/hand.pcd").to_vec(),
+            )
+            .deserialize("pcd")
+            .unwrap();
+        assert_eq!(point_cloud.positions.len(), 9199);
+    }
 }
