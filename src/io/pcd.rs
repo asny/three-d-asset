@@ -1,11 +1,11 @@
-use crate::geometry::{Points, Positions};
+use crate::geometry::{PointCloud, Positions};
 use crate::prelude::*;
 use crate::{io::RawAssets, Result};
 use pcd_rs::DynReader;
 use std::mem;
 use std::path::Path;
 
-pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<Points> {
+pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<PointCloud> {
     let reader = DynReader::from_bytes(raw_assets.get(path)?)?;
     let schema = reader.meta().field_defs.fields.clone();
     let x_index = schema.iter().position(|f| f.name == "x").unwrap();
@@ -34,7 +34,7 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
             })
             .collect()
     });
-    Ok(Points {
+    Ok(PointCloud {
         positions: Positions::F32(positions),
         colors,
         ..Default::default()
@@ -56,7 +56,7 @@ mod test {
 
     #[test]
     pub fn deserialize_pcd() {
-        let point_cloud: crate::Points = crate::io::RawAssets::new()
+        let point_cloud: crate::PointCloud = crate::io::RawAssets::new()
             .insert(
                 "test_data/hand.pcd",
                 include_bytes!("../../test_data/hand.pcd").to_vec(),
