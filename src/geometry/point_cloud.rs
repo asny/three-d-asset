@@ -1,6 +1,9 @@
 use super::Positions;
 use crate::prelude::*;
 
+///
+/// Represents a set of points in 3D space, usually created with a scanner.
+///
 #[derive(Default)]
 pub struct PointCloud {
     /// Name.
