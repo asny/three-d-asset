@@ -164,7 +164,7 @@ impl Deserialize for crate::VoxelGrid {
     }
 }
 
-impl Deserialize for crate::Points {
+impl Deserialize for crate::PointCloud {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {

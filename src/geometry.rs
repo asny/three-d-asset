@@ -2,8 +2,8 @@
 //! Contain geometry asset definitions.
 //!
 
-mod points;
-pub use points::*;
+mod point_cloud;
+pub use point_cloud::*;
 
 mod tri_mesh;
 pub use tri_mesh::*;
