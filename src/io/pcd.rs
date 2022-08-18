@@ -2,10 +2,10 @@ use crate::geometry::{PointCloud, Positions};
 use crate::prelude::*;
 use crate::{io::RawAssets, Result};
 use pcd_rs::DynReader;
-use std::mem;
 use std::path::Path;
 
 pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<PointCloud> {
+    let name = path.as_ref().to_str().unwrap().to_string();
     let reader = DynReader::from_bytes(raw_assets.get(path)?)?;
     let schema = reader.meta().field_defs.fields.clone();
     let x_index = schema.iter().position(|f| f.name == "x").unwrap();
@@ -30,25 +30,21 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
             .iter()
             .map(|p| {
                 let rgb = p.0[i].to_value::<f32>().unwrap();
-                decode_color(rgb)
+                let t = rgb.to_ne_bytes();
+                Color {
+                    r: t[2],
+                    g: t[1],
+                    b: t[0],
+                    a: 1,
+                }
             })
             .collect()
     });
     Ok(PointCloud {
         positions: Positions::F32(positions),
         colors,
-        ..Default::default()
+        name,
     })
-}
-
-fn decode_color(rgb: f32) -> Color {
-    unsafe {
-        let rgb: u32 = mem::transmute_copy(&rgb);
-        let r = ((rgb >> 16) & 255).try_into().unwrap();
-        let g = ((rgb >> 8) & 255).try_into().unwrap();
-        let b = (rgb & 255).try_into().unwrap();
-        Color { r, g, b, a: 1 }
-    }
 }
 
 #[cfg(test)]
