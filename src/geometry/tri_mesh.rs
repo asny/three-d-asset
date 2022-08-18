@@ -5,6 +5,7 @@ use crate::{Error, Result};
 ///
 /// A CPU-side version of a triangle mesh.
 ///
+#[derive(Clone)]
 pub struct TriMesh {
     /// Name.
     pub name: String,

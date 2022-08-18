@@ -1,30 +1,27 @@
 use super::Positions;
 use crate::prelude::*;
 
-#[derive(Default)]
-pub struct PointCloud {
+#[derive(Default, Clone)]
+pub struct Points {
     /// Name.
     pub name: String,
-    /// Name of the associated material.
-    pub material_name: Option<String>,
     /// The positions of the points.
     pub positions: Positions,
     /// The colors of the points.
     pub colors: Option<Vec<Color>>,
 }
 
-impl std::fmt::Debug for PointCloud {
+impl std::fmt::Debug for Points {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut d = f.debug_struct("PointCloud");
+        let mut d = f.debug_struct("Points");
         d.field("name", &self.name);
-        d.field("material name", &self.material_name);
         d.field("positions", &self.positions.len());
         d.field("colors", &self.colors.as_ref().map(|v| v.len()));
         d.finish()
     }
 }
 
-impl PointCloud {
+impl Points {
     ///
     /// Returns a point cloud whose points lie on the corners of an axis aligned unconnected cube with positions in the range `[-1..1]` in all axes.
     ///
