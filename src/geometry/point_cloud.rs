@@ -5,8 +5,6 @@ use crate::prelude::*;
 pub struct PointCloud {
     /// Name.
     pub name: String,
-    /// Name of the associated material.
-    pub material_name: Option<String>,
     /// The positions of the points.
     pub positions: Positions,
     /// The colors of the points.
@@ -17,7 +15,6 @@ impl std::fmt::Debug for PointCloud {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("PointCloud");
         d.field("name", &self.name);
-        d.field("material name", &self.material_name);
         d.field("positions", &self.positions.len());
         d.field("colors", &self.colors.as_ref().map(|v| v.len()));
         d.finish()
