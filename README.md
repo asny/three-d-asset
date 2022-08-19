@@ -32,6 +32,12 @@ When in memory, the assets can be for example be
 | TIFF | :white_check_mark: |  :white_check_mark: | `tiff` |
 | BMP | :white_check_mark: |  :white_check_mark: | `bmp` |
 
+### PointCloud
+
+| Format | Deserialize | Serialize | Feature | 
+| ------------ | ------------- | ------------- | ------------- |
+| PDCD | :white_check_mark: |  :x: | `pcd` |
+
 ### VoxelGrid
 
 | Format | Deserialize | Serialize | Feature | 
