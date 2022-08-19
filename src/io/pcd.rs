@@ -29,8 +29,11 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
         points
             .iter()
             .map(|p| {
-                let rgb = p.0[i].to_value::<f32>().unwrap();
-                let t = rgb.to_ne_bytes();
+                let t = match p.0[i] {
+                    pcd_rs::Field::U32(ref v) => v[0].to_ne_bytes(),
+                    pcd_rs::Field::F32(ref v) => v[0].to_ne_bytes(),
+                    _ => unimplemented!(),
+                };
                 Color {
                     r: t[2],
                     g: t[1],
@@ -60,5 +63,17 @@ mod test {
             .deserialize("pcd")
             .unwrap();
         assert_eq!(point_cloud.positions.len(), 9199);
+    }
+
+    #[test]
+    pub fn deserialize_binary_pcd() {
+        let point_cloud: crate::PointCloud = crate::io::RawAssets::new()
+            .insert(
+                "test_data/binary.pcd",
+                include_bytes!("../../test_data/binary.pcd").to_vec(),
+            )
+            .deserialize("pcd")
+            .unwrap();
+        assert_eq!(point_cloud.positions.len(), 28944);
     }
 }
