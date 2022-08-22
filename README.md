@@ -36,7 +36,7 @@ When in memory, the assets can be for example be
 
 | Format | Deserialize | Serialize | Feature | 
 | ------------ | ------------- | ------------- | ------------- |
-| PDCD | :white_check_mark: |  :x: | `pcd` |
+| PCD | :white_check_mark: |  :x: | `pcd` |
 
 ### VoxelGrid
 
