@@ -38,7 +38,7 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
                     r: t[2],
                     g: t[1],
                     b: t[0],
-                    a: 1,
+                    ..Default::default()
                 }
             })
             .collect()
