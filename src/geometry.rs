@@ -89,7 +89,7 @@ pub enum Positions {
 
 impl Positions {
     ///
-    /// Converts and returns all the indices as `f32` data type.
+    /// Converts and returns all the positions as `f32` data type.
     ///
     pub fn into_f32(self) -> Vec<Vec3> {
         match self {
@@ -111,6 +111,31 @@ impl Positions {
                 .iter()
                 .map(|v| Vec3::new(v.x as f32, v.y as f32, v.z as f32))
                 .collect::<Vec<_>>(),
+        }
+    }
+    ///
+    /// Converts and returns all the positions as `f64` data type.
+    ///
+    pub fn into_f64(self) -> Vec<Vector3<f64>> {
+        match self {
+            Self::F32(mut values) => values
+                .drain(..)
+                .map(|v| Vector3::new(v.x as f64, v.y as f64, v.z as f64))
+                .collect::<Vec<_>>(),
+            Self::F64(values) => values,
+        }
+    }
+
+    ///
+    /// Clones and converts all the positions as `f64` data type.
+    ///
+    pub fn to_f64(&self) -> Vec<Vector3<f64>> {
+        match self {
+            Self::F32(values) => values
+                .iter()
+                .map(|v| Vector3::new(v.x as f64, v.y as f64, v.z as f64))
+                .collect::<Vec<_>>(),
+            Self::F64(values) => values.clone(),
         }
     }
 
