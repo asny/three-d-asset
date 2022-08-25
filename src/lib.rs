@@ -54,8 +54,6 @@ use thiserror::Error;
 pub enum Error {
     #[error("{0} buffer length must be {1}, actual length is {2}")]
     InvalidBufferLength(String, usize, usize),
-    #[error("mesh must have both normals and uv coordinates to be able to compute tangents")]
-    FailedComputingTangents,
     #[error("the number of vertices must be divisable by 3, actual count is {0}")]
     InvalidNumberOfVertices(usize),
     #[error("the transformation matrix cannot be inverted and is therefore invalid")]

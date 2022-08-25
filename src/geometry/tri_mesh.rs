@@ -333,7 +333,7 @@ impl TriMesh {
             ..Default::default()
         };
         mesh.compute_normals();
-        mesh.compute_tangents().unwrap();
+        mesh.compute_tangents();
         mesh
     }
 
@@ -489,9 +489,9 @@ impl TriMesh {
     /// Computes the per vertex tangents and updates the tangents of the mesh.
     /// It will override the current tangents if they already exist.
     ///
-    pub fn compute_tangents(&mut self) -> Result<()> {
+    pub fn compute_tangents(&mut self) {
         if self.normals.is_none() || self.uvs.is_none() {
-            Err(Error::FailedComputingTangents)?;
+            panic!("mesh must have both normals and uv coordinates to be able to compute tangents");
         }
         let mut tan1 = vec![Vec3::new(0.0, 0.0, 0.0); self.positions.len()];
         let mut tan2 = vec![Vec3::new(0.0, 0.0, 0.0); self.positions.len()];
@@ -546,7 +546,6 @@ impl TriMesh {
         });
 
         self.tangents = Some(tangents);
-        Ok(())
     }
 
     ///
