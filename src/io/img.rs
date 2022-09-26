@@ -36,35 +36,24 @@ pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D
     let height = img.height();
     let data = match img {
         DynamicImage::ImageLuma8(_) => TextureData::RU8(img.into_bytes()),
-        DynamicImage::ImageLumaA8(_) => {
-            let bytes = img.as_bytes();
-            let mut data = Vec::new();
-            for i in 0..bytes.len() / 2 {
-                data.push([bytes[i * 2], bytes[i * 2 + 1]]);
-            }
-            TextureData::RgU8(data)
-        }
-        DynamicImage::ImageRgb8(_) => {
-            let bytes = img.as_bytes();
-            let mut data = Vec::new();
-            for i in 0..bytes.len() / 3 {
-                data.push([bytes[i * 3], bytes[i * 3 + 1], bytes[i * 3 + 2]]);
-            }
-            TextureData::RgbU8(data)
-        }
-        DynamicImage::ImageRgba8(_) => {
-            let bytes = img.as_bytes();
-            let mut data = Vec::new();
-            for i in 0..bytes.len() / 4 {
-                data.push([
-                    bytes[i * 4],
-                    bytes[i * 4 + 1],
-                    bytes[i * 4 + 2],
-                    bytes[i * 4 + 3],
-                ]);
-            }
-            TextureData::RgbaU8(data)
-        }
+        DynamicImage::ImageLumaA8(img) => TextureData::RgU8(
+            img.into_raw()
+                .chunks(2)
+                .map(|c| [c[0], c[1]])
+                .collect::<Vec<_>>(),
+        ),
+        DynamicImage::ImageRgb8(img) => TextureData::RgbU8(
+            img.into_raw()
+                .chunks(3)
+                .map(|c| [c[0], c[1], c[2]])
+                .collect::<Vec<_>>(),
+        ),
+        DynamicImage::ImageRgba8(img) => TextureData::RgbaU8(
+            img.into_raw()
+                .chunks(4)
+                .map(|c| [c[0], c[1], c[2], c[3]])
+                .collect::<Vec<_>>(),
+        ),
         _ => unimplemented!(),
     };
     Ok(Texture2D {
