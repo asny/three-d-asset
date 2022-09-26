@@ -225,7 +225,7 @@ fn parse_tree<'a>(
                         occlusion_metallic_roughness_texture: None,
                         emissive: Color::from_rgb_slice(&material.emissive_factor()),
                         emissive_texture,
-                        alpha_cutout: None,
+                        alpha_cutout: material.alpha_cutoff(),
                         lighting_model: LightingModel::Cook(
                             NormalDistributionFunction::TrowbridgeReitzGGX,
                             GeometryFunction::SmithSchlickGGX,
