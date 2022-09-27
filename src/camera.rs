@@ -336,7 +336,7 @@ impl Camera {
     /// Returns the uv coordinate for the given pixel coordinate.
     /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
     /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
-    /// The returned uv coordinate are between 0 and 1 where `(0,0)` indicate the bottom left corner of the viewport and `(1,1)` indicate the top right corner.
+    /// The returned uv coordinate is between 0 and 1 where `(0,0)` indicate the bottom left corner of the viewport and `(1,1)` indicate the top right corner.
     ///
     pub fn uv_coordinates_at_pixel(&self, pixel: (f32, f32)) -> (f32, f32) {
         (
@@ -356,6 +356,29 @@ impl Camera {
             0.5 * (proj.x / proj.w.abs() + 1.0),
             0.5 * (proj.y / proj.w.abs() + 1.0),
         )
+    }
+
+    ///
+    /// Returns the pixel coordinate for the given uv coordinate.
+    /// The uv coordinate must be between 0 and 1 where `(0,0)` indicate the bottom left corner of the viewport
+    /// and (1,1) indicate the top right corner.
+    /// The returned pixel coordinate is in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
+    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
+    ///
+    pub fn pixel_at_uv_coordinates(&self, coords: (f32, f32)) -> (f32, f32) {
+        (
+            coords.0 * self.viewport.width as f32 + self.viewport.x as f32,
+            coords.1 * self.viewport.height as f32 + self.viewport.y as f32,
+        )
+    }
+
+    ///
+    /// Returns the pixel coordinate for the given world position.
+    /// The returned pixel coordinate is in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
+    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
+    ///
+    pub fn pixel_at_position(&self, position: Vec3) -> (f32, f32) {
+        self.pixel_at_uv_coordinates(self.uv_coordinates_at_position(position))
     }
 
     ///
