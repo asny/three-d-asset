@@ -55,7 +55,7 @@ pub struct PbrMaterial {
     /// The occlusion values are sampled from the red channel, metallic from the blue channel and the roughness from the green channel.
     /// Is sometimes in two textures, see [Self::occlusion_texture] and [Self::metallic_roughness_texture].
     pub occlusion_metallic_roughness_texture: Option<Texture2D>,
-    /// Texture containing the metallic and roughness parameters which are multiplied with the [Self::metallic] and [Self::roughness] values in the shader.
+    /// Texture containing the metallic and roughness parameters which are multiplied with the [Self::metallic] and [Self::roughness] to get the final parameter.
     /// The metallic values are sampled from the blue channel and the roughness from the green channel.
     /// Can be combined with occlusion into one texture, see [Self::occlusion_metallic_roughness_texture].
     pub metallic_roughness_texture: Option<Texture2D>,
@@ -77,6 +77,12 @@ pub struct PbrMaterial {
     pub alpha_cutout: Option<f32>,
     /// The lighting model used when rendering this material
     pub lighting_model: LightingModel,
+    /// The index of refraction for this material    
+    pub index_of_refraction: f32,
+    /// A value in the range `[0..1]` specifying how transmissive the material surface is.
+    pub transmission: f32,
+    /// Texture containing the transmission parameter which are multiplied with the [Self::transmission] to get the final parameter.
+    pub transmission_texture: Option<Texture2D>,
 }
 
 impl Default for PbrMaterial {
@@ -95,6 +101,9 @@ impl Default for PbrMaterial {
             normal_scale: 1.0,
             emissive: Color::BLACK,
             emissive_texture: None,
+            index_of_refraction: 1.5,
+            transmission: 0.0,
+            transmission_texture: None,
             alpha_cutout: None,
             lighting_model: LightingModel::Blinn,
         }

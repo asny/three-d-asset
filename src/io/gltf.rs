@@ -211,6 +211,13 @@ fn parse_tree<'a>(
                     } else {
                         None
                     };
+                    let transmission_texture = if let Some(Some(info)) =
+                        material.transmission().map(|t| t.transmission_texture())
+                    {
+                        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
+                    } else {
+                        None
+                    };
                     cpu_materials.push(PbrMaterial {
                         name: material_name.clone(),
                         albedo: Color::from_rgba_slice(&color),
@@ -225,6 +232,12 @@ fn parse_tree<'a>(
                         occlusion_metallic_roughness_texture: None,
                         emissive: Color::from_rgb_slice(&material.emissive_factor()),
                         emissive_texture,
+                        transmission: material
+                            .transmission()
+                            .map(|t| t.transmission_factor())
+                            .unwrap_or(0.0),
+                        transmission_texture,
+                        index_of_refraction: material.ior().unwrap_or(1.5),
                         alpha_cutout: material.alpha_cutoff(),
                         lighting_model: LightingModel::Cook(
                             NormalDistributionFunction::TrowbridgeReitzGGX,
