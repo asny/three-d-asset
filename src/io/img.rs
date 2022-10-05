@@ -161,7 +161,7 @@ mod test {
 
     fn test_deserialize(format: &str) {
         let path = format!("test_data/test.{}", format);
-        let tex: crate::Texture2D = crate::io::load(&[&path]).unwrap().deserialize("").unwrap();
+        let tex: crate::Texture2D = crate::io::load_and_deserialize(&path).unwrap();
 
         if format == "jpeg" || format == "jpg" {
             if let crate::TextureData::RgbU8(data) = tex.data {
@@ -249,10 +249,7 @@ mod test {
     #[cfg(feature = "hdr")]
     #[test]
     pub fn hdr() {
-        let tex: crate::Texture2D = crate::io::load(&["test_data/test.hdr"])
-            .unwrap()
-            .deserialize("")
-            .unwrap();
+        let tex: crate::Texture2D = crate::io::load_and_deserialize("test_data/test.hdr").unwrap();
         if let crate::TextureData::RgbF32(data) = tex.data {
             assert_eq!(data[0], [0.16503906, 0.24609375, 0.20019531]);
         } else {

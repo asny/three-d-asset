@@ -61,6 +61,34 @@ mod vol;
 mod pcd;
 
 ///
+/// Loads and deserialize a single file. If the file depends on other files, those files are also loaded.
+///
+#[cfg(not(target_arch = "wasm32"))]
+pub fn load_and_deserialize<T: Deserialize>(path: impl AsRef<std::path::Path>) -> crate::Result<T> {
+    load(&[&path])?.deserialize(path)
+}
+
+///
+/// Async loads and deserialize a single file. If the file depends on other files, those files are also loaded.
+///
+pub async fn load_and_deserialize_async<T: Deserialize>(
+    path: impl AsRef<std::path::Path>,
+) -> crate::Result<T> {
+    load_async(&[&path]).await?.deserialize(path)
+}
+
+///
+/// Save and serialize a single file.
+///
+#[cfg(not(target_arch = "wasm32"))]
+pub fn serialize_and_save<T: Serialize>(
+    path: impl AsRef<std::path::Path>,
+    data: T,
+) -> crate::Result<()> {
+    save(&data.serialize(path)?)
+}
+
+///
 /// Implemented for assets that can be deserialized after being loaded (see also [load] and [RawAssets::deserialize]).
 ///
 pub trait Deserialize: Sized {

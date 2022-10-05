@@ -356,10 +356,8 @@ mod test {
 
     #[test]
     pub fn deserialize_gltf_with_data_url() {
-        let model: crate::Model = crate::io::load(&["test_data/data_url.gltf"])
-            .unwrap()
-            .deserialize("test_data/data_url.gltf")
-            .unwrap();
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
