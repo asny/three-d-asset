@@ -49,7 +49,7 @@ impl std::default::Default for TriMesh {
             name: "default".to_string(),
             material_name: None,
             positions: Positions::default(),
-            indices: Indices::None(0),
+            indices: Indices::None,
             normals: None,
             tangents: None,
             uvs: None,
@@ -74,6 +74,19 @@ impl std::fmt::Debug for TriMesh {
 }
 
 impl TriMesh {
+    /// Returns the number of vertices in this mesh.
+    pub fn vertex_count(&self) -> usize {
+        self.positions.len()
+    }
+
+    /// Returns the number of triangles in this mesh.
+    pub fn triangle_count(&self) -> usize {
+        self.indices
+            .len()
+            .map(|i| i / 3)
+            .unwrap_or(self.positions.len() / 3)
+    }
+
     ///
     /// Transforms the mesh by the given transformation.
     ///
@@ -445,8 +458,8 @@ impl TriMesh {
                 * Mat4::from_nonuniform_scale(1.0 - tail_length, 1.0, 1.0)),
         )
         .unwrap();
-        let mut indices = arrow.indices.into_u32();
-        let cone_indices = cone.indices.into_u32();
+        let mut indices = arrow.indices.into_u32().unwrap();
+        let cone_indices = cone.indices.into_u32().unwrap();
         let offset = indices.iter().max().unwrap() + 1;
         indices.extend(cone_indices.iter().map(|i| i + offset));
         arrow.indices = Indices::U16(indices.iter().map(|i| *i as u16).collect());
@@ -598,8 +611,8 @@ impl TriMesh {
                     callback(index0, index1, index2);
                 }
             }
-            Indices::None(face_count) => {
-                for face in 0..face_count as usize {
+            Indices::None => {
+                for face in 0..self.triangle_count() as usize {
                     callback(face * 3, face * 3 + 1, face * 3 + 2);
                 }
             }
@@ -625,16 +638,19 @@ impl TriMesh {
     /// Returns an error if the mesh is not valid.
     ///
     pub fn validate(&self) -> Result<()> {
-        let index_count = self.indices.len();
-        if index_count % 3 != 0 {
-            Err(Error::InvalidNumberOfVertices(index_count))?;
+        if self.indices.len().map(|i| i % 3 != 0).unwrap_or(false) {
+            Err(Error::InvalidNumberOfIndices(self.indices.len().unwrap()))?;
         }
-        let vertex_count = match &self.indices {
-            Indices::U8(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
-            Indices::U16(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
-            Indices::U32(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
-            Indices::None(face_count) => face_count * 3,
+        let vertex_count = self.vertex_count();
+        let max_index = match &self.indices {
+            Indices::U8(ind) => ind.iter().max().map(|m| *m as usize),
+            Indices::U16(ind) => ind.iter().max().map(|m| *m as usize),
+            Indices::U32(ind) => ind.iter().max().map(|m| *m as usize),
+            Indices::None => None,
         };
+        if max_index.map(|i| i < vertex_count).unwrap_or(false) {
+            Err(Error::InvalidIndices(max_index.unwrap(), vertex_count))?;
+        }
         let buffer_check = |length: Option<usize>, name: &str| -> Result<()> {
             if let Some(length) = length {
                 if length < vertex_count {

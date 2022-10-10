@@ -13,10 +13,10 @@ pub use crate::prelude::*;
 ///
 /// An array of indices. Supports different data types.
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Indices {
-    /// Do not use indices, ie. the given number of faces are all unconnected.
-    None(usize),
+    /// Do not use indices, ie. the faces are all unconnected.
+    None,
     /// Uses unsigned 8 bit integer for each index.
     U8(Vec<u8>),
     /// Uses unsigned 16 bit integer for each index.
@@ -29,56 +29,43 @@ impl Indices {
     ///
     /// Converts all the indices as `u32` data type.
     ///
-    pub fn into_u32(self) -> Vec<u32> {
+    pub fn into_u32(self) -> Option<Vec<u32>> {
         match self {
-            Self::None(face_count) => (0..face_count as u32 * 3).collect::<Vec<_>>(),
-            Self::U8(mut values) => values.drain(..).map(|i| i as u32).collect::<Vec<_>>(),
-            Self::U16(mut values) => values.drain(..).map(|i| i as u32).collect::<Vec<_>>(),
-            Self::U32(values) => values,
+            Self::None => None,
+            Self::U8(mut values) => Some(values.drain(..).map(|i| i as u32).collect::<Vec<_>>()),
+            Self::U16(mut values) => Some(values.drain(..).map(|i| i as u32).collect::<Vec<_>>()),
+            Self::U32(values) => Some(values),
         }
     }
 
     ///
     /// Clones and converts all the indices as `u32` data type.
     ///
-    pub fn to_u32(&self) -> Vec<u32> {
+    pub fn to_u32(&self) -> Option<Vec<u32>> {
         match self {
-            Self::None(face_count) => (0..*face_count as u32 * 3).collect::<Vec<_>>(),
-            Self::U8(values) => values.iter().map(|i| *i as u32).collect::<Vec<_>>(),
-            Self::U16(values) => values.iter().map(|i| *i as u32).collect::<Vec<_>>(),
-            Self::U32(values) => values.clone(),
+            Self::None => None,
+            Self::U8(values) => Some(values.iter().map(|i| *i as u32).collect::<Vec<_>>()),
+            Self::U16(values) => Some(values.iter().map(|i| *i as u32).collect::<Vec<_>>()),
+            Self::U32(values) => Some(values.clone()),
         }
     }
 
     ///
     /// Returns the number of indices.
     ///
-    pub fn len(&self) -> usize {
+    pub fn len(&self) -> Option<usize> {
         match self {
-            Self::None(face_count) => *face_count * 3,
-            Self::U8(values) => values.len(),
-            Self::U16(values) => values.len(),
-            Self::U32(values) => values.len(),
+            Self::None => None,
+            Self::U8(values) => Some(values.len()),
+            Self::U16(values) => Some(values.len()),
+            Self::U32(values) => Some(values.len()),
         }
     }
 }
 
 impl std::default::Default for Indices {
     fn default() -> Self {
-        Self::U32(Vec::new())
-    }
-}
-
-impl std::fmt::Debug for Indices {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut d = f.debug_struct("Indices");
-        match self {
-            Self::None(face_count) => d.field("None", face_count),
-            Self::U8(ind) => d.field("u8", &ind.len()),
-            Self::U16(ind) => d.field("u16", &ind.len()),
-            Self::U32(ind) => d.field("u32", &ind.len()),
-        };
-        d.finish()
+        Self::None
     }
 }
 

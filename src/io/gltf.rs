@@ -159,7 +159,7 @@ fn parse_tree<'a>(
                         ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
                         ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
                     })
-                    .unwrap_or(Indices::None(positions.len() / 3));
+                    .unwrap_or(Indices::None);
 
                 let material = primitive.material();
                 let material_name: String = material.name().map(|s| s.to_string()).unwrap_or(
