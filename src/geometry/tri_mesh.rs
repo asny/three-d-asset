@@ -648,7 +648,7 @@ impl TriMesh {
             Indices::U32(ind) => ind.iter().max().map(|m| *m as usize),
             Indices::None => None,
         };
-        if max_index.map(|i| i < vertex_count).unwrap_or(false) {
+        if max_index.map(|i| i >= vertex_count).unwrap_or(false) {
             Err(Error::InvalidIndices(max_index.unwrap(), vertex_count))?;
         }
         let buffer_check = |length: Option<usize>, name: &str| -> Result<()> {
