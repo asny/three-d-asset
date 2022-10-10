@@ -185,7 +185,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
                 name: object.name.to_string(),
                 material_name: mesh.material_name.clone(),
                 positions: Positions::F64(positions),
-                indices: Some(Indices::U32(indices)),
+                indices: Indices::U32(indices),
                 normals: if normals.len() == vertex_count {
                     Some(normals)
                 } else {

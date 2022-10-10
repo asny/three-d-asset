@@ -15,7 +15,7 @@ pub struct TriMesh {
     /// If there is no indices associated with this mesh, three contiguous positions defines a triangle, in that case, the length must be divisable by 3.
     pub positions: Positions,
     /// The indices into the positions, normals, uvs and colors arrays which defines the three vertices of a triangle. Three contiguous indices defines a triangle, therefore the length must be divisable by 3.
-    pub indices: Option<Indices>,
+    pub indices: Indices,
     /// The normals of the vertices.
     pub normals: Option<Vec<Vec3>>,
     /// The tangents of the vertices, orthogonal direction to the normal.
@@ -49,7 +49,7 @@ impl std::default::Default for TriMesh {
             name: "default".to_string(),
             material_name: None,
             positions: Positions::default(),
-            indices: None,
+            indices: Indices::None(0),
             normals: None,
             tangents: None,
             uvs: None,
@@ -146,7 +146,7 @@ impl TriMesh {
         ];
         TriMesh {
             name: "square".to_string(),
-            indices: Some(Indices::U8(indices)),
+            indices: Indices::U8(indices),
             positions: Positions::F32(positions),
             normals: Some(normals),
             tangents: Some(tangents),
@@ -176,7 +176,7 @@ impl TriMesh {
         }
         TriMesh {
             name: "circle".to_string(),
-            indices: Some(Indices::U16(indices)),
+            indices: Indices::U16(indices),
             positions: Positions::F32(positions),
             normals: Some(normals),
             ..Default::default()
@@ -240,7 +240,7 @@ impl TriMesh {
 
         TriMesh {
             name: "sphere".to_string(),
-            indices: Some(Indices::U16(indices)),
+            indices: Indices::U16(indices),
             positions: Positions::F32(positions),
             normals: Some(normals),
             ..Default::default()
@@ -378,7 +378,7 @@ impl TriMesh {
         let mut mesh = Self {
             name: "cylinder".to_string(),
             positions: Positions::F32(positions),
-            indices: Some(Indices::U16(indices)),
+            indices: Indices::U16(indices),
             ..Default::default()
         };
         mesh.compute_normals();
@@ -418,7 +418,7 @@ impl TriMesh {
         let mut mesh = Self {
             name: "cone".to_string(),
             positions: Positions::F32(positions),
-            indices: Some(Indices::U16(indices)),
+            indices: Indices::U16(indices),
             ..Default::default()
         };
         mesh.compute_normals();
@@ -445,11 +445,11 @@ impl TriMesh {
                 * Mat4::from_nonuniform_scale(1.0 - tail_length, 1.0, 1.0)),
         )
         .unwrap();
-        let mut indices = arrow.indices.unwrap().into_u32();
-        let cone_indices = cone.indices.unwrap().into_u32();
+        let mut indices = arrow.indices.into_u32();
+        let cone_indices = cone.indices.into_u32();
         let offset = indices.iter().max().unwrap() + 1;
         indices.extend(cone_indices.iter().map(|i| i + offset));
-        arrow.indices = Some(Indices::U16(indices.iter().map(|i| *i as u16).collect()));
+        arrow.indices = Indices::U16(indices.iter().map(|i| *i as u16).collect());
 
         if let Positions::F32(ref mut p) = arrow.positions {
             if let Positions::F32(ref p2) = cone.positions {
@@ -574,7 +574,7 @@ impl TriMesh {
     ///
     pub fn for_each_triangle(&self, mut callback: impl FnMut(usize, usize, usize)) {
         match self.indices {
-            Some(Indices::U8(ref indices)) => {
+            Indices::U8(ref indices) => {
                 for face in 0..indices.len() / 3 {
                     let index0 = indices[face * 3] as usize;
                     let index1 = indices[face * 3 + 1] as usize;
@@ -582,7 +582,7 @@ impl TriMesh {
                     callback(index0, index1, index2);
                 }
             }
-            Some(Indices::U16(ref indices)) => {
+            Indices::U16(ref indices) => {
                 for face in 0..indices.len() / 3 {
                     let index0 = indices[face * 3] as usize;
                     let index1 = indices[face * 3 + 1] as usize;
@@ -590,7 +590,7 @@ impl TriMesh {
                     callback(index0, index1, index2);
                 }
             }
-            Some(Indices::U32(ref indices)) => {
+            Indices::U32(ref indices) => {
                 for face in 0..indices.len() / 3 {
                     let index0 = indices[face * 3] as usize;
                     let index1 = indices[face * 3 + 1] as usize;
@@ -598,8 +598,8 @@ impl TriMesh {
                     callback(index0, index1, index2);
                 }
             }
-            None => {
-                for face in 0..self.positions.len() / 3 {
+            Indices::None(face_count) => {
+                for face in 0..face_count as usize {
                     callback(face * 3, face * 3 + 1, face * 3 + 2);
                 }
             }
@@ -625,26 +625,15 @@ impl TriMesh {
     /// Returns an error if the mesh is not valid.
     ///
     pub fn validate(&self) -> Result<()> {
-        let vertex_count = if let Some(ref indices) = self.indices {
-            let index_count = match indices {
-                Indices::U8(ind) => ind.len(),
-                Indices::U16(ind) => ind.len(),
-                Indices::U32(ind) => ind.len(),
-            };
-            if index_count % 3 != 0 {
-                Err(Error::InvalidNumberOfVertices(index_count))?;
-            }
-            match indices {
-                Indices::U8(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
-                Indices::U16(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
-                Indices::U32(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
-            }
-        } else {
-            let vertex_count = self.positions.len();
-            if vertex_count % 3 != 0 {
-                Err(Error::InvalidNumberOfVertices(vertex_count))?;
-            }
-            vertex_count
+        let index_count = self.indices.len();
+        if index_count % 3 != 0 {
+            Err(Error::InvalidNumberOfVertices(index_count))?;
+        }
+        let vertex_count = match &self.indices {
+            Indices::U8(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
+            Indices::U16(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
+            Indices::U32(ind) => ind.iter().max().map(|m| m + 1).unwrap_or(0) as usize,
+            Indices::None(face_count) => face_count * 3,
         };
         let buffer_check = |length: Option<usize>, name: &str| -> Result<()> {
             if let Some(length) = length {

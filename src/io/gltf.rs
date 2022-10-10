@@ -142,7 +142,7 @@ fn parse_tree<'a>(
         for primitive in mesh.primitives() {
             let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
             if let Some(read_positions) = reader.read_positions() {
-                let positions = read_positions.map(|p| p.into()).collect();
+                let positions: Vec<_> = read_positions.map(|p| p.into()).collect();
 
                 let normals = reader
                     .read_normals()
@@ -152,11 +152,14 @@ fn parse_tree<'a>(
                     .read_tangents()
                     .map(|values| values.map(|t| t.into()).collect());
 
-                let indices = reader.read_indices().map(|values| match values {
-                    ::gltf::mesh::util::ReadIndices::U8(iter) => Indices::U8(iter.collect()),
-                    ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
-                    ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
-                });
+                let indices = reader
+                    .read_indices()
+                    .map(|values| match values {
+                        ::gltf::mesh::util::ReadIndices::U8(iter) => Indices::U8(iter.collect()),
+                        ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
+                        ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
+                    })
+                    .unwrap_or(Indices::None(positions.len() / 3));
 
                 let material = primitive.material();
                 let material_name: String = material.name().map(|s| s.to_string()).unwrap_or(

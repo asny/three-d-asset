@@ -15,6 +15,8 @@ pub use crate::prelude::*;
 ///
 #[derive(Clone)]
 pub enum Indices {
+    /// Do not use indices, ie. the given number of faces are all unconnected.
+    None(usize),
     /// Uses unsigned 8 bit integer for each index.
     U8(Vec<u8>),
     /// Uses unsigned 16 bit integer for each index.
@@ -29,8 +31,9 @@ impl Indices {
     ///
     pub fn into_u32(self) -> Vec<u32> {
         match self {
-            Self::U8(mut values) => values.drain(..).map(|i| i as u32).collect::<Vec<u32>>(),
-            Self::U16(mut values) => values.drain(..).map(|i| i as u32).collect::<Vec<u32>>(),
+            Self::None(face_count) => (0..face_count as u32 * 3).collect::<Vec<_>>(),
+            Self::U8(mut values) => values.drain(..).map(|i| i as u32).collect::<Vec<_>>(),
+            Self::U16(mut values) => values.drain(..).map(|i| i as u32).collect::<Vec<_>>(),
             Self::U32(values) => values,
         }
     }
@@ -40,8 +43,9 @@ impl Indices {
     ///
     pub fn to_u32(&self) -> Vec<u32> {
         match self {
-            Self::U8(values) => values.iter().map(|i| *i as u32).collect::<Vec<u32>>(),
-            Self::U16(values) => values.iter().map(|i| *i as u32).collect::<Vec<u32>>(),
+            Self::None(face_count) => (0..*face_count as u32 * 3).collect::<Vec<_>>(),
+            Self::U8(values) => values.iter().map(|i| *i as u32).collect::<Vec<_>>(),
+            Self::U16(values) => values.iter().map(|i| *i as u32).collect::<Vec<_>>(),
             Self::U32(values) => values.clone(),
         }
     }
@@ -51,6 +55,7 @@ impl Indices {
     ///
     pub fn len(&self) -> usize {
         match self {
+            Self::None(face_count) => *face_count * 3,
             Self::U8(values) => values.len(),
             Self::U16(values) => values.len(),
             Self::U32(values) => values.len(),
@@ -68,6 +73,7 @@ impl std::fmt::Debug for Indices {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("Indices");
         match self {
+            Self::None(face_count) => d.field("None", face_count),
             Self::U8(ind) => d.field("u8", &ind.len()),
             Self::U16(ind) => d.field("u16", &ind.len()),
             Self::U32(ind) => d.field("u32", &ind.len()),
