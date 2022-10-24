@@ -4,6 +4,12 @@ use std::io::Cursor;
 use std::path::Path;
 
 pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D> {
+    let name = path
+        .as_ref()
+        .to_str()
+        .filter(|s| !s.starts_with("data:"))
+        .unwrap_or("default")
+        .to_owned();
     let mut reader = Reader::new(Cursor::new(bytes))
         .with_guessed_format()
         .expect("Cursor io never fails");
@@ -18,6 +24,7 @@ pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D
         let metadata = decoder.metadata();
         let img = decoder.read_image_native()?;
         return Ok(Texture2D {
+            name,
             data: TextureData::RgbF32(
                 img.iter()
                     .map(|rgbe| {
@@ -57,6 +64,7 @@ pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D
         _ => unimplemented!(),
     };
     Ok(Texture2D {
+        name,
         data,
         width,
         height,

@@ -6,6 +6,8 @@ pub use crate::texture::{Interpolation, TextureData, Wrapping};
 ///
 #[derive(Clone, Debug)]
 pub struct Texture3D {
+    /// Name of this texture.
+    pub name: String,
     /// The pixel data for the image
     pub data: TextureData,
     /// The width of the image
@@ -32,6 +34,7 @@ pub struct Texture3D {
 impl Default for Texture3D {
     fn default() -> Self {
         Self {
+            name: "default".to_owned(),
             data: TextureData::RgbaU8(vec![[0, 0, 0, 0]]),
             width: 1,
             height: 1,
