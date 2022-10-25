@@ -333,6 +333,26 @@ fn parse_transform(transform: ::gltf::scene::Transform) -> Mat4 {
 mod test {
 
     #[test]
+    pub fn load_gltf() {
+        let mut loaded = crate::io::load(&["test_data/Cube.gltf"]).unwrap();
+        let model: crate::Model = loaded.deserialize(".gltf").unwrap();
+        assert_eq!(
+            model.materials[0]
+                .albedo_texture
+                .as_ref()
+                .map(|t| t.name.as_str()),
+            Some("test_data/Cube_BaseColor.png")
+        );
+        assert_eq!(
+            model.materials[0]
+                .metallic_roughness_texture
+                .as_ref()
+                .map(|t| t.name.as_str()),
+            Some("test_data/Cube_MetallicRoughness.png")
+        );
+    }
+
+    #[test]
     pub fn deserialize_gltf() {
         let model: crate::Model = crate::io::RawAssets::new()
             .insert(
@@ -355,6 +375,20 @@ mod test {
             .unwrap();
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);
+        assert_eq!(
+            model.materials[0]
+                .albedo_texture
+                .as_ref()
+                .map(|t| t.name.as_str()),
+            Some("Cube_BaseColor.png")
+        );
+        assert_eq!(
+            model.materials[0]
+                .metallic_roughness_texture
+                .as_ref()
+                .map(|t| t.name.as_str()),
+            Some("Cube_MetallicRoughness.png")
+        );
     }
 
     #[test]
