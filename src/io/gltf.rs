@@ -340,15 +340,17 @@ mod test {
             model.materials[0]
                 .albedo_texture
                 .as_ref()
-                .map(|t| t.name.as_str()),
-            std::path::PathBuf::from("test_data/Cube_BaseColor.png").to_str()
+                .map(|t| std::path::PathBuf::from(&t.name)),
+            Some(std::path::PathBuf::from("test_data/Cube_BaseColor.png"))
         );
         assert_eq!(
             model.materials[0]
                 .metallic_roughness_texture
                 .as_ref()
-                .map(|t| t.name.as_str()),
-            std::path::PathBuf::from("test_data/Cube_MetallicRoughness.png").to_str()
+                .map(|t| std::path::PathBuf::from(&t.name)),
+            Some(std::path::PathBuf::from(
+                "test_data/Cube_MetallicRoughness.png"
+            ))
         );
     }
 
