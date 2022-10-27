@@ -341,14 +341,14 @@ mod test {
                 .albedo_texture
                 .as_ref()
                 .map(|t| t.name.as_str()),
-            Some("test_data/Cube_BaseColor.png")
+            std::path::PathBuf::from("test_data/Cube_BaseColor.png").to_str()
         );
         assert_eq!(
             model.materials[0]
                 .metallic_roughness_texture
                 .as_ref()
                 .map(|t| t.name.as_str()),
-            Some("test_data/Cube_MetallicRoughness.png")
+            std::path::PathBuf::from("test_data/Cube_MetallicRoughness.png").to_str()
         );
     }
 
