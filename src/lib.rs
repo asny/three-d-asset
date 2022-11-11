@@ -28,6 +28,9 @@ pub use geometry::*;
 pub mod volume;
 pub use volume::*;
 
+pub mod animation;
+pub use animation::*;
+
 ///
 /// Model consisting of a set of [geometries](Model::geometries) and [materials](Model::materials).
 /// The geometries might have a [material name](TriMesh::material_name) that matches a name of a material in the list of materials.
@@ -38,6 +41,8 @@ pub struct Model {
     pub geometries: Vec<TriMesh>,
     /// A list of [PbrMaterial]s applied to the geometries.
     pub materials: Vec<PbrMaterial>,
+
+    pub animations: Vec<KeyFrames>,
 }
 
 pub mod io;

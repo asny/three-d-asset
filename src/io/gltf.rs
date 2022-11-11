@@ -1,4 +1,4 @@
-use crate::{geometry::*, io::*, material::*, Error, Model, Result};
+use crate::{animation::*, geometry::*, io::*, material::*, Error, Model, Result};
 use ::gltf::Gltf;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
@@ -77,9 +77,33 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
             )?;
         }
     }
+
+    let mut animations = Vec::new();
+    for animation in document.animations() {
+        for channel in animation.channels() {
+            let reader = channel.reader(|buffer| Some(&buffers[buffer.index()]));
+            let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
+            dbg!(&input);
+
+            if let ::gltf::animation::util::ReadOutputs::Rotations(rotations) =
+                reader.read_outputs().unwrap()
+            {
+                dbg!(&rotations);
+                animations.push(KeyFrames {
+                    times: input,
+                    rotations: rotations
+                        .into_f32()
+                        .map(|v| v.into())
+                        .collect::<Vec<Quat>>(),
+                });
+            }
+        }
+    }
+    dbg!(&animations);
     Ok(Model {
         geometries: cpu_meshes,
         materials: cpu_materials,
+        animations,
     })
 }
 
@@ -362,6 +386,14 @@ mod test {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 1);
+    }
+
+    #[test]
+    pub fn deserialize_gltf_with_animations() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
+        assert_eq!(model.geometries.len(), 2);
         assert_eq!(model.materials.len(), 1);
     }
 }
