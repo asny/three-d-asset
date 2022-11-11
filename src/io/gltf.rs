@@ -64,6 +64,15 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
         buffers.push(::gltf::buffer::Data(data));
     }
 
+    for material in document.materials() {
+        cpu_materials.push(parse_material(
+            raw_assets,
+            &base_path,
+            &mut buffers,
+            &material,
+        )?);
+    }
+
     for scene in document.scenes() {
         for node in scene.nodes() {
             parse_tree(
@@ -73,7 +82,6 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
                 &base_path,
                 &buffers,
                 &mut cpu_meshes,
-                &mut cpu_materials,
             )?;
         }
     }
@@ -114,7 +122,6 @@ fn parse_tree<'a>(
     path: &Path,
     buffers: &[::gltf::buffer::Data],
     cpu_meshes: &mut Vec<TriMesh>,
-    cpu_materials: &mut Vec<PbrMaterial>,
 ) -> Result<()> {
     let node_transform = parse_transform(node.transform());
     if node_transform.determinant() == 0.0 {
@@ -149,94 +156,6 @@ fn parse_tree<'a>(
                     })
                     .unwrap_or(Indices::None);
 
-                let material = primitive.material();
-                let material_name: String = material.name().map(|s| s.to_string()).unwrap_or(
-                    material
-                        .index()
-                        .map(|i| format!("index {}", i))
-                        .unwrap_or("default".to_string()),
-                );
-                let parsed = cpu_materials
-                    .iter()
-                    .any(|material| material.name == material_name);
-
-                if !parsed {
-                    let pbr = material.pbr_metallic_roughness();
-                    let color = pbr.base_color_factor();
-                    let albedo_texture = if let Some(info) = pbr.base_color_texture() {
-                        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
-                    } else {
-                        None
-                    };
-                    let metallic_roughness_texture =
-                        if let Some(info) = pbr.metallic_roughness_texture() {
-                            Some(parse_texture(raw_assets, path, buffers, info.texture())?)
-                        } else {
-                            None
-                        };
-                    let (normal_texture, normal_scale) =
-                        if let Some(normal) = material.normal_texture() {
-                            (
-                                Some(parse_texture(raw_assets, path, buffers, normal.texture())?),
-                                normal.scale(),
-                            )
-                        } else {
-                            (None, 1.0)
-                        };
-                    let (occlusion_texture, occlusion_strength) =
-                        if let Some(occlusion) = material.occlusion_texture() {
-                            (
-                                Some(parse_texture(
-                                    raw_assets,
-                                    path,
-                                    buffers,
-                                    occlusion.texture(),
-                                )?),
-                                occlusion.strength(),
-                            )
-                        } else {
-                            (None, 1.0)
-                        };
-                    let emissive_texture = if let Some(info) = material.emissive_texture() {
-                        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
-                    } else {
-                        None
-                    };
-                    let transmission_texture = if let Some(Some(info)) =
-                        material.transmission().map(|t| t.transmission_texture())
-                    {
-                        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
-                    } else {
-                        None
-                    };
-                    cpu_materials.push(PbrMaterial {
-                        name: material_name.clone(),
-                        albedo: Color::from_rgba_slice(&color),
-                        albedo_texture,
-                        metallic: pbr.metallic_factor(),
-                        roughness: pbr.roughness_factor(),
-                        metallic_roughness_texture,
-                        normal_texture,
-                        normal_scale,
-                        occlusion_texture,
-                        occlusion_strength,
-                        occlusion_metallic_roughness_texture: None,
-                        emissive: Color::from_rgb_slice(&material.emissive_factor()),
-                        emissive_texture,
-                        transmission: material
-                            .transmission()
-                            .map(|t| t.transmission_factor())
-                            .unwrap_or(0.0),
-                        transmission_texture,
-                        index_of_refraction: material.ior().unwrap_or(1.5),
-                        alpha_cutout: material.alpha_cutoff(),
-                        lighting_model: LightingModel::Cook(
-                            NormalDistributionFunction::TrowbridgeReitzGGX,
-                            GeometryFunction::SmithSchlickGGX,
-                        ),
-                    });
-                }
-
                 let colors = reader.read_colors(0).map(|values| {
                     values
                         .into_rgba_u8()
@@ -256,7 +175,7 @@ fn parse_tree<'a>(
                     indices,
                     colors,
                     uvs,
-                    material_name: Some(material_name),
+                    material_name: Some(material_name(&primitive.material())),
                 };
                 if transform != Mat4::identity() {
                     cpu_mesh.transform(&transform)?;
@@ -267,17 +186,97 @@ fn parse_tree<'a>(
     }
 
     for child in node.children() {
-        parse_tree(
-            &transform,
-            &child,
-            raw_assets,
-            path,
-            buffers,
-            cpu_meshes,
-            cpu_materials,
-        )?;
+        parse_tree(&transform, &child, raw_assets, path, buffers, cpu_meshes)?;
     }
     Ok(())
+}
+
+fn material_name(material: &::gltf::material::Material) -> String {
+    material.name().map(|s| s.to_string()).unwrap_or(
+        material
+            .index()
+            .map(|i| format!("index {}", i))
+            .unwrap_or("default".to_string()),
+    )
+}
+
+fn parse_material(
+    raw_assets: &mut RawAssets,
+    path: &Path,
+    buffers: &[::gltf::buffer::Data],
+    material: &::gltf::material::Material,
+) -> Result<PbrMaterial> {
+    let pbr = material.pbr_metallic_roughness();
+    let color = pbr.base_color_factor();
+    let albedo_texture = if let Some(info) = pbr.base_color_texture() {
+        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
+    } else {
+        None
+    };
+    let metallic_roughness_texture = if let Some(info) = pbr.metallic_roughness_texture() {
+        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
+    } else {
+        None
+    };
+    let (normal_texture, normal_scale) = if let Some(normal) = material.normal_texture() {
+        (
+            Some(parse_texture(raw_assets, path, buffers, normal.texture())?),
+            normal.scale(),
+        )
+    } else {
+        (None, 1.0)
+    };
+    let (occlusion_texture, occlusion_strength) =
+        if let Some(occlusion) = material.occlusion_texture() {
+            (
+                Some(parse_texture(
+                    raw_assets,
+                    path,
+                    buffers,
+                    occlusion.texture(),
+                )?),
+                occlusion.strength(),
+            )
+        } else {
+            (None, 1.0)
+        };
+    let emissive_texture = if let Some(info) = material.emissive_texture() {
+        Some(parse_texture(raw_assets, path, buffers, info.texture())?)
+    } else {
+        None
+    };
+    let transmission_texture =
+        if let Some(Some(info)) = material.transmission().map(|t| t.transmission_texture()) {
+            Some(parse_texture(raw_assets, path, buffers, info.texture())?)
+        } else {
+            None
+        };
+    Ok(PbrMaterial {
+        name: material_name(material),
+        albedo: Color::from_rgba_slice(&color),
+        albedo_texture,
+        metallic: pbr.metallic_factor(),
+        roughness: pbr.roughness_factor(),
+        metallic_roughness_texture,
+        normal_texture,
+        normal_scale,
+        occlusion_texture,
+        occlusion_strength,
+        occlusion_metallic_roughness_texture: None,
+        emissive: Color::from_rgb_slice(&material.emissive_factor()),
+        emissive_texture,
+        transmission: material
+            .transmission()
+            .map(|t| t.transmission_factor())
+            .unwrap_or(0.0),
+        transmission_texture,
+        index_of_refraction: material.ior().unwrap_or(1.5),
+        alpha_cutout: material.alpha_cutoff(),
+        lighting_model: LightingModel::Cook(
+            NormalDistributionFunction::TrowbridgeReitzGGX,
+            GeometryFunction::SmithSchlickGGX,
+        ),
+    })
 }
 
 fn parse_texture<'a>(
