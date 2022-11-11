@@ -75,14 +75,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
     let mut geometries = Vec::new();
     for scene in document.scenes() {
         for node in scene.nodes() {
-            parse_tree(
-                &Mat4::identity(),
-                &node,
-                raw_assets,
-                &base_path,
-                &buffers,
-                &mut geometries,
-            )?;
+            parse_tree(&Mat4::identity(), &node, &buffers, &mut geometries)?;
         }
     }
 
@@ -118,8 +111,6 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
 fn parse_tree<'a>(
     parent_transform: &Mat4,
     node: &::gltf::Node,
-    raw_assets: &mut RawAssets,
-    path: &Path,
     buffers: &[::gltf::buffer::Data],
     geometries: &mut Vec<TriMesh>,
 ) -> Result<()> {
@@ -135,60 +126,71 @@ fn parse_tree<'a>(
             .map(|s| s.to_string())
             .unwrap_or(format!("index {}", mesh.index()));
         for primitive in mesh.primitives() {
-            let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-            if let Some(read_positions) = reader.read_positions() {
-                let positions: Vec<_> = read_positions.map(|p| p.into()).collect();
-
-                let normals = reader
-                    .read_normals()
-                    .map(|values| values.map(|n| n.into()).collect());
-
-                let tangents = reader
-                    .read_tangents()
-                    .map(|values| values.map(|t| t.into()).collect());
-
-                let indices = reader
-                    .read_indices()
-                    .map(|values| match values {
-                        ::gltf::mesh::util::ReadIndices::U8(iter) => Indices::U8(iter.collect()),
-                        ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
-                        ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
-                    })
-                    .unwrap_or(Indices::None);
-
-                let colors = reader.read_colors(0).map(|values| {
-                    values
-                        .into_rgba_u8()
-                        .map(|c| Color::new(c[0], c[1], c[2], c[3]))
-                        .collect()
-                });
-
-                let uvs = reader
-                    .read_tex_coords(0)
-                    .map(|values| values.into_f32().map(|uv| uv.into()).collect());
-
-                let mut mesh = TriMesh {
-                    name: name.clone(),
-                    positions: Positions::F32(positions),
-                    normals,
-                    tangents,
-                    indices,
-                    colors,
-                    uvs,
-                    material_name: Some(material_name(&primitive.material())),
-                };
-                if transform != Mat4::identity() {
-                    mesh.transform(&transform)?;
-                }
-                geometries.push(mesh);
-            }
+            geometries.push(parse_mesh(name.clone(), transform, buffers, &primitive)?);
         }
     }
 
     for child in node.children() {
-        parse_tree(&transform, &child, raw_assets, path, buffers, geometries)?;
+        parse_tree(&transform, &child, buffers, geometries)?;
     }
     Ok(())
+}
+
+fn parse_mesh(
+    name: String,
+    transform: Mat4,
+    buffers: &[::gltf::buffer::Data],
+    primitive: &::gltf::mesh::Primitive,
+) -> Result<TriMesh> {
+    let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+    if let Some(read_positions) = reader.read_positions() {
+        let positions: Vec<_> = read_positions.map(|p| p.into()).collect();
+
+        let normals = reader
+            .read_normals()
+            .map(|values| values.map(|n| n.into()).collect());
+
+        let tangents = reader
+            .read_tangents()
+            .map(|values| values.map(|t| t.into()).collect());
+
+        let indices = reader
+            .read_indices()
+            .map(|values| match values {
+                ::gltf::mesh::util::ReadIndices::U8(iter) => Indices::U8(iter.collect()),
+                ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
+                ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
+            })
+            .unwrap_or(Indices::None);
+
+        let colors = reader.read_colors(0).map(|values| {
+            values
+                .into_rgba_u8()
+                .map(|c| Color::new(c[0], c[1], c[2], c[3]))
+                .collect()
+        });
+
+        let uvs = reader
+            .read_tex_coords(0)
+            .map(|values| values.into_f32().map(|uv| uv.into()).collect());
+
+        let mut mesh = TriMesh {
+            name: name.clone(),
+            positions: Positions::F32(positions),
+            normals,
+            tangents,
+            indices,
+            colors,
+            uvs,
+            material_name: Some(material_name(&primitive.material())),
+        };
+        if transform != Mat4::identity() {
+            mesh.transform(&transform)?;
+        }
+        Ok(mesh)
+    } else {
+        unreachable!()
+    }
 }
 
 fn material_name(material: &::gltf::material::Material) -> String {
