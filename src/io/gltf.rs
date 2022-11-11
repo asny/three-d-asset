@@ -38,11 +38,9 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> 
 }
 
 pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
-    let mut cpu_meshes = Vec::new();
-    let mut cpu_materials = Vec::new();
-
     let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove(path)?)?;
     let base_path = path.parent().unwrap_or(Path::new(""));
+
     let mut buffers = Vec::new();
     for buffer in document.buffers() {
         let mut data = match buffer.source() {
@@ -64,8 +62,9 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
         buffers.push(::gltf::buffer::Data(data));
     }
 
+    let mut materials = Vec::new();
     for material in document.materials() {
-        cpu_materials.push(parse_material(
+        materials.push(parse_material(
             raw_assets,
             &base_path,
             &mut buffers,
@@ -73,6 +72,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
         )?);
     }
 
+    let mut geometries = Vec::new();
     for scene in document.scenes() {
         for node in scene.nodes() {
             parse_tree(
@@ -81,7 +81,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
                 raw_assets,
                 &base_path,
                 &buffers,
-                &mut cpu_meshes,
+                &mut geometries,
             )?;
         }
     }
@@ -109,8 +109,8 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
     }
     dbg!(&animations);
     Ok(Model {
-        geometries: cpu_meshes,
-        materials: cpu_materials,
+        geometries,
+        materials,
         animations,
     })
 }
@@ -121,7 +121,7 @@ fn parse_tree<'a>(
     raw_assets: &mut RawAssets,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
-    cpu_meshes: &mut Vec<TriMesh>,
+    geometries: &mut Vec<TriMesh>,
 ) -> Result<()> {
     let node_transform = parse_transform(node.transform());
     if node_transform.determinant() == 0.0 {
@@ -167,7 +167,7 @@ fn parse_tree<'a>(
                     .read_tex_coords(0)
                     .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-                let mut cpu_mesh = TriMesh {
+                let mut mesh = TriMesh {
                     name: name.clone(),
                     positions: Positions::F32(positions),
                     normals,
@@ -178,15 +178,15 @@ fn parse_tree<'a>(
                     material_name: Some(material_name(&primitive.material())),
                 };
                 if transform != Mat4::identity() {
-                    cpu_mesh.transform(&transform)?;
+                    mesh.transform(&transform)?;
                 }
-                cpu_meshes.push(cpu_mesh);
+                geometries.push(mesh);
             }
         }
     }
 
     for child in node.children() {
-        parse_tree(&transform, &child, raw_assets, path, buffers, cpu_meshes)?;
+        parse_tree(&transform, &child, raw_assets, path, buffers, geometries)?;
     }
     Ok(())
 }
