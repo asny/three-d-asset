@@ -64,16 +64,18 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
         buffers.push(::gltf::buffer::Data(data));
     }
 
-    for node in document.nodes() {
-        parse_tree(
-            &Mat4::identity(),
-            &node,
-            raw_assets,
-            &base_path,
-            &buffers,
-            &mut cpu_meshes,
-            &mut cpu_materials,
-        )?;
+    for scene in document.scenes() {
+        for node in scene.nodes() {
+            parse_tree(
+                &Mat4::identity(),
+                &node,
+                raw_assets,
+                &base_path,
+                &buffers,
+                &mut cpu_meshes,
+                &mut cpu_materials,
+            )?;
+        }
     }
     Ok(Model {
         geometries: cpu_meshes,
