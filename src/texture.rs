@@ -20,6 +20,12 @@ pub enum Interpolation {
     Linear,
 }
 
+impl Default for Interpolation {
+    fn default() -> Self {
+        Self::Linear
+    }
+}
+
 ///
 /// Possible wrapping modes for a texture which determines how the texture is applied outside of the
 /// [0..1] uv coordinate range.

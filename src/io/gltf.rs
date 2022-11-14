@@ -1,7 +1,8 @@
-use crate::{animation::*, geometry::*, io::*, material::*, Error, Model, Result};
+use crate::{animation::*, geometry::*, io::*, material::*, Error, Model, Result, Scene};
 use ::gltf::Gltf;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
@@ -37,7 +38,7 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> 
     dependencies
 }
 
-pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
+pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Scene> {
     let Gltf { document, mut blob } = Gltf::from_slice(&raw_assets.remove(path)?)?;
     let base_path = path.parent().unwrap_or(Path::new(""));
 
@@ -62,135 +63,164 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mo
         buffers.push(::gltf::buffer::Data(data));
     }
 
-    let mut materials = Vec::new();
+    let mut materials = HashMap::new();
     for material in document.materials() {
-        materials.push(parse_material(
-            raw_assets,
-            &base_path,
-            &mut buffers,
-            &material,
-        )?);
-    }
-
-    let mut geometries = Vec::new();
-    for scene in document.scenes() {
-        for node in scene.nodes() {
-            parse_tree(&Mat4::identity(), &node, &buffers, &mut geometries)?;
+        if let Some(index) = material.index() {
+            materials.insert(
+                index,
+                Rc::new(parse_material(
+                    raw_assets,
+                    &base_path,
+                    &mut buffers,
+                    &material,
+                )?),
+            );
         }
     }
 
-    let mut animations = Vec::new();
+    let mut models = HashMap::new();
+    for mesh in document.meshes() {
+        models.insert(mesh.index(), parse_model(&mesh, &buffers, &materials)?);
+    }
+
+    for scene in document.scenes() {
+        for node in scene.nodes() {
+            /*visit(&Mat4::identity(), &node, &mut |mesh, transform|
+
+            if transform != Mat4::identity() {
+                mesh.transform(&transform)?;
+            }
+            Ok(()))?;*/
+        }
+    }
+
+    let mut animations = HashMap::new();
     for animation in document.animations() {
         for channel in animation.channels() {
             let reader = channel.reader(|buffer| Some(&buffers[buffer.index()]));
-            let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
-            dbg!(&input);
+            let interpolation = match channel.sampler().interpolation() {
+                ::gltf::animation::Interpolation::Step => Interpolation::Nearest,
+                ::gltf::animation::Interpolation::Linear => Interpolation::Linear,
+                _ => unimplemented!(),
+            };
+            let target = channel.target().node().index();
+            let key = (target, channel.sampler().input().index(), interpolation);
+            dbg!(key);
+            if !animations.contains_key(&key) {
+                let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
+                dbg!(&input);
+                animations.insert(
+                    key,
+                    KeyFrames {
+                        times: input,
+                        interpolation,
+                        ..Default::default()
+                    },
+                );
+            }
+            let mut keyframes = animations.get_mut(&key).unwrap();
 
-            if let ::gltf::animation::util::ReadOutputs::Rotations(rotations) =
-                reader.read_outputs().unwrap()
-            {
-                dbg!(&rotations);
-                animations.push(KeyFrames {
-                    times: input,
-                    rotations: rotations
-                        .into_f32()
-                        .map(|v| v.into())
-                        .collect::<Vec<Quat>>(),
-                });
+            match reader.read_outputs().unwrap() {
+                ::gltf::animation::util::ReadOutputs::Rotations(rotations) => {
+                    dbg!(&rotations);
+                    keyframes.rotations = Some(
+                        rotations
+                            .into_f32()
+                            .into_iter()
+                            .map(|r| Quat::new(r[0], r[1], r[2], r[3]))
+                            .collect(),
+                    );
+                }
+                _ => {}
             }
         }
     }
-    dbg!(&animations);
-    Ok(Model {
-        geometries,
-        materials,
-        animations,
+    Ok(Scene {
+        models: models.into_values().collect::<Vec<_>>(),
+        animations: animations.into_values().collect::<Vec<_>>(),
     })
 }
 
-fn parse_tree<'a>(
+fn visit(
     parent_transform: &Mat4,
     node: &::gltf::Node,
-    buffers: &[::gltf::buffer::Data],
-    geometries: &mut Vec<TriMesh>,
+    callback: &mut dyn FnMut(::gltf::Mesh, Mat4) -> Result<()>,
 ) -> Result<()> {
     let node_transform = parse_transform(node.transform());
-    if node_transform.determinant() == 0.0 {
-        return Ok(()); // glTF say that if the scale is all zeroes, the node should be ignored.
-    }
-    let transform = parent_transform * node_transform;
+    // glTF say that if the scale is all zeroes, the node should be ignored.
+    if node_transform.determinant() != 0.0 {
+        let transform = parent_transform * node_transform;
 
-    if let Some(mesh) = node.mesh() {
-        let name: String = mesh
-            .name()
-            .map(|s| s.to_string())
-            .unwrap_or(format!("index {}", mesh.index()));
-        for primitive in mesh.primitives() {
-            geometries.push(parse_mesh(name.clone(), transform, buffers, &primitive)?);
+        if let Some(mesh) = node.mesh() {
+            callback(mesh, transform)?;
         }
-    }
 
-    for child in node.children() {
-        parse_tree(&transform, &child, buffers, geometries)?;
+        for child in node.children() {
+            visit(&transform, &child, callback)?;
+        }
     }
     Ok(())
 }
 
-fn parse_mesh(
-    name: String,
-    transform: Mat4,
+fn parse_model(
+    mesh: &::gltf::mesh::Mesh,
     buffers: &[::gltf::buffer::Data],
-    primitive: &::gltf::mesh::Primitive,
-) -> Result<TriMesh> {
-    let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
-    if let Some(read_positions) = reader.read_positions() {
-        let positions: Vec<_> = read_positions.map(|p| p.into()).collect();
+    materials: &HashMap<usize, Rc<PbrMaterial>>,
+) -> Result<Model> {
+    let mut geometries = Vec::new();
+    for primitive in mesh.primitives() {
+        let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+        if let Some(read_positions) = reader.read_positions() {
+            let positions: Vec<_> = read_positions.map(|p| p.into()).collect();
 
-        let normals = reader
-            .read_normals()
-            .map(|values| values.map(|n| n.into()).collect());
+            let normals = reader
+                .read_normals()
+                .map(|values| values.map(|n| n.into()).collect());
 
-        let tangents = reader
-            .read_tangents()
-            .map(|values| values.map(|t| t.into()).collect());
+            let tangents = reader
+                .read_tangents()
+                .map(|values| values.map(|t| t.into()).collect());
 
-        let indices = reader
-            .read_indices()
-            .map(|values| match values {
-                ::gltf::mesh::util::ReadIndices::U8(iter) => Indices::U8(iter.collect()),
-                ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
-                ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
-            })
-            .unwrap_or(Indices::None);
+            let indices = reader
+                .read_indices()
+                .map(|values| match values {
+                    ::gltf::mesh::util::ReadIndices::U8(iter) => Indices::U8(iter.collect()),
+                    ::gltf::mesh::util::ReadIndices::U16(iter) => Indices::U16(iter.collect()),
+                    ::gltf::mesh::util::ReadIndices::U32(iter) => Indices::U32(iter.collect()),
+                })
+                .unwrap_or(Indices::None);
 
-        let colors = reader.read_colors(0).map(|values| {
-            values
-                .into_rgba_u8()
-                .map(|c| Color::new(c[0], c[1], c[2], c[3]))
-                .collect()
-        });
+            let colors = reader.read_colors(0).map(|values| {
+                values
+                    .into_rgba_u8()
+                    .map(|c| Color::new(c[0], c[1], c[2], c[3]))
+                    .collect()
+            });
 
-        let uvs = reader
-            .read_tex_coords(0)
-            .map(|values| values.into_f32().map(|uv| uv.into()).collect());
+            let uvs = reader
+                .read_tex_coords(0)
+                .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-        let mut mesh = TriMesh {
-            name: name.clone(),
-            positions: Positions::F32(positions),
-            normals,
-            tangents,
-            indices,
-            colors,
-            uvs,
-            material_name: Some(material_name(&primitive.material())),
-        };
-        if transform != Mat4::identity() {
-            mesh.transform(&transform)?;
+            geometries.push(TriMesh {
+                material: primitive
+                    .material()
+                    .index()
+                    .map(|m| materials.get(&m).cloned())
+                    .flatten(),
+                positions: Positions::F32(positions),
+                normals,
+                tangents,
+                indices,
+                colors,
+                uvs,
+            });
         }
-        Ok(mesh)
-    } else {
-        unreachable!()
     }
+    let name: String = mesh
+        .name()
+        .map(|s| s.to_string())
+        .unwrap_or(format!("index {}", mesh.index()));
+    Ok(Model { name, geometries })
 }
 
 fn material_name(material: &::gltf::material::Material) -> String {
@@ -326,14 +356,14 @@ mod test {
         let mut loaded = crate::io::load(&["test_data/Cube.gltf"]).unwrap();
         let model: crate::Model = loaded.deserialize(".gltf").unwrap();
         assert_eq!(
-            model.materials[0]
+            model.materials()[0]
                 .albedo_texture
                 .as_ref()
                 .map(|t| std::path::PathBuf::from(&t.name)),
             Some(std::path::PathBuf::from("test_data/Cube_BaseColor.png"))
         );
         assert_eq!(
-            model.materials[0]
+            model.materials()[0]
                 .metallic_roughness_texture
                 .as_ref()
                 .map(|t| std::path::PathBuf::from(&t.name)),
@@ -365,16 +395,16 @@ mod test {
             .deserialize("gltf")
             .unwrap();
         assert_eq!(model.geometries.len(), 1);
-        assert_eq!(model.materials.len(), 1);
+        assert_eq!(model.materials().len(), 1);
         assert_eq!(
-            model.materials[0]
+            model.materials()[0]
                 .albedo_texture
                 .as_ref()
                 .map(|t| t.name.as_str()),
             Some("Cube_BaseColor.png")
         );
         assert_eq!(
-            model.materials[0]
+            model.materials()[0]
                 .metallic_roughness_texture
                 .as_ref()
                 .map(|t| t.name.as_str()),
@@ -387,7 +417,7 @@ mod test {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
-        assert_eq!(model.materials.len(), 1);
+        assert_eq!(model.materials().len(), 1);
     }
 
     #[test]
@@ -395,6 +425,22 @@ mod test {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
         assert_eq!(model.geometries.len(), 2);
-        assert_eq!(model.materials.len(), 1);
+        assert_eq!(model.materials().len(), 1);
+    }
+
+    #[test]
+    pub fn deserialize_gltf_with_morphing() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/AnimatedMorph.gltf").unwrap();
+        assert_eq!(model.geometries.len(), 2);
+        assert_eq!(model.materials().len(), 1);
+    }
+
+    #[test]
+    pub fn deserialize_gltf_with_skinning() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/AnimatedSkin.gltf").unwrap();
+        assert_eq!(model.geometries.len(), 2);
+        assert_eq!(model.materials().len(), 1);
     }
 }
