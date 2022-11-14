@@ -85,12 +85,11 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
 
     for scene in document.scenes() {
         for node in scene.nodes() {
-            /*visit(&Mat4::identity(), &node, &mut |mesh, transform|
-
-            if transform != Mat4::identity() {
-                mesh.transform(&transform)?;
-            }
-            Ok(()))?;*/
+            visit(&node, &Mat4::identity(), &mut |mesh, transformation| {
+                if transformation != Mat4::identity() {
+                    models.get_mut(&mesh.index()).unwrap().transformation = transformation;
+                }
+            });
         }
     }
 
@@ -142,24 +141,23 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
 }
 
 fn visit(
-    parent_transform: &Mat4,
     node: &::gltf::Node,
-    callback: &mut dyn FnMut(::gltf::Mesh, Mat4) -> Result<()>,
-) -> Result<()> {
+    parent_transform: &Mat4,
+    callback: &mut dyn FnMut(::gltf::Mesh, Mat4),
+) {
     let node_transform = parse_transform(node.transform());
     // glTF say that if the scale is all zeroes, the node should be ignored.
     if node_transform.determinant() != 0.0 {
         let transform = parent_transform * node_transform;
 
         if let Some(mesh) = node.mesh() {
-            callback(mesh, transform)?;
+            callback(mesh, transform);
         }
 
         for child in node.children() {
-            visit(&transform, &child, callback)?;
+            visit(&child, &transform, callback);
         }
     }
-    Ok(())
 }
 
 fn parse_model(
@@ -216,11 +214,14 @@ fn parse_model(
             });
         }
     }
-    let name: String = mesh
-        .name()
-        .map(|s| s.to_string())
-        .unwrap_or(format!("index {}", mesh.index()));
-    Ok(Model { name, geometries })
+    Ok(Model {
+        name: mesh
+            .name()
+            .map(|s| s.to_string())
+            .unwrap_or(format!("index {}", mesh.index())),
+        geometries,
+        transformation: Mat4::identity(),
+    })
 }
 
 fn material_name(material: &::gltf::material::Material) -> String {

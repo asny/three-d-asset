@@ -44,6 +44,7 @@ pub struct Model {
     pub name: String,
     /// A list of [TriMesh]es.
     pub geometries: Vec<TriMesh>,
+    pub transformation: Mat4,
 }
 
 impl Model {
