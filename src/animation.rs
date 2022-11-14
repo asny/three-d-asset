@@ -1,9 +1,8 @@
-use crate::{prelude::*, Interpolation, Model};
-use std::rc::Rc;
+use crate::{prelude::*, Interpolation};
 
 #[derive(Debug, Clone, Default)]
 pub struct KeyFrames {
-    pub targets: Vec<Rc<Model>>,
+    pub targets: Vec<usize>,
     pub interpolation: Interpolation,
     pub times: Vec<f32>,
     pub rotations: Option<Vec<Quat>>,
