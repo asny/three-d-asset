@@ -78,16 +78,16 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
     }
 
-    let mut models = HashMap::new();
+    let mut models = Vec::new();
     for mesh in document.meshes() {
-        models.insert(mesh.index(), parse_model(&mesh, &buffers, &materials)?);
+        models.push(parse_model(&mesh, &buffers, &materials)?);
     }
 
     for scene in document.scenes() {
         for node in scene.nodes() {
             visit(&node, &Mat4::identity(), &mut |mesh, transformation| {
                 if transformation != Mat4::identity() {
-                    models.get_mut(&mesh.index()).unwrap().transformation = transformation;
+                    models.get_mut(mesh.index()).unwrap().transformation = transformation;
                 }
             });
         }
@@ -102,17 +102,24 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 ::gltf::animation::Interpolation::Linear => Interpolation::Linear,
                 _ => unimplemented!(),
             };
-            let target = channel.target().node().index();
-            let key = (target, channel.sampler().input().index(), interpolation);
-            dbg!(key);
+            let target = channel.target().node();
+            let key = (
+                target.index(),
+                channel.sampler().input().index(),
+                interpolation,
+            );
             if !animations.contains_key(&key) {
+                let mut targets = Vec::new();
+                visit(&target, &Mat4::identity(), &mut |mesh, _| {
+                    targets.push(mesh.index());
+                });
                 let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
-                dbg!(&input);
                 animations.insert(
                     key,
                     KeyFrames {
                         times: input,
                         interpolation,
+                        targets,
                         ..Default::default()
                     },
                 );
@@ -121,7 +128,6 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
 
             match reader.read_outputs().unwrap() {
                 ::gltf::animation::util::ReadOutputs::Rotations(rotations) => {
-                    dbg!(&rotations);
                     keyframes.rotations = Some(
                         rotations
                             .into_f32()
@@ -135,7 +141,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
     }
     Ok(Scene {
-        models: models.into_values().collect::<Vec<_>>(),
+        models,
         animations: animations.into_values().collect::<Vec<_>>(),
     })
 }
@@ -423,25 +429,27 @@ mod test {
 
     #[test]
     pub fn deserialize_gltf_with_animations() {
-        let model: crate::Model =
+        let scene: crate::Scene =
             crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 2);
-        assert_eq!(model.materials().len(), 1);
+        assert_eq!(scene.models.len(), 1);
+        assert_eq!(scene.materials().len(), 0);
+        assert_eq!(scene.animations.len(), 1);
+        assert_eq!(scene.animations[0].targets[0], 0);
     }
 
     #[test]
     pub fn deserialize_gltf_with_morphing() {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedMorph.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 2);
-        assert_eq!(model.materials().len(), 1);
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials().len(), 0);
     }
 
     #[test]
     pub fn deserialize_gltf_with_skinning() {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedSkin.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 2);
-        assert_eq!(model.materials().len(), 1);
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials().len(), 0);
     }
 }
