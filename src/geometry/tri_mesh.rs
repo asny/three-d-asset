@@ -1,16 +1,12 @@
-use super::{Indices, Positions};
-use crate::prelude::*;
-use crate::{Error, Result};
-
+use crate::{prelude::*, Error, Indices, PbrMaterial, Positions, Result};
+use std::rc::Rc;
 ///
 /// A CPU-side version of a triangle mesh.
 ///
 #[derive(Clone)]
 pub struct TriMesh {
-    /// Name.
-    pub name: String,
-    /// Name of the associated material, use this to match with [PbrMaterial::name](crate::material::PbrMaterial::name).
-    pub material_name: Option<String>,
+    /// Reference to an associated material.
+    pub material: Option<Rc<PbrMaterial>>,
     /// The positions of the vertices.
     /// If there is no indices associated with this mesh, three contiguous positions defines a triangle, in that case, the length must be divisable by 3.
     pub positions: Positions,
@@ -28,26 +24,10 @@ pub struct TriMesh {
     pub colors: Option<Vec<Color>>,
 }
 
-impl TriMesh {
-    ///
-    /// Returns the material for this mesh in the given list of materials. Returns `None` if no suitable material can be found.
-    ///
-    pub fn material<'a>(
-        &self,
-        materials: &'a [crate::PbrMaterial],
-    ) -> Option<&'a crate::PbrMaterial> {
-        materials
-            .iter()
-            .position(|mat| Some(&mat.name) == self.material_name.as_ref())
-            .map(|index| &materials[index])
-    }
-}
-
 impl std::default::Default for TriMesh {
     fn default() -> Self {
         Self {
-            name: "default".to_string(),
-            material_name: None,
+            material: None,
             positions: Positions::default(),
             indices: Indices::None,
             normals: None,
@@ -61,8 +41,7 @@ impl std::default::Default for TriMesh {
 impl std::fmt::Debug for TriMesh {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("Mesh");
-        d.field("name", &self.name);
-        d.field("material name", &self.material_name);
+        d.field("material", &self.material);
         d.field("positions", &self.positions.len());
         d.field("indices", &self.indices);
         d.field("normals", &self.normals.as_ref().map(|v| v.len()));
@@ -158,7 +137,6 @@ impl TriMesh {
             Vec2::new(0.0, 0.0),
         ];
         TriMesh {
-            name: "square".to_string(),
             indices: Indices::U8(indices),
             positions: Positions::F32(positions),
             normals: Some(normals),
@@ -188,7 +166,6 @@ impl TriMesh {
             indices.push(((j + 1) % angle_subdivisions) as u16);
         }
         TriMesh {
-            name: "circle".to_string(),
             indices: Indices::U16(indices),
             positions: Positions::F32(positions),
             normals: Some(normals),
@@ -252,7 +229,6 @@ impl TriMesh {
         }
 
         TriMesh {
-            name: "sphere".to_string(),
             indices: Indices::U16(indices),
             positions: Positions::F32(positions),
             normals: Some(normals),
@@ -389,7 +365,6 @@ impl TriMesh {
             }
         }
         let mut mesh = Self {
-            name: "cylinder".to_string(),
             positions: Positions::F32(positions),
             indices: Indices::U16(indices),
             ..Default::default()
@@ -429,7 +404,6 @@ impl TriMesh {
             }
         }
         let mut mesh = Self {
-            name: "cone".to_string(),
             positions: Positions::F32(positions),
             indices: Indices::U16(indices),
             ..Default::default()
@@ -451,7 +425,6 @@ impl TriMesh {
                 tail_radius,
             ))
             .unwrap();
-        arrow.name = "arrow".to_string();
         let mut cone = Self::cone(angle_subdivisions);
         cone.transform(
             &(Mat4::from_translation(Vec3::new(tail_length, 0.0, 0.0))

@@ -1,7 +1,37 @@
-use crate::prelude::*;
+use crate::{prelude::*, Interpolation, Model};
+use std::rc::Rc;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct KeyFrames {
+    pub targets: Vec<Rc<Model>>,
+    pub interpolation: Interpolation,
     pub times: Vec<f32>,
-    pub rotations: Vec<Quat>,
+    pub rotations: Option<Vec<Quat>>,
+    pub translations: Option<Vec<Vec3>>,
+    pub scales: Option<Vec<Vec3>>,
+    pub weights: Option<Vec<Vec4>>,
+}
+
+impl KeyFrames {
+    pub fn transformation(&self, time: f32) -> Mat4 {
+        Mat4::identity()
+    }
+
+    pub fn weights(&self, time: f32) -> Vec4 {
+        vec4(0.0, 0.0, 0.0, 0.0)
+    }
+
+    pub fn rotation(&self, time: f32) -> Quat {
+        Quat::one()
+    }
+
+    fn index(&self, time: f32) -> usize {
+        let time = time % self.times.last().unwrap();
+        for i in 0..self.times.len() - 2 {
+            if self.times[i] < time && time < self.times[i + 1] {
+                return i;
+            }
+        }
+        self.times.len() - 1
+    }
 }

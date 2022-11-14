@@ -31,18 +31,59 @@ pub use volume::*;
 pub mod animation;
 pub use animation::*;
 
+use std::rc::Rc;
+
 ///
 /// Model consisting of a set of [geometries](Model::geometries) and [materials](Model::materials).
 /// The geometries might have a [material name](TriMesh::material_name) that matches a name of a material in the list of materials.
 /// Also, the same material can be applied to several geometries.
 ///
+#[derive(Clone, Debug)]
 pub struct Model {
+    /// Name.
+    pub name: String,
     /// A list of [TriMesh]es.
     pub geometries: Vec<TriMesh>,
-    /// A list of [PbrMaterial]s applied to the geometries.
-    pub materials: Vec<PbrMaterial>,
+}
 
+impl Model {
+    pub fn materials(&self) -> Vec<Rc<PbrMaterial>> {
+        let mut materials = Vec::new();
+        for mat in self.geometries.iter().map(|g| g.material.clone()) {
+            if let Some(mat) = mat {
+                if !materials.iter().any(|m| Rc::ptr_eq(m, &mat)) {
+                    materials.push(mat)
+                }
+            }
+        }
+        materials
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Scene {
     pub animations: Vec<KeyFrames>,
+
+    pub models: Vec<Model>,
+}
+
+impl Scene {
+    pub fn materials(&self) -> Vec<Rc<PbrMaterial>> {
+        let mut materials = Vec::new();
+        for mat in self
+            .models
+            .iter()
+            .flat_map(|m| m.geometries.iter())
+            .map(|g| g.material.clone())
+        {
+            if let Some(mat) = mat {
+                if !materials.iter().any(|m| Rc::ptr_eq(m, &mat)) {
+                    materials.push(mat)
+                }
+            }
+        }
+        materials
+    }
 }
 
 pub mod io;
