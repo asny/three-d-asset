@@ -1,12 +1,11 @@
-use crate::{prelude::*, Error, Indices, PbrMaterial, Positions, Result};
-use std::rc::Rc;
+use crate::{prelude::*, Error, Indices, Positions, Result};
 ///
 /// A CPU-side version of a triangle mesh.
 ///
 #[derive(Clone)]
 pub struct TriMesh {
-    /// Reference to an associated material.
-    pub material: Option<Rc<PbrMaterial>>,
+    /// Index into the list of [Model::materials] referencing the material that should be applied to this geometry (if any).
+    pub material: Option<usize>,
     /// The positions of the vertices.
     /// If there is no indices associated with this mesh, three contiguous positions defines a triangle, in that case, the length must be divisable by 3.
     pub positions: Positions,
