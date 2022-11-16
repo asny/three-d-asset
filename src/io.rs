@@ -161,7 +161,13 @@ impl Deserialize for crate::Model {
         if scene.models.len() == 0 {
             panic!("No models in file");
         }
-        Ok(scene.models.remove(0))
+        let model = scene.models.remove(0);
+        Ok(crate::Model {
+            name: model.name,
+            transformation: model.transformation,
+            materials: scene.materials,
+            geometries: model.geometries,
+        })
     }
 }
 

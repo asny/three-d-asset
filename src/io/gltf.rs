@@ -1,8 +1,7 @@
-use crate::{animation::*, geometry::*, io::*, material::*, Error, Model, Result, Scene};
+use crate::{animation::*, geometry::*, io::*, material::*, Error, Model2, Result, Scene};
 use ::gltf::Gltf;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::rc::Rc;
 
 pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
@@ -63,24 +62,21 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         buffers.push(::gltf::buffer::Data(data));
     }
 
-    let mut materials = HashMap::new();
+    let mut materials = Vec::new();
     for material in document.materials() {
         if let Some(index) = material.index() {
-            materials.insert(
-                index,
-                Rc::new(parse_material(
-                    raw_assets,
-                    &base_path,
-                    &mut buffers,
-                    &material,
-                )?),
-            );
+            materials.push(parse_material(
+                raw_assets,
+                &base_path,
+                &mut buffers,
+                &material,
+            )?);
         }
     }
 
     let mut models = Vec::new();
     for mesh in document.meshes() {
-        models.push(parse_model(&mesh, &buffers, &materials)?);
+        models.push(parse_model(&mesh, &buffers)?);
     }
 
     for scene in document.scenes() {
@@ -142,6 +138,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
     }
     Ok(Scene {
         models,
+        materials,
         animations: animations.into_values().collect::<Vec<_>>(),
     })
 }
@@ -166,11 +163,7 @@ fn visit(
     }
 }
 
-fn parse_model(
-    mesh: &::gltf::mesh::Mesh,
-    buffers: &[::gltf::buffer::Data],
-    materials: &HashMap<usize, Rc<PbrMaterial>>,
-) -> Result<Model> {
+fn parse_model(mesh: &::gltf::mesh::Mesh, buffers: &[::gltf::buffer::Data]) -> Result<Model2> {
     let mut geometries = Vec::new();
     for primitive in mesh.primitives() {
         let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -206,11 +199,7 @@ fn parse_model(
                 .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
             geometries.push(TriMesh {
-                material: primitive
-                    .material()
-                    .index()
-                    .map(|m| materials.get(&m).cloned())
-                    .flatten(),
+                material: primitive.material().index(),
                 positions: Positions::F32(positions),
                 normals,
                 tangents,
@@ -220,7 +209,7 @@ fn parse_model(
             });
         }
     }
-    Ok(Model {
+    Ok(Model2 {
         name: mesh
             .name()
             .map(|s| s.to_string())
@@ -363,14 +352,14 @@ mod test {
         let mut loaded = crate::io::load(&["test_data/Cube.gltf"]).unwrap();
         let model: crate::Model = loaded.deserialize(".gltf").unwrap();
         assert_eq!(
-            model.materials()[0]
+            model.materials[0]
                 .albedo_texture
                 .as_ref()
                 .map(|t| std::path::PathBuf::from(&t.name)),
             Some(std::path::PathBuf::from("test_data/Cube_BaseColor.png"))
         );
         assert_eq!(
-            model.materials()[0]
+            model.materials[0]
                 .metallic_roughness_texture
                 .as_ref()
                 .map(|t| std::path::PathBuf::from(&t.name)),
@@ -402,16 +391,16 @@ mod test {
             .deserialize("gltf")
             .unwrap();
         assert_eq!(model.geometries.len(), 1);
-        assert_eq!(model.materials().len(), 1);
+        assert_eq!(model.materials.len(), 1);
         assert_eq!(
-            model.materials()[0]
+            model.materials[0]
                 .albedo_texture
                 .as_ref()
                 .map(|t| t.name.as_str()),
             Some("Cube_BaseColor.png")
         );
         assert_eq!(
-            model.materials()[0]
+            model.materials[0]
                 .metallic_roughness_texture
                 .as_ref()
                 .map(|t| t.name.as_str()),
@@ -424,7 +413,7 @@ mod test {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
-        assert_eq!(model.materials().len(), 1);
+        assert_eq!(model.materials.len(), 1);
     }
 
     #[test]
@@ -432,7 +421,7 @@ mod test {
         let scene: crate::Scene =
             crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
         assert_eq!(scene.models.len(), 1);
-        assert_eq!(scene.materials().len(), 0);
+        assert_eq!(scene.materials.len(), 0);
         assert_eq!(scene.animations.len(), 1);
         assert_eq!(scene.animations[0].targets[0], 0);
     }
@@ -442,7 +431,7 @@ mod test {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedMorph.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
-        assert_eq!(model.materials().len(), 0);
+        assert_eq!(model.materials.len(), 0);
     }
 
     #[test]
@@ -450,6 +439,6 @@ mod test {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedSkin.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
-        assert_eq!(model.materials().len(), 0);
+        assert_eq!(model.materials.len(), 0);
     }
 }
