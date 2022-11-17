@@ -204,7 +204,6 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
     Ok(Model {
         geometries: cpu_meshes,
         materials: cpu_materials,
-        animations: Vec::new(),
     })
 }
 
