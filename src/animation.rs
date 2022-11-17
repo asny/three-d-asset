@@ -14,7 +14,7 @@ pub struct KeyFrames {
     pub rotations: Option<Vec<Quat>>,
     pub translations: Option<Vec<Vec3>>,
     pub scales: Option<Vec<Vec3>>,
-    pub weights: Option<Vec<Vec4>>,
+    pub weights: Option<Vec<f32>>,
 }
 
 impl KeyFrames {
@@ -38,12 +38,13 @@ impl KeyFrames {
         transformation
     }
 
-    pub fn weights(&self, time: f32) -> Vec4 {
+    pub fn weights(&self, time: f32) -> f32 {
+        // TODO: Should return Vec<f32>???
         if let Some(values) = &self.weights {
             let (index, t) = self.interpolate(time);
             (1.0 - t) * values[index] + t * values[index + 1]
         } else {
-            vec4(0.0, 0.0, 0.0, 0.0)
+            0.0
         }
     }
 
