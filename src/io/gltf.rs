@@ -133,7 +133,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                         rotations
                             .into_f32()
                             .into_iter()
-                            .map(|r| Quat::new(r[0], r[1], r[2], r[3]))
+                            .map(|r| Quat::from_sv(r[3], vec3(r[0], r[1], r[2])))
                             .collect(),
                     );
                 }
@@ -428,21 +428,13 @@ mod test {
         assert_eq!(model.materials.len(), 0);
         assert_eq!(model.key_frames.len(), 1);
         assert_eq!(model.key_frames[0].target_node, 0);
-        assert_eq!(
-            model.key_frames[0].transformation(0.0),
-            Mat4::from_cols(
-                vec4(-1.0, 0.0, 0.0, 0.0),
-                vec4(0.0, -1.0, 0.0, 0.0),
-                vec4(0.0, 0.0, 1.0, 0.0),
-                vec4(0.0, 0.0, 0.0, 1.0)
-            )
-        );
+        assert_eq!(model.key_frames[0].transformation(0.0), Mat4::identity());
         assert_eq!(
             model.key_frames[0].transformation(0.5),
             Mat4::from_cols(
                 vec4(-1.0, 0.0, 0.0, 0.0),
-                vec4(0.0, 1.0, 0.0, 0.0),
-                vec4(0.0, 0.0, -1.0, 0.0),
+                vec4(0.0, -1.0, 0.0, 0.0),
+                vec4(0.0, 0.0, 1.0, 0.0),
                 vec4(0.0, 0.0, 0.0, 1.0)
             )
         );

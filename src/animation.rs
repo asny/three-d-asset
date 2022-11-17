@@ -22,7 +22,7 @@ impl KeyFrames {
         let (index, t) = self.interpolate(time);
         let mut transformation = Mat4::identity();
         if let Some(values) = &self.rotations {
-            let value = (1.0 - t) * values[index] + t * values[index + 1];
+            let value = values[index].nlerp(values[index + 1], t);
             transformation = transformation * Mat4::from(value);
         }
         if let Some(values) = &self.scales {
