@@ -428,8 +428,24 @@ mod test {
         assert_eq!(model.materials.len(), 0);
         assert_eq!(model.key_frames.len(), 1);
         assert_eq!(model.key_frames[0].target_node, 0);
-        assert_eq!(model.key_frames[0].transformation(0.0), Mat4::identity());
-        assert_eq!(model.key_frames[0].transformation(1.0), Mat4::identity());
+        assert_eq!(
+            model.key_frames[0].transformation(0.0),
+            Mat4::from_cols(
+                vec4(-1.0, 0.0, 0.0, 0.0),
+                vec4(0.0, -1.0, 0.0, 0.0),
+                vec4(0.0, 0.0, 1.0, 0.0),
+                vec4(0.0, 0.0, 0.0, 1.0)
+            )
+        );
+        assert_eq!(
+            model.key_frames[0].transformation(0.5),
+            Mat4::from_cols(
+                vec4(-1.0, 0.0, 0.0, 0.0),
+                vec4(0.0, 1.0, 0.0, 0.0),
+                vec4(0.0, 0.0, -1.0, 0.0),
+                vec4(0.0, 0.0, 0.0, 1.0)
+            )
+        );
     }
 
     #[test]

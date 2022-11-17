@@ -21,11 +21,10 @@ impl KeyFrames {
     pub fn transformation(&self, time: f32) -> Mat4 {
         let (index, t) = self.interpolate(time);
         let mut transformation = Mat4::identity();
-        /*if let Some(values) = &self.rotations {
+        if let Some(values) = &self.rotations {
             let value = (1.0 - t) * values[index] + t * values[index + 1];
-            transformation *= value.to_mat4();
-        }*/
-        // TODO
+            transformation = transformation * Mat4::from(value);
+        }
         if let Some(values) = &self.scales {
             let value = (1.0 - t) * values[index] + t * values[index + 1];
             transformation =
@@ -51,13 +50,13 @@ impl KeyFrames {
     fn interpolate(&self, time: f32) -> (usize, f32) {
         let time = time % self.times.last().unwrap();
         for i in 0..self.times.len() - 2 {
-            if self.times[i] < time && time < self.times[i + 1] {
+            if self.times[i] <= time && time < self.times[i + 1] {
                 return (
                     i,
-                    (time - self.times[i]) / self.times[i + 1] / self.times[i],
+                    (time - self.times[i]) / (self.times[i + 1] - self.times[i]),
                 );
             }
         }
-        (self.times.len() - 1, 0.0)
+        (self.times.len() - 2, 1.0)
     }
 }
