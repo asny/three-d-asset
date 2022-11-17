@@ -1,4 +1,4 @@
-use crate::{animation::*, geometry::*, io::*, material::*, Error, Model2, Result, Scene};
+use crate::{animation::*, geometry::*, io::*, material::*, Error, Node, Result, Scene};
 use ::gltf::Gltf;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -74,17 +74,26 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
     }
 
-    let mut models = Vec::new();
-    for mesh in document.meshes() {
-        models.push(parse_model(&mesh, &buffers)?);
-    }
-
-    for scene in document.scenes() {
-        for node in scene.nodes() {
-            visit(&node, &Mat4::identity(), &mut |mesh, transformation| {
-                if transformation != Mat4::identity() {
-                    models.get_mut(mesh.index()).unwrap().transformation = transformation;
-                }
+    let mut nodes = Vec::new();
+    for gltf_node in document.nodes() {
+        let transformation = parse_transform(gltf_node.transform());
+        // glTF say that if the scale is all zeroes, the node should be ignored.
+        if transformation.determinant() != 0.0 {
+            let name = gltf_node
+                .name()
+                .map(|s| s.to_string())
+                .unwrap_or(format!("index {}", gltf_node.index()));
+            let primitives = if let Some(mesh) = gltf_node.mesh() {
+                parse_model(&mesh, &buffers)?
+            } else {
+                Vec::new()
+            };
+            nodes.push(Node {
+                name,
+                transformation,
+                primitives,
+                children: gltf_node.children().map(|c| c.index()).collect(),
+                key_frames_index: None,
             });
         }
     }
@@ -98,24 +107,20 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 ::gltf::animation::Interpolation::Linear => Interpolation::Linear,
                 _ => unimplemented!(),
             };
-            let target = channel.target().node();
+            let target_node = channel.target().node().index();
             let key = (
-                target.index(),
+                target_node,
                 channel.sampler().input().index(),
                 interpolation,
             );
             if !animations.contains_key(&key) {
-                let mut targets = Vec::new();
-                visit(&target, &Mat4::identity(), &mut |mesh, _| {
-                    targets.push(mesh.index());
-                });
                 let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
                 animations.insert(
                     key,
                     KeyFrames {
                         times: input,
                         interpolation,
-                        targets,
+                        target_node,
                         ..Default::default()
                     },
                 );
@@ -136,35 +141,60 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
             }
         }
     }
+    let scene = document.scenes().nth(0).unwrap();
     Ok(Scene {
-        models,
+        name: scene
+            .name()
+            .unwrap_or(&format!("Scene {}", scene.index()))
+            .to_owned(),
         materials,
-        animations: animations.into_values().collect::<Vec<_>>(),
+        nodes,
+        key_frames: animations.into_values().collect::<Vec<_>>(),
+        children: scene.nodes().map(|n| n.index()).collect(),
     })
 }
 
-fn visit(
-    node: &::gltf::Node,
-    parent_transform: &Mat4,
-    callback: &mut dyn FnMut(::gltf::Mesh, Mat4),
-) {
-    let node_transform = parse_transform(node.transform());
-    // glTF say that if the scale is all zeroes, the node should be ignored.
-    if node_transform.determinant() != 0.0 {
-        let transform = parent_transform * node_transform;
+/*fn visit(node: &mut Node, gltf_node: ::gltf::Node) -> Result<()> {
+    for child in gltf_node.children() {
+        let node_transform = parse_transform(child.transform());
+        // glTF say that if the scale is all zeroes, the node should be ignored.
+        if node_transform.determinant() != 0.0 {
+            let mut new_node = if let Some(mesh) = child.mesh() {
+                let name = mesh
+                    .name()
+                    .map(|s| s.to_string())
+                    .unwrap_or(format!("index {}", mesh.index()));
+                parse_model(&mesh, &buffers)?;
+                Node {
+                    name: gltf_node.name(),
+                    transformation: node_transform,
+                    material_index: None,
+                    geometry: None,
+                    children: Vec::new(),
+                    key_frames_index: None,
+                }
+            } else {
+                Node {
+                    name: gltf_node.name(),
+                    transformation: node_transform,
+                    material_index: None,
+                    geometry: None,
+                    children: Vec::new(),
+                    key_frames_index: None,
+                }
+            }
 
-        if let Some(mesh) = node.mesh() {
-            callback(mesh, transform);
-        }
-
-        for child in node.children() {
-            visit(&child, &transform, callback);
+            node.children.push(new_node);
         }
     }
-}
+    Ok(())
+}*/
 
-fn parse_model(mesh: &::gltf::mesh::Mesh, buffers: &[::gltf::buffer::Data]) -> Result<Model2> {
-    let mut geometries = Vec::new();
+fn parse_model(
+    mesh: &::gltf::mesh::Mesh,
+    buffers: &[::gltf::buffer::Data],
+) -> Result<Vec<(TriMesh, Option<usize>)>> {
+    let mut children = Vec::new();
     for primitive in mesh.primitives() {
         let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
         if let Some(read_positions) = reader.read_positions() {
@@ -198,25 +228,20 @@ fn parse_model(mesh: &::gltf::mesh::Mesh, buffers: &[::gltf::buffer::Data]) -> R
                 .read_tex_coords(0)
                 .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-            geometries.push(TriMesh {
-                material: primitive.material().index(),
-                positions: Positions::F32(positions),
-                normals,
-                tangents,
-                indices,
-                colors,
-                uvs,
-            });
+            children.push((
+                TriMesh {
+                    positions: Positions::F32(positions),
+                    normals,
+                    tangents,
+                    indices,
+                    colors,
+                    uvs,
+                },
+                primitive.material().index(),
+            ));
         }
     }
-    Ok(Model2 {
-        name: mesh
-            .name()
-            .map(|s| s.to_string())
-            .unwrap_or(format!("index {}", mesh.index())),
-        geometries,
-        transformation: Mat4::identity(),
-    })
+    Ok(children)
 }
 
 fn material_name(material: &::gltf::material::Material) -> String {
@@ -390,7 +415,7 @@ mod test {
             )
             .deserialize("gltf")
             .unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 1);
         assert_eq!(
             model.materials[0]
@@ -412,25 +437,25 @@ mod test {
     pub fn deserialize_gltf_with_data_url() {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
 
     #[test]
     pub fn deserialize_gltf_with_animations() {
-        let scene: crate::Scene =
+        let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
-        assert_eq!(scene.models.len(), 1);
-        assert_eq!(scene.materials.len(), 0);
-        assert_eq!(scene.animations.len(), 1);
-        assert_eq!(scene.animations[0].targets[0], 0);
+        assert_eq!(model.parts.len(), 1);
+        assert_eq!(model.materials.len(), 0);
+        assert_eq!(model.key_frames.len(), 1);
+        assert_eq!(model.key_frames[0].target_node, 0);
     }
 
     #[test]
     pub fn deserialize_gltf_with_morphing() {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedMorph.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 
@@ -438,7 +463,7 @@ mod test {
     pub fn deserialize_gltf_with_skinning() {
         let model: crate::Model =
             crate::io::load_and_deserialize("test_data/AnimatedSkin.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 }

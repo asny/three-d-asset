@@ -34,39 +34,88 @@ pub use animation::*;
 ///
 /// Model consisting of a set of [geometries](Model::geometries) and [materials](Model::materials).
 ///
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Model {
-    /// Name.
     pub name: String,
 
-    /// A list of geometries.
-    pub geometries: Vec<TriMesh>,
+    pub parts: Vec<Part>,
 
-    pub transformation: Mat4,
-
-    /// A list of materials.
+    pub key_frames: Vec<KeyFrames>,
     pub materials: Vec<PbrMaterial>,
 }
 
-#[derive(Clone, Debug)]
-pub struct Model2 {
-    /// Name.
+#[derive(Debug, Clone)]
+pub struct Part {
     pub name: String,
-
-    /// A list of geometries.
-    pub geometries: Vec<TriMesh>,
-
     pub transformation: Mat4,
+
+    pub key_frames_indices: Option<Vec<usize>>,
+    pub geometry: TriMesh,
+    pub material_index: Option<usize>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Scene {
-    pub animations: Vec<KeyFrames>,
+    pub name: String,
 
-    pub models: Vec<Model2>,
+    pub children: Vec<usize>,
 
-    /// A list of [PbrMaterial]s.
+    pub nodes: Vec<Node>,
+    pub key_frames: Vec<KeyFrames>,
     pub materials: Vec<PbrMaterial>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Node {
+    pub name: String,
+    pub transformation: Mat4,
+
+    pub children: Vec<usize>,
+    pub key_frames_index: Option<usize>,
+
+    pub primitives: Vec<(TriMesh, Option<usize>)>,
+}
+
+impl std::convert::From<Scene> for Model {
+    fn from(mut scene: Scene) -> Self {
+        let mut parts = Vec::new();
+        for child in scene.children {
+            visit(child, Mat4::identity(), None, &mut scene.nodes, &mut parts);
+        }
+        Self {
+            name: scene.name,
+            key_frames: scene.key_frames,
+            materials: scene.materials,
+            parts,
+        }
+    }
+}
+
+fn visit(
+    node_index: usize,
+    transformation: Mat4,
+    key_frames_indices: Option<Vec<usize>>,
+    nodes: &mut Vec<Node>,
+    parts: &mut Vec<Part>,
+) {
+    let node = &mut nodes[node_index];
+    let transformation = transformation * node.transformation;
+    parts.extend(node.primitives.drain(..).map(|p| Part {
+        name: node.name.clone(),
+        transformation,
+        key_frames_indices: key_frames_indices.clone(),
+        geometry: p.0,
+        material_index: p.1,
+    }));
+    for child in node.children.clone() {
+        visit(
+            child,
+            transformation,
+            key_frames_indices.clone(),
+            nodes,
+            parts,
+        );
+    }
 }
 
 pub mod io;

@@ -4,8 +4,6 @@ use crate::{prelude::*, Error, Indices, Positions, Result};
 ///
 #[derive(Clone)]
 pub struct TriMesh {
-    /// Index into the list of [Model::materials] referencing the material that should be applied to this geometry (if any).
-    pub material: Option<usize>,
     /// The positions of the vertices.
     /// If there is no indices associated with this mesh, three contiguous positions defines a triangle, in that case, the length must be divisable by 3.
     pub positions: Positions,
@@ -26,7 +24,6 @@ pub struct TriMesh {
 impl std::default::Default for TriMesh {
     fn default() -> Self {
         Self {
-            material: None,
             positions: Positions::default(),
             indices: Indices::None,
             normals: None,
@@ -40,7 +37,6 @@ impl std::default::Default for TriMesh {
 impl std::fmt::Debug for TriMesh {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("Mesh");
-        d.field("material", &self.material);
         d.field("positions", &self.positions.len());
         d.field("indices", &self.indices);
         d.field("normals", &self.normals.as_ref().map(|v| v.len()));

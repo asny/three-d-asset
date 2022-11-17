@@ -1,8 +1,14 @@
 use crate::{prelude::*, Interpolation};
 
 #[derive(Debug, Clone, Default)]
+pub struct Animation {
+    pub name: String,
+    pub key_frames: Vec<KeyFrames>,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct KeyFrames {
-    pub targets: Vec<usize>,
+    pub target_node: usize,
     pub interpolation: Interpolation,
     pub times: Vec<f32>,
     pub rotations: Option<Vec<Quat>>,
