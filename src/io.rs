@@ -154,20 +154,8 @@ impl Serialize for crate::Texture2D {
 
 impl Deserialize for crate::Model {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let mut scene = crate::Scene::deserialize(path, raw_assets)?;
-        if scene.models.len() > 1 {
-            panic!("More than one model, deserialize the file to a Scene instead");
-        }
-        if scene.models.len() == 0 {
-            panic!("No models in file");
-        }
-        let model = scene.models.remove(0);
-        Ok(crate::Model {
-            name: model.name,
-            transformation: model.transformation,
-            materials: scene.materials,
-            geometries: model.geometries,
-        })
+        let scene = crate::Scene::deserialize(path, raw_assets)?;
+        Ok(scene.into())
     }
 }
 
