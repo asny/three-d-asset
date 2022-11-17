@@ -37,13 +37,15 @@ impl KeyFrames {
         transformation
     }
 
-    pub fn weights(&self, time: f32) -> f32 {
-        // TODO: Should return Vec<f32>???
+    pub fn weights(&self, time: f32) -> Vec<f32> {
         if let Some(values) = &self.weights {
             let (index, t) = self.interpolate(time);
-            (1.0 - t) * values[index] + t * values[index + 1]
+            let count = values.len() / self.times.len();
+            let v0 = &values[count * index..count * (index + 1)];
+            let v1 = &values[count * (index + 1)..count * (index + 2)];
+            (0..count).map(|i| (1.0 - t) * v0[i] + t * v1[i]).collect()
         } else {
-            0.0
+            Vec::new()
         }
     }
 
