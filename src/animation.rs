@@ -19,24 +19,44 @@ pub struct KeyFrames {
 
 impl KeyFrames {
     pub fn transformation(&self, time: f32) -> Mat4 {
-        Mat4::identity()
+        let (index, t) = self.interpolate(time);
+        let mut transformation = Mat4::identity();
+        /*if let Some(values) = &self.rotations {
+            let value = (1.0 - t) * values[index] + t * values[index + 1];
+            transformation *= value.to_mat4();
+        }*/
+        // TODO
+        if let Some(values) = &self.scales {
+            let value = (1.0 - t) * values[index] + t * values[index + 1];
+            transformation =
+                Mat4::from_nonuniform_scale(value.x, value.y, value.z) * transformation;
+        }
+        if let Some(values) = &self.translations {
+            let value = (1.0 - t) * values[index] + t * values[index + 1];
+            transformation = Mat4::from_translation(value) * transformation;
+        }
+        transformation
     }
 
     pub fn weights(&self, time: f32) -> Vec4 {
-        vec4(0.0, 0.0, 0.0, 0.0)
+        if let Some(values) = &self.weights {
+            let (index, t) = self.interpolate(time);
+            (1.0 - t) * values[index] + t * values[index + 1]
+        } else {
+            vec4(0.0, 0.0, 0.0, 0.0)
+        }
     }
 
-    pub fn rotation(&self, time: f32) -> Quat {
-        Quat::one()
-    }
-
-    fn index(&self, time: f32) -> usize {
+    fn interpolate(&self, time: f32) -> (usize, f32) {
         let time = time % self.times.last().unwrap();
         for i in 0..self.times.len() - 2 {
             if self.times[i] < time && time < self.times[i + 1] {
-                return i;
+                return (
+                    i,
+                    (time - self.times[i]) / self.times[i + 1] / self.times[i],
+                );
             }
         }
-        self.times.len() - 1
+        (self.times.len() - 1, 0.0)
     }
 }
