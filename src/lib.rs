@@ -80,7 +80,13 @@ impl std::convert::From<Scene> for Model {
     fn from(mut scene: Scene) -> Self {
         let mut parts = Vec::new();
         for child in scene.children {
-            visit(child, Mat4::identity(), None, &mut scene.nodes, &mut parts);
+            visit(
+                child,
+                Mat4::identity(),
+                Vec::new(),
+                &mut scene.nodes,
+                &mut parts,
+            );
         }
         Self {
             name: scene.name,
@@ -94,16 +100,26 @@ impl std::convert::From<Scene> for Model {
 fn visit(
     node_index: usize,
     transformation: Mat4,
-    key_frames_indices: Option<Vec<usize>>,
+    key_frames_indices: Vec<usize>,
     nodes: &mut Vec<Node>,
     parts: &mut Vec<Part>,
 ) {
     let node = &mut nodes[node_index];
     let transformation = transformation * node.transformation;
+    let mut key_frames_indices = key_frames_indices.clone();
+    if let Some(index) = node.key_frames_index {
+        key_frames_indices.push(index);
+    }
     parts.extend(node.primitives.drain(..).map(|p| Part {
         name: node.name.clone(),
         transformation,
-        key_frames_indices: key_frames_indices.clone(),
+        key_frames_indices: if key_frames_indices.len() > 0 {
+            let mut v = key_frames_indices.clone();
+            v.reverse();
+            Some(v)
+        } else {
+            None
+        },
         geometry: p.0,
         material_index: p.1,
     }));
