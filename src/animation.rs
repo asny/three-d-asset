@@ -22,16 +22,22 @@ impl KeyFrames {
         let (index, t) = self.interpolate(time);
         let mut transformation = Mat4::identity();
         if let Some(values) = &self.rotations {
-            let value = values[index].nlerp(values[index + 1], t);
+            let v0 = index.map(|i| values[i]).unwrap_or(Quat::one());
+            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
+            let value = v0.slerp(v1, t);
             transformation = transformation * Mat4::from(value);
         }
         if let Some(values) = &self.scales {
-            let value = (1.0 - t) * values[index] + t * values[index + 1];
+            let v0 = index.map(|i| values[i]).unwrap_or(vec3(1.0, 1.0, 1.0));
+            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
+            let value = (1.0 - t) * v0 + t * v1;
             transformation =
                 Mat4::from_nonuniform_scale(value.x, value.y, value.z) * transformation;
         }
         if let Some(values) = &self.translations {
-            let value = (1.0 - t) * values[index] + t * values[index + 1];
+            let v0 = index.map(|i| values[i]).unwrap_or(Vec3::zero());
+            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
+            let value = (1.0 - t) * v0 + t * v1;
             transformation = Mat4::from_translation(value) * transformation;
         }
         transformation
@@ -40,6 +46,7 @@ impl KeyFrames {
     pub fn weights(&self, time: f32) -> Vec<f32> {
         if let Some(values) = &self.weights {
             let (index, t) = self.interpolate(time);
+            let index = index.unwrap(); // TODO
             let count = values.len() / self.times.len();
             let v0 = &values[count * index..count * (index + 1)];
             let v1 = &values[count * (index + 1)..count * (index + 2)];
@@ -49,16 +56,16 @@ impl KeyFrames {
         }
     }
 
-    fn interpolate(&self, time: f32) -> (usize, f32) {
+    fn interpolate(&self, time: f32) -> (Option<usize>, f32) {
         let time = time % self.times.last().unwrap();
         for i in 0..self.times.len() - 1 {
             if self.times[i] <= time && time < self.times[i + 1] {
                 return (
-                    i,
+                    Some(i),
                     (time - self.times[i]) / (self.times[i + 1] - self.times[i]),
                 );
             }
         }
-        unreachable!()
+        (None, time / self.times[0])
     }
 }
