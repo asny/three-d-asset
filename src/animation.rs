@@ -51,7 +51,7 @@ impl KeyFrames {
 
     fn interpolate(&self, time: f32) -> (usize, f32) {
         let time = time % self.times.last().unwrap();
-        for i in 0..self.times.len() - 2 {
+        for i in 0..self.times.len() - 1 {
             if self.times[i] <= time && time < self.times[i + 1] {
                 return (
                     i,
@@ -59,6 +59,6 @@ impl KeyFrames {
                 );
             }
         }
-        (self.times.len() - 2, 1.0)
+        unreachable!()
     }
 }

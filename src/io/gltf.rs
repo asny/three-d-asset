@@ -430,6 +430,15 @@ mod test {
         assert_eq!(model.key_frames[0].target_node, 0);
         assert_eq!(model.key_frames[0].transformation(0.0), Mat4::identity());
         assert_eq!(
+            model.key_frames[0].transformation(0.25),
+            Mat4::from_cols(
+                vec4(-1.1920929e-7, 1.0000001, 0.0, 0.0),
+                vec4(-1.0000001, -1.1920929e-7, 0.0, 0.0),
+                vec4(0.0, 0.0, 1.0, 0.0),
+                vec4(0.0, 0.0, 0.0, 1.0)
+            )
+        );
+        assert_eq!(
             model.key_frames[0].transformation(0.5),
             Mat4::from_cols(
                 vec4(-1.0, 0.0, 0.0, 0.0),
@@ -438,6 +447,16 @@ mod test {
                 vec4(0.0, 0.0, 0.0, 1.0)
             )
         );
+        assert_eq!(
+            model.key_frames[0].transformation(0.75),
+            Mat4::from_cols(
+                vec4(-1.1920929e-7, -1.0000001, 0.0, 0.0),
+                vec4(1.0000001, -1.1920929e-7, 0.0, 0.0),
+                vec4(0.0, 0.0, 1.0, 0.0),
+                vec4(0.0, 0.0, 0.0, 1.0)
+            )
+        );
+        assert_eq!(model.key_frames[0].transformation(1.0), Mat4::identity());
     }
 
     #[test]
