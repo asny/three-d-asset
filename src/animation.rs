@@ -8,7 +8,6 @@ pub struct Animation {
 
 #[derive(Debug, Clone, Default)]
 pub struct KeyFrames {
-    pub target_node: usize,
     pub interpolation: Interpolation,
     pub times: Vec<f32>,
     pub rotations: Option<Vec<Quat>>,

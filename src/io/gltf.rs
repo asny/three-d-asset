@@ -114,13 +114,13 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 interpolation,
             );
             if !animations.contains_key(&key) {
+                nodes[target_node].key_frames_index = Some(animations.len());
                 let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
                 animations.insert(
                     key,
                     KeyFrames {
                         times: input,
                         interpolation,
-                        target_node,
                         ..Default::default()
                     },
                 );
@@ -427,13 +427,13 @@ mod test {
         assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 0);
         assert_eq!(model.key_frames.len(), 1);
-        assert_eq!(model.key_frames[0].target_node, 0);
+        assert_eq!(model.parts[0].key_frames_indices, Some(vec![0]));
         assert_eq!(model.key_frames[0].transformation(0.0), Mat4::identity());
         assert_eq!(
             model.key_frames[0].transformation(0.25),
             Mat4::from_cols(
-                vec4(-1.1920929e-7, 1.0000001, 0.0, 0.0),
-                vec4(-1.0000001, -1.1920929e-7, 0.0, 0.0),
+                vec4(5.9604645e-8, 0.99999994, 0.0, 0.0),
+                vec4(-0.99999994, 5.9604645e-8, 0.0, 0.0),
                 vec4(0.0, 0.0, 1.0, 0.0),
                 vec4(0.0, 0.0, 0.0, 1.0)
             )
@@ -450,8 +450,8 @@ mod test {
         assert_eq!(
             model.key_frames[0].transformation(0.75),
             Mat4::from_cols(
-                vec4(-1.1920929e-7, -1.0000001, 0.0, 0.0),
-                vec4(1.0000001, -1.1920929e-7, 0.0, 0.0),
+                vec4(5.9604645e-8, -0.99999994, 0.0, 0.0),
+                vec4(0.99999994, 5.9604645e-8, 0.0, 0.0),
                 vec4(0.0, 0.0, 1.0, 0.0),
                 vec4(0.0, 0.0, 0.0, 1.0)
             )
