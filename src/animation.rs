@@ -18,28 +18,19 @@ pub struct KeyFrames {
 
 impl KeyFrames {
     pub fn rotation(&self, time: f32) -> Option<Quat> {
-        self.rotations.as_ref().map(|values| {
-            let (index, t) = self.interpolate(time);
-            let v0 = index.map(|i| values[i]).unwrap_or(Quat::one());
-            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            v0.slerp(v1, t)
-        })
+        self.rotations
+            .as_ref()
+            .map(|values| self.interpolate_rotation(time, values))
     }
     pub fn translation(&self, time: f32) -> Option<Vec3> {
-        self.translations.as_ref().map(|values| {
-            let (index, t) = self.interpolate(time);
-            let v0 = index.map(|i| values[i]).unwrap_or(Vec3::zero());
-            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            v0.lerp(v1, t)
-        })
+        self.translations
+            .as_ref()
+            .map(|values| self.interpolate(time, values))
     }
     pub fn scale(&self, time: f32) -> Option<Vec3> {
-        self.scales.as_ref().map(|values| {
-            let (index, t) = self.interpolate(time);
-            let v0 = index.map(|i| values[i]).unwrap_or(vec3(1.0, 1.0, 1.0));
-            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            v0.lerp(v1, t)
-        })
+        self.scales
+            .as_ref()
+            .map(|values| self.interpolate(time, values))
     }
 
     pub fn transformation(&self, time: f32) -> Mat4 {
@@ -70,16 +61,35 @@ impl KeyFrames {
         }
     }*/
 
-    fn interpolate(&self, time: f32) -> (Option<usize>, f32) {
-        let time = time % self.times.last().unwrap();
-        for i in 0..self.times.len() - 1 {
-            if self.times[i] <= time && time < self.times[i + 1] {
-                return (
-                    Some(i),
-                    (time - self.times[i]) / (self.times[i + 1] - self.times[i]),
-                );
+    fn interpolate_rotation(&self, time: f32, values: &Vec<Quat>) -> Quat {
+        if time < self.times[0] {
+            values[0]
+        } else {
+            for i in 0..self.times.len() - 1 {
+                if self.times[i] <= time && time < self.times[i + 1] {
+                    let t = (time - self.times[i]) / (self.times[i + 1] - self.times[i]);
+                    return values[i].slerp(values[i + 1], t);
+                }
             }
+            *values.last().unwrap()
         }
-        (None, time / self.times[0])
+    }
+
+    fn interpolate<T: Copy + std::ops::Mul<f32, Output = T> + std::ops::Add<T, Output = T>>(
+        &self,
+        time: f32,
+        values: &Vec<T>,
+    ) -> T {
+        if time < self.times[0] {
+            values[0]
+        } else {
+            for i in 0..self.times.len() - 1 {
+                if self.times[i] <= time && time < self.times[i + 1] {
+                    let t = (time - self.times[i]) / (self.times[i + 1] - self.times[i]);
+                    return values[i] * (1.0 - t) + values[i + 1] * t;
+                }
+            }
+            *values.last().unwrap()
+        }
     }
 }
