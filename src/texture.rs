@@ -18,6 +18,7 @@ pub use crate::prelude::f16;
 pub enum Interpolation {
     Nearest,
     Linear,
+    CubicSpline,
 }
 
 impl Default for Interpolation {
