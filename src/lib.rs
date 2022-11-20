@@ -114,7 +114,9 @@ fn visit(
         name: node.name.clone(),
         transformation,
         key_frames_indices: if key_frames_indices.len() > 0 {
-            Some(key_frames_indices.clone())
+            let mut v = key_frames_indices.clone();
+            v.reverse();
+            Some(v)
         } else {
             None
         },

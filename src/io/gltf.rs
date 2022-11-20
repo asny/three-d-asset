@@ -1,6 +1,6 @@
 use crate::{animation::*, geometry::*, io::*, material::*, Error, Node, Result, Scene};
 use ::gltf::Gltf;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
@@ -98,7 +98,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
     }
 
-    let mut animations = HashMap::new();
+    let mut animations = Vec::new();
     for animation in document.animations() {
         for channel in animation.channels() {
             let reader = channel.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -113,19 +113,24 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 channel.sampler().input().index(),
                 interpolation,
             );
-            if !animations.contains_key(&key) {
-                nodes[target_node].key_frames_index = Some(animations.len());
-                let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
-                animations.insert(
-                    key,
-                    KeyFrames {
-                        times: input,
-                        interpolation,
-                        ..Default::default()
-                    },
-                );
-            }
-            let mut keyframes = animations.get_mut(&key).unwrap();
+            let i = animations
+                .iter()
+                .position(|(k, _)| k == &key)
+                .unwrap_or_else(|| {
+                    let i = animations.len();
+                    nodes[target_node].key_frames_index = Some(i);
+                    let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
+                    animations.push((
+                        key,
+                        KeyFrames {
+                            times: input,
+                            interpolation,
+                            ..Default::default()
+                        },
+                    ));
+                    i
+                });
+            let mut keyframes = &mut animations[i].1;
 
             match reader.read_outputs().unwrap() {
                 ::gltf::animation::util::ReadOutputs::Rotations(rotations) => {
@@ -163,7 +168,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
             .to_owned(),
         materials,
         nodes,
-        key_frames: animations.into_values().collect::<Vec<_>>(),
+        key_frames: animations.into_iter().map(|(_, v)| v).collect::<Vec<_>>(),
         children: scene.nodes().map(|n| n.index()).collect(),
     })
 }
