@@ -17,26 +17,41 @@ pub struct KeyFrames {
 }
 
 impl KeyFrames {
-    pub fn transformation(&self, time: f32) -> Mat4 {
-        let (index, t) = self.interpolate(time);
-        let mut transformation = Mat4::identity();
-        if let Some(values) = &self.rotations {
+    pub fn rotation(&self, time: f32) -> Option<Quat> {
+        self.rotations.as_ref().map(|values| {
+            let (index, t) = self.interpolate(time);
             let v0 = index.map(|i| values[i]).unwrap_or(Quat::one());
             let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            let value = v0.slerp(v1, t);
-            transformation = transformation * Mat4::from(value);
-        }
-        if let Some(values) = &self.scales {
+            v0.slerp(v1, t)
+        })
+    }
+    pub fn translation(&self, time: f32) -> Option<Vec3> {
+        self.translations.as_ref().map(|values| {
+            let (index, t) = self.interpolate(time);
+            let v0 = index.map(|i| values[i]).unwrap_or(Vec3::zero());
+            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
+            v0.lerp(v1, t)
+        })
+    }
+    pub fn scale(&self, time: f32) -> Option<Vec3> {
+        self.scales.as_ref().map(|values| {
+            let (index, t) = self.interpolate(time);
             let v0 = index.map(|i| values[i]).unwrap_or(vec3(1.0, 1.0, 1.0));
             let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            let value = v0.lerp(v1, t);
+            v0.lerp(v1, t)
+        })
+    }
+
+    pub fn transformation(&self, time: f32) -> Mat4 {
+        let mut transformation = Mat4::identity();
+        if let Some(value) = self.scale(time) {
             transformation =
                 Mat4::from_nonuniform_scale(value.x, value.y, value.z) * transformation;
         }
-        if let Some(values) = &self.translations {
-            let v0 = index.map(|i| values[i]).unwrap_or(Vec3::zero());
-            let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            let value = v0.lerp(v1, t);
+        if let Some(value) = self.rotation(time) {
+            transformation = transformation * Mat4::from(value);
+        }
+        if let Some(value) = self.translation(time) {
             transformation = Mat4::from_translation(value) * transformation;
         }
         transformation
