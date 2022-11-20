@@ -105,7 +105,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
             let interpolation = match channel.sampler().interpolation() {
                 ::gltf::animation::Interpolation::Step => Interpolation::Nearest,
                 ::gltf::animation::Interpolation::Linear => Interpolation::Linear,
-                _ => unimplemented!(),
+                ::gltf::animation::Interpolation::CubicSpline => Interpolation::CubicSpline,
             };
             let target_node = channel.target().node().index();
             let key = (
