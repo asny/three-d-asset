@@ -29,20 +29,20 @@ impl KeyFrames {
         if let Some(values) = &self.scales {
             let v0 = index.map(|i| values[i]).unwrap_or(vec3(1.0, 1.0, 1.0));
             let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            let value = (1.0 - t) * v0 + t * v1;
+            let value = v0.lerp(v1, t);
             transformation =
                 Mat4::from_nonuniform_scale(value.x, value.y, value.z) * transformation;
         }
         if let Some(values) = &self.translations {
             let v0 = index.map(|i| values[i]).unwrap_or(Vec3::zero());
             let v1 = values[index.map(|i| i + 1).unwrap_or(0)];
-            let value = (1.0 - t) * v0 + t * v1;
+            let value = v0.lerp(v1, t);
             transformation = Mat4::from_translation(value) * transformation;
         }
         transformation
     }
 
-    pub fn weights(&self, time: f32) -> Vec<f32> {
+    /*pub fn weights(&self, time: f32) -> Vec<f32> {
         if let Some(values) = &self.weights {
             let (index, t) = self.interpolate(time);
             let index = index.unwrap(); // TODO
@@ -53,7 +53,7 @@ impl KeyFrames {
         } else {
             Vec::new()
         }
-    }
+    }*/
 
     fn interpolate(&self, time: f32) -> (Option<usize>, f32) {
         let time = time % self.times.last().unwrap();
