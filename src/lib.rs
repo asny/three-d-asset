@@ -40,7 +40,7 @@ pub struct Model {
 
     pub parts: Vec<Part>,
 
-    pub key_frames: Vec<KeyFrames>,
+    pub animations: Vec<Animation>,
     pub materials: Vec<PbrMaterial>,
 }
 
@@ -61,7 +61,7 @@ pub struct Scene {
     pub children: Vec<usize>,
 
     pub nodes: Vec<Node>,
-    pub key_frames: Vec<KeyFrames>,
+    pub animations: Vec<Animation>,
     pub materials: Vec<PbrMaterial>,
 }
 
@@ -90,7 +90,7 @@ impl std::convert::From<Scene> for Model {
         }
         Self {
             name: scene.name,
-            key_frames: scene.key_frames,
+            animations: scene.animations,
             materials: scene.materials,
             parts,
         }
