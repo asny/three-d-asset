@@ -166,7 +166,6 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         {
             loop_time = loop_time.max(*v)
         }
-        dbg!(loop_time);
         animations.push(Animation {
             name: animation
                 .name()
