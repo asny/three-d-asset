@@ -4,6 +4,7 @@ use crate::{prelude::*, Interpolation};
 pub struct Animation {
     pub name: String,
     pub key_frames: Vec<KeyFrames>,
+    pub loop_time: f32,
 }
 
 #[derive(Debug, Clone, Default)]
