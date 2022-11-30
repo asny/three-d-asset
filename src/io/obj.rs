@@ -1,4 +1,4 @@
-use crate::{geometry::*, io::RawAssets, material::*, Model, Result};
+use crate::{geometry::*, io::RawAssets, material::*, Node, Result, Scene};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -51,18 +51,16 @@ pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathB
     dependencies
 }
 
-pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Model> {
+pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Scene> {
     let obj_bytes = raw_assets.remove(path)?;
     let obj = wavefront_obj::obj::parse(std::str::from_utf8(&obj_bytes).unwrap())?;
     let p = path.parent().unwrap_or(Path::new(""));
 
     // Parse materials
-    let mut cpu_materials = Vec::new();
+    let mut materials = Vec::new();
     if let Some(material_library) = obj.material_library {
         let bytes = raw_assets.remove(p.join(material_library).to_str().unwrap())?;
-        let materials = wavefront_obj::mtl::parse(std::str::from_utf8(&bytes).unwrap())?.materials;
-
-        for material in materials {
+        for material in wavefront_obj::mtl::parse(std::str::from_utf8(&bytes).unwrap())?.materials {
             let color = if material.color_diffuse.r != material.color_diffuse.g
                 || material.color_diffuse.g != material.color_diffuse.b
             {
@@ -90,7 +88,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
                 None
             };
 
-            cpu_materials.push(PbrMaterial {
+            materials.push(PbrMaterial {
                 name: material.name,
                 albedo: Color::from_rgba_slice(&[
                     color.r as f32,
@@ -116,7 +114,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
     }
 
     // Parse meshes
-    let mut cpu_meshes = Vec::new();
+    let mut nodes = Vec::new();
     for object in obj.objects.iter() {
         // Objects consisting of several meshes with different materials
         for mesh in object.geometry.iter() {
@@ -181,9 +179,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
             }
 
             let vertex_count = positions.len();
-            cpu_meshes.push(TriMesh {
-                name: object.name.to_string(),
-                material_name: mesh.material_name.clone(),
+            let tri_mesh = TriMesh {
                 positions: Positions::F64(positions),
                 indices: Indices::U32(indices),
                 normals: if normals.len() == vertex_count {
@@ -198,12 +194,26 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Mod
                 },
                 colors: None,
                 tangents: None,
+            };
+            nodes.push(Node {
+                name: object.name.to_string(),
+                primitives: vec![(
+                    tri_mesh,
+                    mesh.material_name
+                        .as_ref()
+                        .map(|n| materials.iter().position(|m| &m.name == n))
+                        .flatten(),
+                )],
+                transformation: Mat4::identity(),
+                children: Vec::new(),
+                key_frames: Vec::new(),
             });
         }
     }
-    Ok(Model {
-        geometries: cpu_meshes,
-        materials: cpu_materials,
+    Ok(Scene {
+        name: path.to_str().unwrap_or("default").to_owned(),
+        children: nodes,
+        materials,
     })
 }
 
@@ -213,14 +223,14 @@ mod test {
     #[test]
     pub fn deserialize_obj() {
         let model: crate::Model = crate::io::load_and_deserialize("test_data/cube.obj").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 
     #[test]
     pub fn deserialize_obj_with_material() {
         let model: crate::Model = crate::io::load_and_deserialize("test_data/suzanne.obj").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
 }
