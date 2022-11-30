@@ -37,12 +37,12 @@ pub use animation::*;
 #[derive(Debug, Clone)]
 pub struct Model {
     pub name: String,
-    pub parts: Vec<Part>,
+    pub geometries: Vec<Geometry>,
     pub materials: Vec<PbrMaterial>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Part {
+pub struct Geometry {
     pub name: String,
     pub transformation: Mat4,
     pub animations: Vec<(Mat4, Vec<KeyFrames>)>,
@@ -68,21 +68,25 @@ pub struct Node {
 
 impl std::convert::From<Scene> for Model {
     fn from(scene: Scene) -> Self {
-        let mut parts = Vec::new();
+        let mut geometries = Vec::new();
         for child in scene.children {
-            visit(child, Vec::new(), &mut parts);
+            visit(child, Vec::new(), &mut geometries);
         }
         Self {
             name: scene.name,
             materials: scene.materials,
-            parts,
+            geometries,
         }
     }
 }
 
-fn visit(mut node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, parts: &mut Vec<Part>) {
+fn visit(
+    mut node: Node,
+    mut animations: Vec<(Mat4, Vec<KeyFrames>)>,
+    geometries: &mut Vec<Geometry>,
+) {
     animations.push((node.transformation, node.key_frames));
-    parts.extend(node.primitives.drain(..).map(|p| {
+    geometries.extend(node.primitives.drain(..).map(|p| {
         let mut animations = animations.clone();
         let transformation = if animations
             .last()
@@ -94,7 +98,7 @@ fn visit(mut node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, parts: &mu
             Mat4::identity()
         };
         animations.reverse();
-        Part {
+        Geometry {
             name: node.name.clone(),
             transformation,
             animations,
@@ -103,7 +107,7 @@ fn visit(mut node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, parts: &mu
         }
     }));
     for child in node.children {
-        visit(child, animations.clone(), parts);
+        visit(child, animations.clone(), geometries);
     }
 }
 
