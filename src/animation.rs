@@ -1,14 +1,9 @@
 use crate::{prelude::*, Interpolation};
 
 #[derive(Debug, Clone, Default)]
-pub struct Animation {
-    pub name: String,
-    pub key_frames: Vec<KeyFrames>,
-    pub loop_time: f32,
-}
-
-#[derive(Debug, Clone, Default)]
 pub struct KeyFrames {
+    pub name: Option<String>,
+    pub loop_time: Option<f32>,
     pub interpolation: Interpolation,
     pub times: Vec<f32>,
     pub rotations: Option<Vec<Quat>>,
@@ -63,6 +58,7 @@ impl KeyFrames {
     }*/
 
     fn interpolate_rotation(&self, time: f32, values: &Vec<Quat>) -> Quat {
+        let time = self.loop_time.map(|t| time % t).unwrap_or(time);
         if time < self.times[0] {
             values[0]
         } else {
@@ -81,6 +77,7 @@ impl KeyFrames {
         time: f32,
         values: &Vec<T>,
     ) -> T {
+        let time = self.loop_time.map(|t| time % t).unwrap_or(time);
         if time < self.times[0] {
             values[0]
         } else {

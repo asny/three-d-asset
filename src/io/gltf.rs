@@ -88,19 +88,21 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
             } else {
                 Vec::new()
             };
-            nodes.push(Node {
+            nodes.push(Some(Node {
                 name,
                 transformation,
                 primitives,
-                children: gltf_node.children().map(|c| c.index()).collect(),
-                key_frames_index: None,
-            });
+                children: Vec::new(),
+                key_frames: Vec::new(),
+            }));
+        } else {
+            nodes.push(None);
         }
     }
 
-    let mut animations = Vec::new();
     for animation in document.animations() {
         let mut key_frames = Vec::new();
+        let mut loop_time = 0.0f32;
         for channel in animation.channels() {
             let reader = channel.reader(|buffer| Some(&buffers[buffer.index()]));
             let interpolation = match channel.sampler().interpolation() {
@@ -115,26 +117,28 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 interpolation,
             );
             let i = key_frames
-                .iter()
-                .position(|(k, _)| k == &key)
+                .iter_mut()
+                .position(|(_, k, _)| k == &key)
                 .unwrap_or_else(|| {
-                    let i = key_frames.len();
-                    nodes[target_node].key_frames_index = Some(i);
-                    let input = reader.read_inputs().unwrap().collect::<Vec<_>>();
+                    let times = reader.read_inputs().unwrap().collect::<Vec<_>>();
+                    loop_time = loop_time.max(*times.last().unwrap_or(&0.0));
                     key_frames.push((
+                        target_node,
                         key,
                         KeyFrames {
-                            times: input,
+                            name: animation.name().map(|s| s.to_owned()),
+                            times,
                             interpolation,
                             ..Default::default()
                         },
                     ));
-                    i
+                    key_frames.len() - 1
                 });
+            let kf = &mut key_frames[i].2;
 
             match reader.read_outputs().unwrap() {
                 ::gltf::animation::util::ReadOutputs::Rotations(rotations) => {
-                    key_frames[i].1.rotations = Some(
+                    kf.rotations = Some(
                         rotations
                             .into_f32()
                             .into_iter()
@@ -143,7 +147,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                     );
                 }
                 ::gltf::animation::util::ReadOutputs::Translations(translations) => {
-                    key_frames[i].1.translations = Some(
+                    kf.translations = Some(
                         translations
                             .into_iter()
                             .map(|r| vec3(r[0], r[1], r[2]))
@@ -151,41 +155,46 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                     );
                 }
                 ::gltf::animation::util::ReadOutputs::Scales(scales) => {
-                    key_frames[i].1.scales =
-                        Some(scales.into_iter().map(|r| vec3(r[0], r[1], r[2])).collect());
+                    kf.scales = Some(scales.into_iter().map(|r| vec3(r[0], r[1], r[2])).collect());
                 }
                 ::gltf::animation::util::ReadOutputs::MorphTargetWeights(weights) => {
-                    key_frames[i].1.weights = Some(weights.into_f32().collect());
+                    kf.weights = Some(weights.into_f32().collect());
                 }
             }
         }
-        let mut loop_time = 0.0f32;
-        for v in key_frames
-            .iter()
-            .map(|(_, v)| v.times.last().unwrap_or(&0.0))
-        {
-            loop_time = loop_time.max(*v)
+        for (target_node, _, mut kf) in key_frames {
+            nodes[target_node].as_mut().map(|n| {
+                kf.loop_time = Some(loop_time);
+                n.key_frames.push(kf);
+            });
         }
-        animations.push(Animation {
-            name: animation
-                .name()
-                .unwrap_or(&format!("Animation {}", animations.len()))
-                .to_owned(),
-            key_frames: key_frames.into_iter().map(|(_, v)| v).collect::<Vec<_>>(),
-            loop_time,
-        })
     }
-    let scene = document.scenes().nth(0).unwrap();
-    Ok(Scene {
-        name: scene
+
+    let gltf_scene = document.scenes().nth(0).unwrap();
+    let mut scene = Scene {
+        name: gltf_scene
             .name()
-            .unwrap_or(&format!("Scene {}", scene.index()))
+            .unwrap_or(&format!("Scene {}", gltf_scene.index()))
             .to_owned(),
         materials,
-        nodes,
-        animations,
-        children: scene.nodes().map(|n| n.index()).collect(),
-    })
+        children: Vec::new(),
+    };
+    for c in gltf_scene.nodes() {
+        if let Some(mut node) = nodes[c.index()].take() {
+            visit(c, &mut nodes, &mut node.children);
+            scene.children.push(node);
+        }
+    }
+    Ok(scene)
+}
+
+fn visit(gltf_node: ::gltf::Node, nodes: &mut Vec<Option<Node>>, children: &mut Vec<Node>) {
+    for c in gltf_node.children() {
+        if let Some(mut node) = nodes[c.index()].take() {
+            visit(c, nodes, &mut node.children);
+            children.push(node);
+        }
+    }
 }
 
 fn parse_model(
@@ -446,15 +455,13 @@ mod test {
             crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
         assert_eq!(model.parts.len(), 1);
         assert_eq!(model.materials.len(), 0);
-        assert_eq!(model.animations.len(), 1);
-        assert_eq!(model.animations[0].key_frames.len(), 1);
-        assert_eq!(model.parts[0].key_frames_indices, Some(vec![0]));
+        assert_eq!(model.parts[0].animations.len(), 1);
         assert_eq!(
-            model.animations[0].key_frames[0].transformation(0.0),
+            model.parts[0].animations[0].1[0].transformation(0.0),
             Mat4::identity()
         );
         assert_eq!(
-            model.animations[0].key_frames[0].transformation(0.25),
+            model.parts[0].animations[0].1[0].transformation(0.25),
             Mat4::from_cols(
                 vec4(5.9604645e-8, 0.99999994, 0.0, 0.0),
                 vec4(-0.99999994, 5.9604645e-8, 0.0, 0.0),
@@ -463,7 +470,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.animations[0].key_frames[0].transformation(0.5),
+            model.parts[0].animations[0].1[0].transformation(0.5),
             Mat4::from_cols(
                 vec4(-1.0, 0.0, 0.0, 0.0),
                 vec4(0.0, -1.0, 0.0, 0.0),
@@ -472,7 +479,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.animations[0].key_frames[0].transformation(0.75),
+            model.parts[0].animations[0].1[0].transformation(0.75),
             Mat4::from_cols(
                 vec4(5.9604645e-8, -0.99999994, 0.0, 0.0),
                 vec4(0.99999994, 5.9604645e-8, 0.0, 0.0),
@@ -481,7 +488,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.animations[0].key_frames[0].transformation(1.0),
+            model.parts[0].animations[0].1[0].transformation(1.0),
             Mat4::identity()
         );
     }
