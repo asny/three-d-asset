@@ -37,10 +37,7 @@ pub use animation::*;
 #[derive(Debug, Clone)]
 pub struct Model {
     pub name: String,
-
     pub parts: Vec<Part>,
-
-    pub animations: Vec<Animation>,
     pub materials: Vec<PbrMaterial>,
 }
 
@@ -48,8 +45,7 @@ pub struct Model {
 pub struct Part {
     pub name: String,
     pub transformation: Mat4,
-
-    pub key_frames_indices: Option<Vec<usize>>,
+    pub animations: Vec<(Mat4, Vec<KeyFrames>)>,
     pub geometry: TriMesh,
     pub material_index: Option<usize>,
 }
@@ -57,11 +53,7 @@ pub struct Part {
 #[derive(Debug, Clone)]
 pub struct Scene {
     pub name: String,
-
-    pub children: Vec<usize>,
-
-    pub nodes: Vec<Node>,
-    pub animations: Vec<Animation>,
+    pub children: Vec<Node>,
     pub materials: Vec<PbrMaterial>,
 }
 
@@ -69,68 +61,49 @@ pub struct Scene {
 pub struct Node {
     pub name: String,
     pub transformation: Mat4,
-
-    pub children: Vec<usize>,
-    pub key_frames_index: Option<usize>,
-
+    pub key_frames: Vec<KeyFrames>,
+    pub children: Vec<Node>,
     pub primitives: Vec<(TriMesh, Option<usize>)>,
 }
 
 impl std::convert::From<Scene> for Model {
-    fn from(mut scene: Scene) -> Self {
+    fn from(scene: Scene) -> Self {
         let mut parts = Vec::new();
         for child in scene.children {
-            visit(
-                child,
-                Mat4::identity(),
-                Vec::new(),
-                &mut scene.nodes,
-                &mut parts,
-            );
+            visit(child, Vec::new(), &mut parts);
         }
         Self {
             name: scene.name,
-            animations: scene.animations,
             materials: scene.materials,
             parts,
         }
     }
 }
 
-fn visit(
-    node_index: usize,
-    transformation: Mat4,
-    key_frames_indices: Vec<usize>,
-    nodes: &mut Vec<Node>,
-    parts: &mut Vec<Part>,
-) {
-    let node = &mut nodes[node_index];
-    let transformation = transformation * node.transformation;
-    let mut key_frames_indices = key_frames_indices.clone();
-    if let Some(index) = node.key_frames_index {
-        key_frames_indices.push(index);
-    }
-    parts.extend(node.primitives.drain(..).map(|p| Part {
-        name: node.name.clone(),
-        transformation,
-        key_frames_indices: if key_frames_indices.len() > 0 {
-            let mut v = key_frames_indices.clone();
-            v.reverse();
-            Some(v)
+fn visit(mut node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, parts: &mut Vec<Part>) {
+    animations.push((node.transformation, node.key_frames));
+    parts.extend(node.primitives.drain(..).map(|p| {
+        let mut animations = animations.clone();
+        let transformation = if animations
+            .last()
+            .and_then(|a| Some(a.1.is_empty()))
+            .unwrap_or(false)
+        {
+            animations.pop().unwrap().0
         } else {
-            None
-        },
-        geometry: p.0,
-        material_index: p.1,
-    }));
-    for child in node.children.clone() {
-        visit(
-            child,
+            Mat4::identity()
+        };
+        animations.reverse();
+        Part {
+            name: node.name.clone(),
             transformation,
-            key_frames_indices.clone(),
-            nodes,
-            parts,
-        );
+            animations,
+            geometry: p.0,
+            material_index: p.1,
+        }
+    }));
+    for child in node.children {
+        visit(child, animations.clone(), parts);
     }
 }
 
