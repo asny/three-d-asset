@@ -41,4 +41,11 @@ impl PointCloud {
             ..Default::default()
         }
     }
+
+    ///
+    /// Computes the [AxisAlignedBoundingBox] for this point cloud.
+    ///
+    pub fn compute_aabb(&self) -> AxisAlignedBoundingBox {
+        self.positions.compute_aabb()
+    }
 }
