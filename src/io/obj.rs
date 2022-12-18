@@ -197,16 +197,13 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             };
             nodes.push(Node {
                 name: object.name.to_string(),
-                primitives: vec![(
-                    tri_mesh,
-                    mesh.material_name
-                        .as_ref()
-                        .map(|n| materials.iter().position(|m| &m.name == n))
-                        .flatten(),
-                )],
-                transformation: Mat4::identity(),
-                children: Vec::new(),
-                key_frames: Vec::new(),
+                geometry: Some(Geometry::Triangles(tri_mesh)),
+                material_index: mesh
+                    .material_name
+                    .as_ref()
+                    .map(|n| materials.iter().position(|m| &m.name == n))
+                    .flatten(),
+                ..Default::default()
             });
         }
     }
@@ -223,14 +220,14 @@ mod test {
     #[test]
     pub fn deserialize_obj() {
         let model: crate::Model = crate::io::load_and_deserialize("test_data/cube.obj").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 
     #[test]
     pub fn deserialize_obj_with_material() {
         let model: crate::Model = crate::io::load_and_deserialize("test_data/suzanne.obj").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
 }
