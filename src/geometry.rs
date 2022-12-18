@@ -16,6 +16,32 @@ pub enum Geometry {
     Triangles(TriMesh),
 }
 
+impl Geometry {
+    pub fn compute_normals(&mut self) {
+        match self {
+            Self::Triangles(mesh) => mesh.compute_normals(),
+            _ => {}
+        }
+    }
+
+    pub fn compute_tangents(&mut self) {
+        match self {
+            Self::Triangles(mesh) => mesh.compute_tangents(),
+            _ => {}
+        }
+    }
+
+    ///
+    /// Computes the [AxisAlignedBoundingBox] for this geometry.
+    ///
+    pub fn compute_aabb(&mut self) -> AxisAlignedBoundingBox {
+        match self {
+            Self::Triangles(mesh) => mesh.compute_aabb(),
+            Self::Points(point_cloud) => point_cloud.compute_aabb(),
+        }
+    }
+}
+
 ///
 /// An array of indices. Supports different data types.
 ///
@@ -145,6 +171,29 @@ impl Positions {
         match self {
             Self::F32(values) => values.len(),
             Self::F64(values) => values.len(),
+        }
+    }
+
+    ///
+    /// Returns whether the set of positions is empty.
+    ///
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    ///
+    /// Computes the [AxisAlignedBoundingBox] for these positions.
+    ///
+    pub fn compute_aabb(&self) -> AxisAlignedBoundingBox {
+        match self {
+            Positions::F32(ref positions) => AxisAlignedBoundingBox::new_with_positions(positions),
+            Positions::F64(ref positions) => AxisAlignedBoundingBox::new_with_positions(
+                &positions
+                    .iter()
+                    .map(|v| Vec3::new(v.x as f32, v.y as f32, v.z as f32))
+                    .collect::<Vec<_>>(),
+            ),
         }
     }
 }

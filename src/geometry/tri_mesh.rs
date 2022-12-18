@@ -588,18 +588,10 @@ impl TriMesh {
     }
 
     ///
-    /// Computes the axis aligned bounding box of the mesh.
+    /// Computes the [AxisAlignedBoundingBox] for this triangle mesh.
     ///
     pub fn compute_aabb(&self) -> AxisAlignedBoundingBox {
-        match self.positions {
-            Positions::F32(ref positions) => AxisAlignedBoundingBox::new_with_positions(positions),
-            Positions::F64(ref positions) => AxisAlignedBoundingBox::new_with_positions(
-                &positions
-                    .iter()
-                    .map(|v| Vec3::new(v.x as f32, v.y as f32, v.z as f32))
-                    .collect::<Vec<_>>(),
-            ),
-        }
+        self.positions.compute_aabb()
     }
 
     ///
