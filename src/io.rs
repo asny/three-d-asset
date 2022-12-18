@@ -211,7 +211,7 @@ impl Deserialize for crate::TriMesh {
         let path = path.as_ref();
         let model = crate::Model::deserialize(path, raw_assets)?;
         model
-            .primitives
+            .geometries
             .into_iter()
             .find_map(|p| {
                 if let Geometry::Triangles(mesh) = p.geometry {
@@ -234,7 +234,7 @@ impl Deserialize for crate::PointCloud {
         let path = path.as_ref();
         let model = crate::Model::deserialize(path, raw_assets)?;
         model
-            .primitives
+            .geometries
             .into_iter()
             .find_map(|p| {
                 if let Geometry::Points(point_cloud) = p.geometry {

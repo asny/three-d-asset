@@ -220,14 +220,14 @@ mod test {
     #[test]
     pub fn deserialize_obj() {
         let model: crate::Model = crate::io::load_and_deserialize("test_data/cube.obj").unwrap();
-        assert_eq!(model.primitives.len(), 1);
+        assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 
     #[test]
     pub fn deserialize_obj_with_material() {
         let model: crate::Model = crate::io::load_and_deserialize("test_data/suzanne.obj").unwrap();
-        assert_eq!(model.primitives.len(), 1);
+        assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
 }

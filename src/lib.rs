@@ -78,7 +78,7 @@ impl Default for Node {
 #[derive(Debug, Clone)]
 pub struct Model {
     pub name: String,
-    pub primitives: Vec<Primitive>,
+    pub geometries: Vec<Primitive>,
     pub materials: Vec<PbrMaterial>,
 }
 
@@ -106,19 +106,19 @@ impl std::ops::DerefMut for Primitive {
 
 impl std::convert::From<Scene> for Model {
     fn from(scene: Scene) -> Self {
-        let mut primitives = Vec::new();
+        let mut geometries = Vec::new();
         for child in scene.children {
-            visit(child, Vec::new(), &mut primitives);
+            visit(child, Vec::new(), &mut geometries);
         }
         Self {
             name: scene.name,
             materials: scene.materials,
-            primitives,
+            geometries,
         }
     }
 }
 
-fn visit(node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, primitives: &mut Vec<Primitive>) {
+fn visit(node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, geometries: &mut Vec<Primitive>) {
     animations.push((node.transformation, node.key_frames));
     if let Some(geometry) = node.geometry {
         let mut animations = animations.clone();
@@ -129,7 +129,7 @@ fn visit(node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, primitives: &m
         };
         animations.reverse();
 
-        primitives.push(Primitive {
+        geometries.push(Primitive {
             name: node.name.clone(),
             transformation,
             animations,
@@ -138,7 +138,7 @@ fn visit(node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, primitives: &m
         });
     }
     for child in node.children {
-        visit(child, animations.clone(), primitives);
+        visit(child, animations.clone(), geometries);
     }
 }
 
