@@ -10,6 +10,12 @@ pub use tri_mesh::*;
 
 pub use crate::prelude::*;
 
+#[derive(Debug, Clone)]
+pub enum Geometry {
+    Points(PointCloud),
+    Triangles(TriMesh),
+}
+
 ///
 /// An array of indices. Supports different data types.
 ///

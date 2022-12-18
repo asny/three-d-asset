@@ -4,10 +4,8 @@ use crate::prelude::*;
 ///
 /// Represents a set of points in 3D space, usually created with a scanner.
 ///
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct PointCloud {
-    /// Name.
-    pub name: String,
     /// The positions of the points.
     pub positions: Positions,
     /// The colors of the points.
@@ -17,7 +15,6 @@ pub struct PointCloud {
 impl std::fmt::Debug for PointCloud {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut d = f.debug_struct("PointCloud");
-        d.field("name", &self.name);
         d.field("positions", &self.positions.len());
         d.field("colors", &self.colors.as_ref().map(|v| v.len()));
         d.finish()

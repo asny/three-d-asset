@@ -31,25 +31,6 @@ pub use volume::*;
 pub mod animation;
 pub use animation::*;
 
-///
-/// Model consisting of a set of [geometries](Model::geometries) and [materials](Model::materials).
-///
-#[derive(Debug, Clone)]
-pub struct Model {
-    pub name: String,
-    pub geometries: Vec<Geometry>,
-    pub materials: Vec<PbrMaterial>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Geometry {
-    pub name: String,
-    pub transformation: Mat4,
-    pub animations: Vec<(Mat4, Vec<KeyFrames>)>,
-    pub geometry: TriMesh,
-    pub material_index: Option<usize>,
-}
-
 #[derive(Debug, Clone)]
 pub struct Scene {
     pub name: String,
@@ -57,57 +38,107 @@ pub struct Scene {
     pub materials: Vec<PbrMaterial>,
 }
 
-#[derive(Debug, Clone)]
-pub struct Node {
-    pub name: String,
-    pub transformation: Mat4,
-    pub key_frames: Vec<KeyFrames>,
-    pub children: Vec<Node>,
-    pub primitives: Vec<(TriMesh, Option<usize>)>,
-}
-
-impl std::convert::From<Scene> for Model {
-    fn from(scene: Scene) -> Self {
-        let mut geometries = Vec::new();
-        for child in scene.children {
-            visit(child, Vec::new(), &mut geometries);
-        }
+impl Default for Scene {
+    fn default() -> Self {
         Self {
-            name: scene.name,
-            materials: scene.materials,
-            geometries,
+            name: "scene".to_owned(),
+            children: Vec::new(),
+            materials: Vec::new(),
         }
     }
 }
 
-fn visit(
-    mut node: Node,
-    mut animations: Vec<(Mat4, Vec<KeyFrames>)>,
-    geometries: &mut Vec<Geometry>,
-) {
+#[derive(Debug, Clone)]
+pub struct Node {
+    pub name: String,
+    pub children: Vec<Node>,
+    pub transformation: Mat4,
+    pub key_frames: Vec<KeyFrames>,
+    pub geometry: Option<Geometry>,
+    pub material_index: Option<usize>,
+}
+
+impl Default for Node {
+    fn default() -> Self {
+        Self {
+            name: "node".to_owned(),
+            children: Vec::new(),
+            transformation: Mat4::identity(),
+            key_frames: Vec::new(),
+            geometry: None,
+            material_index: None,
+        }
+    }
+}
+
+///
+/// A [Model] contain the same data as a [Scene], it's just stored in flat arrays instead of in a tree structure.
+/// You can convert from a [Scene] to a [Model], but not the other way, because the tree structure is lost in the conversion.
+///
+#[derive(Debug, Clone)]
+pub struct Model {
+    pub name: String,
+    pub primitives: Vec<Primitive>,
+    pub materials: Vec<PbrMaterial>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Primitive {
+    pub name: String,
+    pub transformation: Mat4,
+    pub animations: Vec<(Mat4, Vec<KeyFrames>)>,
+    pub geometry: Geometry,
+    pub material_index: Option<usize>,
+}
+
+impl std::ops::Deref for Primitive {
+    type Target = Geometry;
+    fn deref(&self) -> &Self::Target {
+        &self.geometry
+    }
+}
+
+impl std::ops::DerefMut for Primitive {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.geometry
+    }
+}
+
+impl std::convert::From<Scene> for Model {
+    fn from(scene: Scene) -> Self {
+        let mut primitives = Vec::new();
+        for child in scene.children {
+            visit(child, Vec::new(), &mut primitives);
+        }
+        Self {
+            name: scene.name,
+            materials: scene.materials,
+            primitives,
+        }
+    }
+}
+
+fn visit(node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, primitives: &mut Vec<Primitive>) {
     animations.push((node.transformation, node.key_frames));
-    geometries.extend(node.primitives.drain(..).map(|p| {
+    if let Some(geometry) = node.geometry {
         let mut animations = animations.clone();
-        let transformation = if animations
-            .last()
-            .and_then(|a| Some(a.1.is_empty()))
-            .unwrap_or(false)
-        {
+        let transformation = if animations.last().map(|a| a.1.is_empty()).unwrap_or(false) {
             animations.pop().unwrap().0
         } else {
             Mat4::identity()
         };
         animations.reverse();
-        Geometry {
+
+        primitives.push(Primitive {
             name: node.name.clone(),
             transformation,
             animations,
-            geometry: p.0,
-            material_index: p.1,
-        }
-    }));
+            geometry,
+            material_index: node.material_index,
+        });
+    }
     for child in node.children {
-        visit(child, animations.clone(), geometries);
+        visit(child, animations.clone(), primitives);
     }
 }
 
@@ -176,4 +207,6 @@ pub enum Error {
     FailedDeserialize(String),
     #[error("failed to serialize the file {0}")]
     FailedSerialize(String),
+    #[error("failed to find {0} in the file {1}")]
+    FailedConvertion(String, String),
 }

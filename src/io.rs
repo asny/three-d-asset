@@ -112,7 +112,7 @@ pub trait Serialize: Sized {
     fn serialize(&self, path: impl AsRef<std::path::Path>) -> crate::Result<RawAssets>;
 }
 
-use crate::{Error, Result};
+use crate::{Error, Geometry, Result};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -152,13 +152,6 @@ impl Serialize for crate::Texture2D {
     }
 }
 
-impl Deserialize for crate::Model {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let scene = crate::Scene::deserialize(path, raw_assets)?;
-        Ok(scene.into())
-    }
-}
-
 impl Deserialize for crate::Scene {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
@@ -177,8 +170,22 @@ impl Deserialize for crate::Scene {
                 #[cfg(feature = "obj")]
                 obj::deserialize_obj(raw_assets, &path)
             }
+            "pcd" => {
+                #[cfg(not(feature = "obj"))]
+                return Err(Error::FeatureMissing("pcd".to_string()));
+
+                #[cfg(feature = "pcd")]
+                pcd::deserialize_pcd(raw_assets, &path)
+            }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
+    }
+}
+
+impl Deserialize for crate::Model {
+    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+        let scene = crate::Scene::deserialize(path, raw_assets)?;
+        Ok(scene.into())
     }
 }
 
@@ -199,20 +206,49 @@ impl Deserialize for crate::VoxelGrid {
     }
 }
 
+impl Deserialize for crate::TriMesh {
+    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+        let path = path.as_ref();
+        let model = crate::Model::deserialize(path, raw_assets)?;
+        model
+            .primitives
+            .into_iter()
+            .find_map(|p| {
+                if let Geometry::Triangles(mesh) = p.geometry {
+                    Some(mesh)
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| {
+                Error::FailedConvertion(
+                    "a triangle mesh".to_owned(),
+                    path.to_str().unwrap().to_owned(),
+                )
+            })
+    }
+}
+
 impl Deserialize for crate::PointCloud {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let path = raw_assets.match_path(path.as_ref())?;
-        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
-            "pcd" => {
-                #[cfg(feature = "pcd")]
-                let result = pcd::deserialize_pcd(raw_assets, path);
-
-                #[cfg(not(feature = "pcd"))]
-                let result = Err(Error::FeatureMissing("pcd".to_string()));
-                result
-            }
-            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
-        }
+        let path = path.as_ref();
+        let model = crate::Model::deserialize(path, raw_assets)?;
+        model
+            .primitives
+            .into_iter()
+            .find_map(|p| {
+                if let Geometry::Points(point_cloud) = p.geometry {
+                    Some(point_cloud)
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| {
+                Error::FailedConvertion(
+                    "a point cloud".to_owned(),
+                    path.to_str().unwrap().to_owned(),
+                )
+            })
     }
 }
 

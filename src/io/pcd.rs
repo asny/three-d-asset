@@ -1,11 +1,11 @@
-use crate::geometry::{PointCloud, Positions};
+use crate::geometry::{Geometry, PointCloud, Positions};
 use crate::prelude::*;
-use crate::{io::RawAssets, Result};
+use crate::{io::RawAssets, Node, Result, Scene};
 use pcd_rs::DynReader;
-use std::path::Path;
+use std::path::PathBuf;
 
-pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<PointCloud> {
-    let name = path.as_ref().to_str().unwrap().to_string();
+pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Scene> {
+    let name = path.to_str().unwrap().to_string();
     let reader = DynReader::from_bytes(raw_assets.get(path)?)?;
     let schema = reader.meta().field_defs.fields.clone();
     let x_index = schema.iter().position(|f| f.name == "x").unwrap();
@@ -43,10 +43,16 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
             })
             .collect()
     });
-    Ok(PointCloud {
-        positions: Positions::F32(positions),
-        colors,
+    Ok(Scene {
         name,
+        children: vec![Node {
+            geometry: Some(Geometry::Points(PointCloud {
+                positions: Positions::F32(positions),
+                colors,
+            })),
+            ..Default::default()
+        }],
+        ..Default::default()
     })
 }
 

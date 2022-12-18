@@ -83,7 +83,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 .name()
                 .map(|s| s.to_string())
                 .unwrap_or(format!("index {}", gltf_node.index()));
-            let primitives = if let Some(mesh) = gltf_node.mesh() {
+            let children = if let Some(mesh) = gltf_node.mesh() {
                 parse_model(&mesh, &buffers)?
             } else {
                 Vec::new()
@@ -91,9 +91,8 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
             nodes.push(Some(Node {
                 name,
                 transformation,
-                primitives,
-                children: Vec::new(),
-                key_frames: Vec::new(),
+                children,
+                ..Default::default()
             }));
         } else {
             nodes.push(None);
@@ -197,10 +196,7 @@ fn visit(gltf_node: ::gltf::Node, nodes: &mut Vec<Option<Node>>, children: &mut 
     }
 }
 
-fn parse_model(
-    mesh: &::gltf::mesh::Mesh,
-    buffers: &[::gltf::buffer::Data],
-) -> Result<Vec<(TriMesh, Option<usize>)>> {
+fn parse_model(mesh: &::gltf::mesh::Mesh, buffers: &[::gltf::buffer::Data]) -> Result<Vec<Node>> {
     let mut children = Vec::new();
     for primitive in mesh.primitives() {
         let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
@@ -235,17 +231,18 @@ fn parse_model(
                 .read_tex_coords(0)
                 .map(|values| values.into_f32().map(|uv| uv.into()).collect());
 
-            children.push((
-                TriMesh {
+            children.push(Node {
+                geometry: Some(Geometry::Triangles(TriMesh {
                     positions: Positions::F32(positions),
                     normals,
                     tangents,
                     indices,
                     colors,
                     uvs,
-                },
-                primitive.material().index(),
-            ));
+                })),
+                material_index: primitive.material().index(),
+                ..Default::default()
+            });
         }
     }
     Ok(children)
@@ -424,7 +421,7 @@ mod test {
             )
             .deserialize("gltf")
             .unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 1);
         assert_eq!(
             model.materials[0]
@@ -445,7 +442,7 @@ mod test {
     #[test]
     pub fn deserialize_gltf_with_data_url() {
         let model: Model = crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
 
@@ -453,15 +450,15 @@ mod test {
     pub fn deserialize_gltf_with_animations() {
         let model: Model =
             crate::io::load_and_deserialize("test_data/AnimatedTriangle.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 0);
-        assert_eq!(model.geometries[0].animations.len(), 1);
+        assert_eq!(model.primitives[0].animations.len(), 1);
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.0),
+            model.primitives[0].animations[0].1[0].transformation(0.0),
             Mat4::identity()
         );
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.25),
+            model.primitives[0].animations[0].1[0].transformation(0.25),
             Mat4::from_cols(
                 vec4(5.9604645e-8, 0.99999994, 0.0, 0.0),
                 vec4(-0.99999994, 5.9604645e-8, 0.0, 0.0),
@@ -470,7 +467,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.5),
+            model.primitives[0].animations[0].1[0].transformation(0.5),
             Mat4::from_cols(
                 vec4(-1.0, 0.0, 0.0, 0.0),
                 vec4(0.0, -1.0, 0.0, 0.0),
@@ -479,7 +476,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.75),
+            model.primitives[0].animations[0].1[0].transformation(0.75),
             Mat4::from_cols(
                 vec4(5.9604645e-8, -0.99999994, 0.0, 0.0),
                 vec4(0.99999994, 5.9604645e-8, 0.0, 0.0),
@@ -488,7 +485,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(1.0),
+            model.primitives[0].animations[0].1[0].transformation(1.0),
             Mat4::identity()
         );
     }
@@ -496,14 +493,14 @@ mod test {
     #[test]
     pub fn deserialize_gltf_with_morphing() {
         let model: Model = crate::io::load_and_deserialize("test_data/AnimatedMorph.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 
     #[test]
     pub fn deserialize_gltf_with_skinning() {
         let model: Model = crate::io::load_and_deserialize("test_data/AnimatedSkin.gltf").unwrap();
-        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.primitives.len(), 1);
         assert_eq!(model.materials.len(), 0);
     }
 }
