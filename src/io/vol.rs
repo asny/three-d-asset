@@ -1,13 +1,14 @@
 use crate::{io::RawAssets, volume::*, Error, Result};
-use std::path::Path;
+use std::path::PathBuf;
 
 ///
 /// Deserialize a loaded .vol file into a [VoxelGrid].
 ///
 /// **Note:** Border is not supported.
 ///
-pub fn deserialize_vol(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Result<VoxelGrid> {
-    let bytes = raw_assets.remove(path.as_ref())?;
+pub fn deserialize_vol(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<VoxelGrid> {
+    let name = path.to_str().unwrap().to_string();
+    let bytes = raw_assets.remove(path)?;
     let width = u32::from_be_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
     let height = u32::from_be_bytes([bytes[4], bytes[5], bytes[6], bytes[7]]);
     let depth = u32::from_be_bytes([bytes[8], bytes[9], bytes[10], bytes[11]]);
@@ -59,7 +60,7 @@ pub fn deserialize_vol(raw_assets: &mut RawAssets, path: impl AsRef<Path>) -> Re
             ..Default::default()
         },
         size: Vec3::new(size.z, size.x, size.y),
-        ..Default::default()
+        name,
     })
 }
 
