@@ -157,7 +157,14 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                     kf.scales = Some(scales.into_iter().map(|r| vec3(r[0], r[1], r[2])).collect());
                 }
                 ::gltf::animation::util::ReadOutputs::MorphTargetWeights(weights) => {
-                    kf.weights = Some(weights.into_f32().collect());
+                    let weights = weights.into_f32().collect::<Vec<_>>();
+                    let count = weights.len() / kf.times.len();
+                    kf.weights = Some(
+                        weights
+                            .chunks(count)
+                            .map(|c| c.into_iter().map(|v| *v).collect::<Vec<_>>())
+                            .collect(),
+                    );
                 }
             }
         }

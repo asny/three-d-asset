@@ -9,7 +9,7 @@ pub struct KeyFrames {
     pub rotations: Option<Vec<Quat>>,
     pub translations: Option<Vec<Vec3>>,
     pub scales: Option<Vec<Vec3>>,
-    pub weights: Option<Vec<f32>>,
+    pub weights: Option<Vec<Vec<f32>>>,
 }
 
 impl KeyFrames {
@@ -44,20 +44,13 @@ impl KeyFrames {
         transformation
     }
 
-    /*pub fn weights(&self, time: f32) -> Vec<f32> {
-        if let Some(values) = &self.weights {
-            let (index, t) = self.interpolate(time);
-            let index = index.unwrap(); // TODO
-            let count = values.len() / self.times.len();
-            let v0 = &values[count * index..count * (index + 1)];
-            let v1 = &values[count * (index + 1)..count * (index + 2)];
-            (0..count).map(|i| (1.0 - t) * v0[i] + t * v1[i]).collect()
-        } else {
-            Vec::new()
-        }
-    }*/
+    pub fn weights(&self, time: f32) -> Option<Vec<f32>> {
+        self.weights
+            .as_ref()
+            .map(|values| self.interpolate_array(time, values))
+    }
 
-    fn interpolate_rotation(&self, time: f32, values: &Vec<Quat>) -> Quat {
+    fn interpolate_rotation(&self, time: f32, values: &[Quat]) -> Quat {
         let time = self.loop_time.map(|t| time % t).unwrap_or(time);
         if time < self.times[0] {
             values[0]
@@ -72,10 +65,29 @@ impl KeyFrames {
         }
     }
 
+    fn interpolate_array(&self, time: f32, values: &[Vec<f32>]) -> Vec<f32> {
+        let time = self.loop_time.map(|t| time % t).unwrap_or(time);
+        if time < self.times[0] {
+            values[0].clone()
+        } else {
+            for i in 0..self.times.len() - 1 {
+                if self.times[i] <= time && time < self.times[i + 1] {
+                    let t = (time - self.times[i]) / (self.times[i + 1] - self.times[i]);
+                    let mut result = Vec::new();
+                    for j in 0..values[i].len() {
+                        result.push(values[i][j] * (1.0 - t) + values[i + 1][j] * t);
+                    }
+                    return result;
+                }
+            }
+            values.last().unwrap().clone()
+        }
+    }
+
     fn interpolate<T: Copy + std::ops::Mul<f32, Output = T> + std::ops::Add<T, Output = T>>(
         &self,
         time: f32,
-        values: &Vec<T>,
+        values: &[T],
     ) -> T {
         let time = self.loop_time.map(|t| time % t).unwrap_or(time);
         if time < self.times[0] {
