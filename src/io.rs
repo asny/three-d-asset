@@ -194,15 +194,22 @@ impl Deserialize for crate::VoxelGrid {
         let path = raw_assets.match_path(path.as_ref())?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "vol" => {
-                #[cfg(feature = "vol")]
-                let result = vol::deserialize_vol(raw_assets, path);
-
                 #[cfg(not(feature = "vol"))]
-                let result = Err(Error::FeatureMissing("vol".to_string()));
-                result
+                return Err(Error::FeatureMissing("vol".to_string()));
+
+                #[cfg(feature = "pcd")]
+                vol::deserialize_vol(raw_assets, &path)
             }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
+    }
+}
+
+impl Deserialize for crate::Texture3D {
+    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+        let path = raw_assets.match_path(path.as_ref())?;
+        let voxel_grid = crate::VoxelGrid::deserialize(path, raw_assets)?;
+        Ok(voxel_grid.voxels)
     }
 }
 
