@@ -3,7 +3,7 @@ use crate::{prelude::*, Interpolation};
 #[derive(Debug, Clone, Default)]
 pub struct KeyFrameAnimation {
     pub name: Option<String>,
-    pub key_frames: Vec<(Mat4, KeyFrames)>,
+    pub key_frames: Vec<(Mat4, std::sync::Arc<KeyFrames>)>,
 }
 
 impl KeyFrameAnimation {
