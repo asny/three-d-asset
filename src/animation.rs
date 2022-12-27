@@ -1,8 +1,23 @@
 use crate::{prelude::*, Interpolation};
 
 #[derive(Debug, Clone, Default)]
-pub struct KeyFrames {
+pub struct KeyFrameAnimation {
     pub name: Option<String>,
+    pub key_frames: Vec<(Mat4, KeyFrames)>,
+}
+
+impl KeyFrameAnimation {
+    pub fn transformation(&self, time: f32) -> Mat4 {
+        let mut transformation = Mat4::identity();
+        for (t, animation) in self.key_frames.iter() {
+            transformation = transformation * t * animation.transformation(time);
+        }
+        transformation
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct KeyFrames {
     pub loop_time: Option<f32>,
     pub interpolation: Interpolation,
     pub times: Vec<f32>,

@@ -124,16 +124,18 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                     key_frames.push((
                         target_node,
                         key,
-                        KeyFrames {
-                            name: animation.name().map(|s| s.to_owned()),
-                            times,
-                            interpolation,
-                            ..Default::default()
-                        },
+                        (
+                            animation.name().map(|s| s.to_owned()),
+                            KeyFrames {
+                                times,
+                                interpolation,
+                                ..Default::default()
+                            },
+                        ),
                     ));
                     key_frames.len() - 1
                 });
-            let kf = &mut key_frames[i].2;
+            let kf = &mut key_frames[i].2 .1;
 
             match reader.read_outputs().unwrap() {
                 ::gltf::animation::util::ReadOutputs::Rotations(rotations) => {
@@ -170,8 +172,8 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
         for (target_node, _, mut kf) in key_frames {
             nodes[target_node].as_mut().map(|n| {
-                kf.loop_time = Some(loop_time);
-                n.key_frames.push(kf);
+                kf.1.loop_time = Some(loop_time);
+                n.animations.push(kf);
             });
         }
     }
@@ -460,12 +462,10 @@ mod test {
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 0);
         assert_eq!(model.geometries[0].animations.len(), 1);
+        let animation = &model.geometries[0].animations[0];
+        assert_eq!(animation.transformation(0.0), Mat4::identity());
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.0),
-            Mat4::identity()
-        );
-        assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.25),
+            animation.transformation(0.25),
             Mat4::from_cols(
                 vec4(5.9604645e-8, 0.99999994, 0.0, 0.0),
                 vec4(-0.99999994, 5.9604645e-8, 0.0, 0.0),
@@ -474,7 +474,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.5),
+            animation.transformation(0.5),
             Mat4::from_cols(
                 vec4(-1.0, 0.0, 0.0, 0.0),
                 vec4(0.0, -1.0, 0.0, 0.0),
@@ -483,7 +483,7 @@ mod test {
             )
         );
         assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(0.75),
+            animation.transformation(0.75),
             Mat4::from_cols(
                 vec4(5.9604645e-8, -0.99999994, 0.0, 0.0),
                 vec4(0.99999994, 5.9604645e-8, 0.0, 0.0),
@@ -491,10 +491,7 @@ mod test {
                 vec4(0.0, 0.0, 0.0, 1.0)
             )
         );
-        assert_eq!(
-            model.geometries[0].animations[0].1[0].transformation(1.0),
-            Mat4::identity()
-        );
+        assert_eq!(animation.transformation(1.0), Mat4::identity());
     }
 
     #[test]
