@@ -53,7 +53,7 @@ pub struct Node {
     pub name: String,
     pub children: Vec<Node>,
     pub transformation: Mat4,
-    pub key_frames: Vec<KeyFrames>,
+    pub animations: Vec<(Option<String>, KeyFrames)>,
     pub geometry: Option<Geometry>,
     pub material_index: Option<usize>,
 }
@@ -64,7 +64,7 @@ impl Default for Node {
             name: "node".to_owned(),
             children: Vec::new(),
             transformation: Mat4::identity(),
-            key_frames: Vec::new(),
+            animations: Vec::new(),
             geometry: None,
             material_index: None,
         }
@@ -86,7 +86,7 @@ pub struct Model {
 pub struct Primitive {
     pub name: String,
     pub transformation: Mat4,
-    pub animations: Vec<(Mat4, Vec<KeyFrames>)>,
+    pub animations: Vec<KeyFrameAnimation>,
     pub geometry: Geometry,
     pub material_index: Option<usize>,
 }
@@ -108,7 +108,7 @@ impl std::convert::From<Scene> for Model {
     fn from(scene: Scene) -> Self {
         let mut geometries = Vec::new();
         for child in scene.children {
-            visit(child, Vec::new(), &mut geometries);
+            visit(child, Vec::new(), Mat4::identity(), &mut geometries);
         }
         Self {
             name: scene.name,
@@ -118,27 +118,37 @@ impl std::convert::From<Scene> for Model {
     }
 }
 
-fn visit(node: Node, mut animations: Vec<(Mat4, Vec<KeyFrames>)>, geometries: &mut Vec<Primitive>) {
-    animations.push((node.transformation, node.key_frames));
+fn visit(
+    node: Node,
+    mut animations: Vec<KeyFrameAnimation>,
+    transformation: Mat4,
+    geometries: &mut Vec<Primitive>,
+) {
+    let mut transformation = transformation * node.transformation;
+    if !node.animations.is_empty() {
+        for (animation_name, key_frames) in node.animations {
+            if let Some(i) = animations.iter().position(|a| a.name == animation_name) {
+                animations[i].key_frames.push((transformation, key_frames));
+            } else {
+                animations.push(KeyFrameAnimation {
+                    name: animation_name,
+                    key_frames: vec![(transformation, key_frames)],
+                });
+            }
+        }
+        transformation = Mat4::identity();
+    };
     if let Some(geometry) = node.geometry {
-        let mut animations = animations.clone();
-        let transformation = if animations.last().map(|a| a.1.is_empty()).unwrap_or(false) {
-            animations.pop().unwrap().0
-        } else {
-            Mat4::identity()
-        };
-        animations.reverse();
-
         geometries.push(Primitive {
             name: node.name.clone(),
             transformation,
-            animations,
+            animations: animations.clone(),
             geometry,
             material_index: node.material_index,
         });
     }
     for child in node.children {
-        visit(child, animations.clone(), geometries);
+        visit(child, animations.clone(), transformation, geometries);
     }
 }
 
