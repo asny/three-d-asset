@@ -128,11 +128,13 @@ fn visit(
     if !node.animations.is_empty() {
         for (animation_name, key_frames) in node.animations {
             if let Some(i) = animations.iter().position(|a| a.name == animation_name) {
-                animations[i].key_frames.push((transformation, key_frames));
+                animations[i]
+                    .key_frames
+                    .push((transformation, std::sync::Arc::new(key_frames)));
             } else {
                 animations.push(KeyFrameAnimation {
                     name: animation_name,
-                    key_frames: vec![(transformation, key_frames)],
+                    key_frames: vec![(transformation, std::sync::Arc::new(key_frames))],
                 });
             }
         }
