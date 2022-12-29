@@ -28,13 +28,25 @@ pub use geometry::*;
 pub mod volume;
 pub use volume::*;
 
-pub mod animation;
+mod animation;
 pub use animation::*;
 
+///
+/// Representation of a set of objects as a scene graph.
+/// Specifically, a [Scene] contains a tree of [Node]s, where the nodes contain the [Geometry] data.
+/// A [Scene] can easily be converted into a [Model], if it is more desirable with a flat arrays instead of a tree structure.
+///
+/// To visualise the [Geometry] in the [Scene] correctly, it is necessary to traverse the scene from the root (the [Scene]) to the leaves
+/// and along the way calculate a transformation.
+/// For each node containing [Geometry], the [Geometry] should be visualised with the calculated transformation applied.
+///
 #[derive(Debug, Clone)]
 pub struct Scene {
+    /// The name. Might not be anything meaningful.
     pub name: String,
+    /// Children nodes.
     pub children: Vec<Node>,
+    /// A list of materials used in this scene. The materials are referenced by index in the relevant nodes.
     pub materials: Vec<PbrMaterial>,
 }
 
@@ -48,13 +60,25 @@ impl Default for Scene {
     }
 }
 
+///
+/// A node in a [Scene] graph. Each node may contain a set of children nodes, hence the whole [Scene] representaion has a tree structure.
+///
+/// Each node may also contain a transformation, animations, geometry and an index to the [Scene::materials].
+///
 #[derive(Debug, Clone)]
 pub struct Node {
+    /// The name. Might not be anything meaningful.
     pub name: String,
+    /// Children [Node]s.
     pub children: Vec<Node>,
+    /// A transformation that should be applied to all [Geometry] referenced by this and all children nodes.
     pub transformation: Mat4,
+    /// Optional animation applied to this node and all of its children.
+    /// A transformation should be computed for a specific time and then multiplied together with [Node::transformation].
     pub animations: Vec<(Option<String>, KeyFrames)>,
+    /// Optional geometry for this node.
     pub geometry: Option<Geometry>,
+    /// Optional index into [Scene::materials], indicating which material should be applied to geometry below this node in the tree.
     pub material_index: Option<usize>,
 }
 
@@ -77,17 +101,30 @@ impl Default for Node {
 ///
 #[derive(Debug, Clone)]
 pub struct Model {
+    /// The name. Might not be anything meaningful.
     pub name: String,
+    /// A list of geometries for this model.
     pub geometries: Vec<Primitive>,
+    /// A list of materials for this model
     pub materials: Vec<PbrMaterial>,
 }
 
+///
+/// A part of a [Model] containing exactly one [Geometry], an optional reference to a material and information necessary to calculate the transformation that
+/// should be applied to the geometry.
+///
 #[derive(Debug, Clone)]
 pub struct Primitive {
+    /// The name. Might not be anything meaningful.
     pub name: String,
+    /// A transformation that should be applied to the [Primitive::geometry].
     pub transformation: Mat4,
+    /// Optional animation applied to the [Primitive::geometry].
+    /// A transformation should be computed for a specific time and then multiplied together with [Node::transformation].
     pub animations: Vec<KeyFrameAnimation>,
+    /// The geometry of this primitive.
     pub geometry: Geometry,
+    /// Optional index into [Model::materials], indicating which material should be applied to [Primitive::geometry].
     pub material_index: Option<usize>,
 }
 
