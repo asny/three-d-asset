@@ -171,7 +171,7 @@ impl Deserialize for crate::Scene {
                 obj::deserialize_obj(raw_assets, &path)
             }
             "pcd" => {
-                #[cfg(not(feature = "obj"))]
+                #[cfg(not(feature = "pcd"))]
                 return Err(Error::FeatureMissing("pcd".to_string()));
 
                 #[cfg(feature = "pcd")]
@@ -197,7 +197,7 @@ impl Deserialize for crate::VoxelGrid {
                 #[cfg(not(feature = "vol"))]
                 return Err(Error::FeatureMissing("vol".to_string()));
 
-                #[cfg(feature = "pcd")]
+                #[cfg(feature = "vol")]
                 vol::deserialize_vol(raw_assets, &path)
             }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
