@@ -10,24 +10,33 @@ pub use tri_mesh::*;
 
 pub use crate::prelude::*;
 
+///
+/// Represents a geometry.
+///
 #[derive(Debug, Clone)]
 pub enum Geometry {
+    /// Points geometry
     Points(PointCloud),
+    /// Triangle geometry
     Triangles(TriMesh),
 }
 
 impl Geometry {
+    ///
+    /// Computes normals if it is relevant for the geometry.
+    ///
     pub fn compute_normals(&mut self) {
-        match self {
-            Self::Triangles(mesh) => mesh.compute_normals(),
-            _ => {}
+        if let Self::Triangles(mesh) = self {
+            mesh.compute_normals()
         }
     }
 
+    ///
+    /// Computes tangents if it is relevant for the geometry.
+    ///
     pub fn compute_tangents(&mut self) {
-        match self {
-            Self::Triangles(mesh) => mesh.compute_tangents(),
-            _ => {}
+        if let Self::Triangles(mesh) = self {
+            mesh.compute_tangents()
         }
     }
 
