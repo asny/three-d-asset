@@ -11,7 +11,7 @@ pub use tri_mesh::*;
 pub use crate::prelude::*;
 
 ///
-/// Represents a geometry.
+/// A CPU-side version of a geometry.
 ///
 #[derive(Debug, Clone)]
 pub enum Geometry {
