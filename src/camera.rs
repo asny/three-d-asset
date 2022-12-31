@@ -43,12 +43,10 @@ impl Viewport {
         let other = other.into();
         let x = self.x.max(other.x);
         let y = self.y.max(other.y);
-        let width = (self.x + self.width as i32 - x)
-            .min(other.x + other.width as i32 - x)
-            .max(0) as u32;
-        let height = (self.y + self.height as i32 - y)
-            .min(other.y + other.height as i32 - y)
-            .max(0) as u32;
+        let width =
+            (self.x + self.width as i32 - x).clamp(0, other.x + other.width as i32 - x) as u32;
+        let height =
+            (self.y + self.height as i32 - y).clamp(0, other.y + other.height as i32 - y) as u32;
         Self {
             x,
             y,
@@ -594,19 +592,14 @@ impl Camera {
         let direction = (point - position).normalize();
         let target = *self.target();
         let up = *self.up();
-        let new_distance = (distance - delta)
-            .max(minimum_distance)
-            .min(maximum_distance);
+        let new_distance = (distance - delta).clamp(minimum_distance, maximum_distance);
         let new_position = point - direction * new_distance;
         self.set_view(new_position, new_position + (target - position), up);
-        match self.projection_type() {
-            ProjectionType::Orthographic { height } => {
-                let h = new_distance * height / distance;
-                let z_near = self.z_near();
-                let z_far = self.z_far();
-                self.set_orthographic_projection(h, z_near, z_far);
-            }
-            _ => {}
+        if let ProjectionType::Orthographic { height } = self.projection_type() {
+            let h = new_distance * height / distance;
+            let z_near = self.z_near();
+            let z_far = self.z_far();
+            self.set_orthographic_projection(h, z_near, z_far);
         }
     }
 }

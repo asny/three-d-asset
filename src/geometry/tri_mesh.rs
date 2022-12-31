@@ -580,7 +580,7 @@ impl TriMesh {
                 }
             }
             Indices::None => {
-                for face in 0..self.triangle_count() as usize {
+                for face in 0..self.triangle_count() {
                     callback(face * 3, face * 3 + 1, face * 3 + 2);
                 }
             }

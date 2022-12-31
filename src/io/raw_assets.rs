@@ -64,7 +64,7 @@ impl RawAssets {
         if self.0.contains_key(path) {
             Ok(path.into())
         } else {
-            let p = path.to_str().unwrap().replace("\\", "/");
+            let p = path.to_str().unwrap().replace('\\', "/");
             let p = if p.ends_with(".jpeg") {
                 p[0..p.len() - 2].to_string()
             } else if p.ends_with(".jpg") {
@@ -94,7 +94,7 @@ impl RawAssets {
     /// ```
     ///
     pub fn insert(&mut self, path: impl AsRef<Path>, bytes: Vec<u8>) -> &mut Self {
-        let key = path.as_ref().to_str().unwrap().replace("\\", "/").into();
+        let key = path.as_ref().to_str().unwrap().replace('\\', "/").into();
         self.0.insert(key, bytes);
         self
     }

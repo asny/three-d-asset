@@ -102,6 +102,13 @@ impl Indices {
             Self::U32(values) => Some(values.len()),
         }
     }
+
+    ///
+    /// Returns whether the set of indices is empty.
+    ///
+    pub fn is_empty(&self) -> bool {
+        self.len().map(|i| i == 0).unwrap_or(true)
+    }
 }
 
 impl std::default::Default for Indices {
