@@ -191,7 +191,6 @@ async fn load_urls(paths: HashSet<PathBuf>) -> Result<RawAssets> {
 }
 #[cfg(not(feature = "reqwest"))]
 async fn load_urls(paths: HashSet<PathBuf>) -> Result<RawAssets> {
-    #[cfg(not(feature = "reqwest"))]
     if !paths.is_empty() {
         return Err(Error::FeatureMissing("reqwest".to_string()));
     }
