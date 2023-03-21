@@ -9,37 +9,38 @@
 
 The crate contain a set of common assets that are useful when doing graphics which can be loaded using the `io` module or constructed manually.
 When in memory, the assets can be for example be
+
 - visualised, for example using the [three-d](https://github.com/asny/three-d) crate or in a CPU ray tracer
 - imported into a rust-based game engine
 - edited and saved again
 
 ### Model
 
-| Format | Deserialize | Serialize | Feature | 
-| ------------ | -------------| ------------- | ------------- |
-| OBJ/MTL | :white_check_mark: |  :x: | `obj` |
-| GLTF/GLB | :white_check_mark: |  :x: | `gltf` |
+| Format   | Deserialize | Serialize | Feature |
+| -------- | ----------- | --------- | ------- |
+| OBJ/MTL  | ✅          | ❌        | `obj`   |
+| GLTF/GLB | ✅          | ❌        | `gltf`  |
 
 ### Texture2D
 
-| Format | Deserialize | Serialize | Feature | 
-| ------------ | ------------- | ------------- | ------------- |
-| PNG | :white_check_mark: |  :white_check_mark: | `png` |
-| JPEG | :white_check_mark: |  :white_check_mark: | `jpeg` |
-| HDR | :white_check_mark: |  :x: | `hdr` |
-| GIF | :white_check_mark: |  :white_check_mark: | `gif` |
-| TGA | :white_check_mark: |  :white_check_mark: | `tga` |
-| TIFF | :white_check_mark: |  :white_check_mark: | `tiff` |
-| BMP | :white_check_mark: |  :white_check_mark: | `bmp` |
+| Format | Deserialize | Serialize | Feature |
+| ------ | ----------- | --------- | ------- |
+| PNG    | ✅          | ✅        | `png`   |
+| JPEG   | ✅          | ✅        |  `jpeg` |
+| HDR    | ✅          | ❌        | `hdr`   |
+| GIF    | ✅          | ✅        | `gif`   |
+| TGA    | ✅          | ✅        | `tga`   |
+| TIFF   | ✅          | ✅        | `tiff`  |
+| BMP    | ✅          | ✅        | `bmp`   |
 
 ### PointCloud
 
-| Format | Deserialize | Serialize | Feature | 
-| ------------ | ------------- | ------------- | ------------- |
-| PCD | :white_check_mark: |  :x: | `pcd` |
+| Format | Deserialize | Serialize | Feature |
+| ------ | ----------- | --------- | ------- |
+| PCD    | ✅          | ❌        | `pcd`   |
 
 ### VoxelGrid
 
-| Format | Deserialize | Serialize | Feature | 
-| ------------ | ------------- | ------------- | ------------- |
-| VOL | :white_check_mark: |  :x: | `vol` |
+| Format | Deserialize | Serialize | Feature |
+| ------ | ----------- | --------- | ------- |
+| VOL    | ✅          | ❌        | `vol`   |
