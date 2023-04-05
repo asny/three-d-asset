@@ -1,8 +1,94 @@
 pub use crate::prelude::*;
 
+/// UV coordinates which must be between `(0, 0)` indicating the bottom left corner
+/// and `(1, 1)` indicating the top right corner.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct UvCoordinate {
+    /// Coordinate that is 0 at the left edge to 1 at the right edge.
+    pub u: f32,
+    /// Coordinate that is 0 at the bottom edge to 1 at the top edge.
+    pub v: f32,
+}
+
+impl From<(f32, f32)> for UvCoordinate {
+    fn from(value: (f32, f32)) -> Self {
+        Self {
+            u: value.0,
+            v: value.1,
+        }
+    }
+}
+
+impl From<UvCoordinate> for (f32, f32) {
+    fn from(value: UvCoordinate) -> Self {
+        (value.u, value.v)
+    }
+}
+
+impl From<Vec2> for UvCoordinate {
+    fn from(value: Vec2) -> Self {
+        Self {
+            u: value.x,
+            v: value.y,
+        }
+    }
+}
+
+impl From<UvCoordinate> for Vec2 {
+    fn from(value: UvCoordinate) -> Self {
+        Self {
+            x: value.u,
+            y: value.v,
+        }
+    }
+}
+
+/// A pixel coordinate in physical pixels, where `x` is on the horizontal axis with zero being at the left edge
+/// and `y` is on the vertical axis with zero being at bottom edge.
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct PixelPoint {
+    /// The horizontal pixel distance from the left edge.
+    pub x: f32,
+    /// The vertical pixel distance from the bottom edge.
+    pub y: f32,
+}
+
+impl From<(f32, f32)> for PixelPoint {
+    fn from(value: (f32, f32)) -> Self {
+        Self {
+            x: value.0,
+            y: value.1,
+        }
+    }
+}
+
+impl From<PixelPoint> for (f32, f32) {
+    fn from(value: PixelPoint) -> Self {
+        (value.x, value.y)
+    }
+}
+
+impl From<Vec2> for PixelPoint {
+    fn from(value: Vec2) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
+impl From<PixelPoint> for Vec2 {
+    fn from(value: PixelPoint) -> Self {
+        Self {
+            x: value.x,
+            y: value.y,
+        }
+    }
+}
+
 ///
-/// Defines the part of the screen/render target that is rendered to.
-/// All values should be given in physical pixels.
+/// Defines the part of the screen/render target that the camera is projecting into.
+/// All values should be in physical pixels.
 ///
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Viewport {
@@ -18,7 +104,7 @@ pub struct Viewport {
 
 impl Viewport {
     ///
-    /// New viewport which starts at origo (x and y are both zero).
+    /// Creates a new viewport with the bottom left corner at origo `(0, 0)`.
     ///
     pub fn new_at_origo(width: u32, height: u32) -> Self {
         Self {
@@ -272,10 +358,8 @@ impl Camera {
 
     ///
     /// Returns the 3D position at the given pixel coordinate.
-    /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
-    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
     ///
-    pub fn position_at_pixel(&self, pixel: (f32, f32)) -> Vec3 {
+    pub fn position_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
@@ -287,14 +371,13 @@ impl Camera {
 
     ///
     /// Returns the 3D position at the given uv coordinate of the viewport.
-    /// The uv coordinate must be between `(0, 0)` indicating the bottom left corner of the viewport
-    /// and `(1, 1)` indicating the top right corner.
     ///
-    pub fn position_at_uv_coordinates(&self, coords: (f32, f32)) -> Vec3 {
+    pub fn position_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { height } => {
                 let width = height * self.viewport.aspect();
-                self.position() + vec3((coords.0 - 0.5) * width, (coords.1 - 0.5) * height, 0.0)
+                let coords = coords.into();
+                self.position() + vec3((coords.u - 0.5) * width, (coords.v - 0.5) * height, 0.0)
             }
             ProjectionType::Perspective { .. } => *self.position(),
         }
@@ -302,10 +385,8 @@ impl Camera {
 
     ///
     /// Returns the 3D view direction at the given pixel coordinate.
-    /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
-    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
     ///
-    pub fn view_direction_at_pixel(&self, pixel: (f32, f32)) -> Vec3 {
+    pub fn view_direction_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => self.view_direction(),
             ProjectionType::Perspective { .. } => {
@@ -317,14 +398,13 @@ impl Camera {
 
     ///
     /// Returns the 3D view direction at the given uv coordinate of the viewport.
-    /// The uv coordinate must be between `(0, 0)` indicating the bottom left corner of the viewport
-    /// and `(1, 1)` indicating the top right corner.
     ///
-    pub fn view_direction_at_uv_coordinates(&self, coords: (f32, f32)) -> Vec3 {
+    pub fn view_direction_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => self.view_direction(),
             ProjectionType::Perspective { .. } => {
-                let screen_pos = vec4(2. * coords.0 - 1., 2. * coords.1 - 1.0, 0., 1.);
+                let coords = coords.into();
+                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
                 (self.screen2ray * screen_pos).truncate().normalize()
             }
         }
@@ -332,50 +412,44 @@ impl Camera {
 
     ///
     /// Returns the uv coordinate for the given pixel coordinate.
-    /// The pixel coordinate must be in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
-    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
-    /// The returned uv coordinate is between 0 and 1 where `(0,0)` indicate the bottom left corner of the viewport and `(1,1)` indicate the top right corner.
     ///
-    pub fn uv_coordinates_at_pixel(&self, pixel: (f32, f32)) -> (f32, f32) {
+    pub fn uv_coordinates_at_pixel(&self, pixel: impl Into<PixelPoint>) -> UvCoordinate {
+        let pixel = pixel.into();
         (
-            (pixel.0 - self.viewport.x as f32) / self.viewport.width as f32,
-            (pixel.1 - self.viewport.y as f32) / self.viewport.height as f32,
+            (pixel.x - self.viewport.x as f32) / self.viewport.width as f32,
+            (pixel.y - self.viewport.y as f32) / self.viewport.height as f32,
         )
+            .into()
     }
 
     ///
     /// Returns the uv coordinate for the given world position.
-    /// The returned uv coordinate are between 0 and 1 where `(0,0)` indicate a position that maps to the bottom left corner of the viewport
-    /// and (1,1) indicate a position that maps to the top right corner.
     ///
-    pub fn uv_coordinates_at_position(&self, position: Vec3) -> (f32, f32) {
+    pub fn uv_coordinates_at_position(&self, position: Vec3) -> UvCoordinate {
         let proj = self.projection() * self.view() * position.extend(1.0);
         (
             0.5 * (proj.x / proj.w.abs() + 1.0),
             0.5 * (proj.y / proj.w.abs() + 1.0),
         )
+            .into()
     }
 
     ///
     /// Returns the pixel coordinate for the given uv coordinate.
-    /// The uv coordinate must be between 0 and 1 where `(0,0)` indicate the bottom left corner of the viewport
-    /// and (1,1) indicate the top right corner.
-    /// The returned pixel coordinate is in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
-    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
     ///
-    pub fn pixel_at_uv_coordinates(&self, coords: (f32, f32)) -> (f32, f32) {
+    pub fn pixel_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> PixelPoint {
+        let coords = coords.into();
         (
-            coords.0 * self.viewport.width as f32 + self.viewport.x as f32,
-            coords.1 * self.viewport.height as f32 + self.viewport.y as f32,
+            coords.u * self.viewport.width as f32 + self.viewport.x as f32,
+            coords.v * self.viewport.height as f32 + self.viewport.y as f32,
         )
+            .into()
     }
 
     ///
     /// Returns the pixel coordinate for the given world position.
-    /// The returned pixel coordinate is in physical pixels, where `(viewport.x, viewport.y)` indicate the bottom left corner of the viewport
-    /// and `(viewport.x + viewport.width, viewport.y + viewport.height)` indicate the top right corner.
     ///
-    pub fn pixel_at_position(&self, position: Vec3) -> (f32, f32) {
+    pub fn pixel_at_position(&self, position: Vec3) -> PixelPoint {
         self.pixel_at_uv_coordinates(self.uv_coordinates_at_position(position))
     }
 
