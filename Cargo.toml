@@ -1,6 +1,6 @@
 [package]
 name = "three-d-asset"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Asger Nyman Christiansen <asgernyman@gmail.com>"]
 edition = "2021"
 description = "Load/save functionality for 3d applications."
