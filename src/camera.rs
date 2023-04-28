@@ -646,34 +646,47 @@ impl Camera {
     }
 
     ///
-    /// Moves the camera towards the given point by the amount delta while keeping the given minimum and maximum distance to the point.
+    /// Moves the camera towards the given point by the delta amount while keeping the given minimum and maximum viewport height.
     ///
     pub fn zoom_towards(
         &mut self,
-        point: &Vec3,
+        zoom_point: &Vec3,
         delta: f32,
-        minimum_distance: f32,
-        maximum_distance: f32,
+        minimum_height: f32,
+        maximum_height: f32,
     ) {
-        let minimum_distance = minimum_distance.max(0.0);
+        let minimum_height = minimum_height.max(0.0);
         assert!(
-            minimum_distance < maximum_distance,
-            "minimum_distance larger than maximum_distance"
+            minimum_height < maximum_height,
+            "minimum_height larger than maximum_height"
         );
 
+        // Current position of the camera. Located on the positive z-axis.
         let position = *self.position();
-        let distance = point.distance(position);
-        let direction = (point - position).normalize();
+        // Distance between the camera position and the point towards which the camera has to zoom.
+        let distance = zoom_point.distance(position);
+        // A unit vector pointing from the camera towards the zoom point
+        let direction = (zoom_point - position).normalize();
+        // Target is where the camera is looking at
         let target = *self.target();
-        let up = *self.up();
-        let new_distance = (distance - delta).clamp(minimum_distance, maximum_distance);
-        let new_position = point - direction * new_distance;
-        self.set_view(new_position, new_position + (target - position), up);
+
         if let ProjectionType::Orthographic { height } = self.projection_type() {
-            let h = new_distance * height / distance;
-            let z_near = self.z_near();
-            let z_far = self.z_far();
-            self.set_orthographic_projection(h, z_near, z_far);
+            // Create new height clamping it within limits
+            let new_height = (height - delta).clamp(minimum_height, maximum_height);
+            // The multiplicative factor by which the objects in the view will scale up (or down)
+            // E.g. if it is 0.5 things will become twice as big after zoom
+            let zoom_factor = new_height / height;
+            // The distance camera has to move from its current position towards the zoom_point
+            let new_distance = zoom_factor * distance;
+            // The new position of the camera after it has moved towards the zoom_point
+            let new_position = zoom_point - direction * new_distance;
+            // The new point where the camera is looking at after moving
+            let new_target = new_position + (target - position);
+            // Update view and projection
+            self.set_view(new_position, new_target, self.up);
+            self.set_orthographic_projection(new_height, self.z_near, self.z_far);
+        } else {
+            panic!("zoom_towards should only be used with an orthographic camera");
         }
     }
 }
