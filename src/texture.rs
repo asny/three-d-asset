@@ -2,6 +2,8 @@
 //! Contain texture asset definitions.
 //!
 
+pub use serde::{Serialize,Deserialize};
+
 pub(crate) mod texture2d;
 pub use texture2d::*;
 
@@ -15,6 +17,7 @@ pub use crate::prelude::f16;
 ///
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub enum Interpolation {
     Nearest,
     Linear,
@@ -33,6 +36,7 @@ impl Default for Interpolation {
 ///
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub enum Wrapping {
     Repeat,
     MirroredRepeat,
@@ -65,6 +69,7 @@ pub enum Wrapping {
 /// ```
 ///
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub enum TextureData {
     /// One byte in the red channel.
     RU8(Vec<u8>),
@@ -74,7 +79,6 @@ pub enum TextureData {
     RgbU8(Vec<[u8; 3]>),
     /// One byte in the red, green, blue and alpha channel.
     RgbaU8(Vec<[u8; 4]>),
-
     /// 16-bit float in the red channel.
     RF16(Vec<f16>),
     /// 16-bit float in the red and green channel.
@@ -83,7 +87,6 @@ pub enum TextureData {
     RgbF16(Vec<[f16; 3]>),
     /// 16-bit float in the red, green, blue and alpha channel.
     RgbaF16(Vec<[f16; 4]>),
-
     /// 32-bit float in the red channel.
     RF32(Vec<f32>),
     /// 32-bit float in the red and green channel.
@@ -93,6 +96,7 @@ pub enum TextureData {
     /// 32-bit float in the red, green, blue and alpha channel.
     RgbaF32(Vec<[f32; 4]>),
 }
+
 
 impl std::fmt::Debug for TextureData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

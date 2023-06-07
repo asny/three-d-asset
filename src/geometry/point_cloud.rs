@@ -1,10 +1,13 @@
 use super::Positions;
 use crate::prelude::*;
 
+pub use serde::{Serialize,Deserialize};
+
 ///
 /// Represents a set of points in 3D space, usually created with a scanner.
 ///
 #[derive(Default, Clone)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub struct PointCloud {
     /// The positions of the points.
     pub positions: Positions,

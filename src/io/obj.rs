@@ -2,6 +2,8 @@ use crate::{geometry::*, io::RawAssets, material::*, Node, Result, Scene};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+pub use serde::{Serialize,Deserialize};
+
 pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
     if let Ok(Ok(obj)) =

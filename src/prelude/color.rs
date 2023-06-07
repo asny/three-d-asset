@@ -1,8 +1,12 @@
 use super::math::*;
 
+
+pub use serde::{Serialize,Deserialize};
+
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 /// Represents a color composed of a red, green and blue component.
 /// In addition, the alpha value determines the how transparent the color is (0 is fully transparent and 255 is fully opaque).
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub struct Color {
     /// Red component
     pub r: u8,

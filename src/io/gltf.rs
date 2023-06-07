@@ -3,6 +3,8 @@ use ::gltf::Gltf;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
+pub use serde::{Serialize,Deserialize};
+
 pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
     if let Ok(Gltf { document, .. }) = Gltf::from_slice(raw_assets.get(path).unwrap()) {

@@ -34,6 +34,8 @@
 //! ```
 //!
 
+pub use serde::{Serialize,Deserialize};
+
 mod loader;
 pub use loader::*;
 
@@ -64,38 +66,38 @@ mod pcd;
 /// Loads and deserialize a single file. If the file depends on other files, those files are also loaded.
 ///
 #[cfg(not(target_arch = "wasm32"))]
-pub fn load_and_deserialize<T: Deserialize>(path: impl AsRef<std::path::Path>) -> crate::Result<T> {
-    load(&[&path])?.deserialize(path)
+pub fn load_and_deserialize<T: DeserializeAsset>(path: impl AsRef<std::path::Path>) -> crate::Result<T> {
+    load(&[&path])?.deserialize_asset(path)
 }
 
 ///
 /// Async loads and deserialize a single file. If the file depends on other files, those files are also loaded.
 ///
-pub async fn load_and_deserialize_async<T: Deserialize>(
+pub async fn load_and_deserialize_async<T: DeserializeAsset>(
     path: impl AsRef<std::path::Path>,
 ) -> crate::Result<T> {
-    load_async(&[&path]).await?.deserialize(path)
+    load_async(&[&path]).await?.deserialize_asset(path)
 }
 
 ///
 /// Save and serialize a single file.
 ///
 #[cfg(not(target_arch = "wasm32"))]
-pub fn serialize_and_save<T: Serialize>(
+pub fn serialize_and_save<T: SerializeAsset>(
     path: impl AsRef<std::path::Path>,
     data: T,
 ) -> crate::Result<()> {
-    save(&data.serialize(path)?)
+    save(&data.serialize_asset(path)?)
 }
 
 ///
 /// Implemented for assets that can be deserialized after being loaded (see also [load] and [RawAssets::deserialize]).
 ///
-pub trait Deserialize: Sized {
+pub trait DeserializeAsset: Sized {
     ///
     /// See [RawAssets::deserialize].
     ///
-    fn deserialize(
+    fn deserialize_asset(
         path: impl AsRef<std::path::Path>,
         raw_assets: &mut RawAssets,
     ) -> crate::Result<Self>;
@@ -104,20 +106,20 @@ pub trait Deserialize: Sized {
 ///
 /// Implemented for assets that can be serialized before being saved (see also [save]).
 ///
-pub trait Serialize: Sized {
+pub trait SerializeAsset: Sized {
     ///
     /// Serialize the asset into a list of raw assets which consist of byte arrays and related path to where they should be saved (see also [save]).
     /// The path given as input is the path to the main raw asset.
     ///
-    fn serialize(&self, path: impl AsRef<std::path::Path>) -> crate::Result<RawAssets>;
+    fn serialize_asset(&self, path: impl AsRef<std::path::Path>) -> crate::Result<RawAssets>;
 }
 
 use crate::{Error, Geometry, Result};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-impl Deserialize for crate::Texture2D {
-    fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+impl DeserializeAsset for crate::Texture2D {
+    fn deserialize_asset(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
         #[allow(unused_variables)]
         let bytes = raw_assets.get(&path)?;
@@ -135,8 +137,8 @@ impl Deserialize for crate::Texture2D {
     }
 }
 
-impl Serialize for crate::Texture2D {
-    fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
+impl SerializeAsset for crate::Texture2D {
+    fn serialize_asset(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
         let path = path.as_ref();
 
         #[cfg(not(feature = "image"))]
@@ -152,8 +154,8 @@ impl Serialize for crate::Texture2D {
     }
 }
 
-impl Deserialize for crate::Scene {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+impl DeserializeAsset for crate::Scene {
+    fn deserialize_asset(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "gltf" | "glb" => {
@@ -182,15 +184,15 @@ impl Deserialize for crate::Scene {
     }
 }
 
-impl Deserialize for crate::Model {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
-        let scene = crate::Scene::deserialize(path, raw_assets)?;
+impl DeserializeAsset for crate::Model {
+    fn deserialize_asset(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+        let scene = crate::Scene::deserialize_asset(path, raw_assets)?;
         Ok(scene.into())
     }
 }
 
-impl Deserialize for crate::VoxelGrid {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+impl DeserializeAsset for crate::VoxelGrid {
+    fn deserialize_asset(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
         match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
             "vol" => {
@@ -205,18 +207,18 @@ impl Deserialize for crate::VoxelGrid {
     }
 }
 
-impl Deserialize for crate::Texture3D {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+impl DeserializeAsset for crate::Texture3D {
+    fn deserialize_asset(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        let voxel_grid = crate::VoxelGrid::deserialize(path, raw_assets)?;
+        let voxel_grid = crate::VoxelGrid::deserialize_asset(path, raw_assets)?;
         Ok(voxel_grid.voxels)
     }
 }
 
-impl Deserialize for crate::TriMesh {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+impl DeserializeAsset for crate::TriMesh {
+    fn deserialize_asset(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = path.as_ref();
-        let model = crate::Model::deserialize(path, raw_assets)?;
+        let model = crate::Model::deserialize_asset(path, raw_assets)?;
         model
             .geometries
             .into_iter()
@@ -236,10 +238,10 @@ impl Deserialize for crate::TriMesh {
     }
 }
 
-impl Deserialize for crate::PointCloud {
-    fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
+impl DeserializeAsset for crate::PointCloud {
+    fn deserialize_asset(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = path.as_ref();
-        let model = crate::Model::deserialize(path, raw_assets)?;
+        let model = crate::Model::deserialize_asset(path, raw_assets)?;
         model
             .geometries
             .into_iter()

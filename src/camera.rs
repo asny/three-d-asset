@@ -1,8 +1,11 @@
 pub use crate::prelude::*;
 
+pub use serde::{Serialize,Deserialize};
+
 /// UV coordinates which must be between `(0, 0)` indicating the bottom left corner
 /// and `(1, 1)` indicating the top right corner.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub struct UvCoordinate {
     /// Coordinate that is 0 at the left edge to 1 at the right edge.
     pub u: f32,
@@ -46,6 +49,7 @@ impl From<UvCoordinate> for Vec2 {
 /// A pixel coordinate in physical pixels, where `x` is on the horizontal axis with zero being at the left edge
 /// and `y` is on the vertical axis with zero being at bottom edge.
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub struct PixelPoint {
     /// The horizontal pixel distance from the left edge.
     pub x: f32,
@@ -91,6 +95,7 @@ impl From<PixelPoint> for Vec2 {
 /// All values should be in physical pixels.
 ///
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub struct Viewport {
     /// The distance in pixels from the left edge of the screen/render target.
     pub x: i32,
@@ -146,6 +151,7 @@ impl Viewport {
 /// The type of projection used by a camera (orthographic or perspective) including parameters.
 ///
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
 pub enum ProjectionType {
     /// Orthographic projection
     Orthographic {
