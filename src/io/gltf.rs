@@ -363,7 +363,7 @@ fn parse_texture<'a>(
 ) -> Result<Texture2D> {
     let gltf_image = gltf_texture.source();
     let gltf_source = gltf_image.source();
-    let mut tex = match gltf_source {
+    let mut tex: Texture2D = match gltf_source {
         ::gltf::image::Source::Uri { uri, .. } => {
             if uri.starts_with("data:") {
                 raw_assets.deserialize(uri)?
