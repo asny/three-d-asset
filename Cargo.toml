@@ -37,6 +37,7 @@ pcd = ["pcd-rs"]
 
 vol = []
 
+serde=["serde-core"]
 serde-core = []
 
 [dependencies]
