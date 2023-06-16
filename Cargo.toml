@@ -38,11 +38,11 @@ pcd = ["pcd-rs"]
 vol = []
 
 serde=["serde-core"]
-serde-core = []
+serde-core = ["half/serde","cgmath/serde"]
 
 [dependencies]
-cgmath = { version = "0.18", features = ["serde"] }
-half = {version="2", features=["std", "num-traits", "zerocopy","serde"]}
+cgmath = "0.18"
+half = {version="2", features=["std", "num-traits", "zerocopy"]}
 thiserror = "1"
 reqwest = {version = "0.11", optional = true }
 gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
