@@ -1,10 +1,8 @@
 use crate::{prelude::*, Interpolation};
 
-pub use serde::{Serialize,Deserialize};
-
 /// A  set of key frames and transformations associated with a specific animation for a specific [Primitive](crate::Primitive).
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyFrameAnimation {
     /// Optional name of the animation.
     ///
@@ -29,7 +27,7 @@ impl KeyFrameAnimation {
 /// Contains a set of key frames for rotations, translations, scales and morph weights.
 ///
 #[derive(Debug, Clone, Default)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyFrames {
     /// Optional time where the animation repeats itself.
     pub loop_time: Option<f32>,

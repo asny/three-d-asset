@@ -1,12 +1,10 @@
 use crate::{prelude::*, Error, Indices, Positions, Result};
 
-pub use serde::{Serialize,Deserialize};
-
 ///
 /// A CPU-side version of a triangle mesh.
 ///
 #[derive(Clone)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct TriMesh {
     /// The positions of the vertices.
     /// If there is no indices associated with this mesh, three contiguous positions defines a triangle, in that case, the length must be divisable by 3.

@@ -2,8 +2,6 @@
 //! Contain geometry asset definitions.
 //!
 
-pub use serde::{Serialize,Deserialize};
-
 mod point_cloud;
 pub use point_cloud::*;
 
@@ -16,7 +14,7 @@ pub use crate::prelude::*;
 /// A CPU-side version of a geometry.
 ///
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Geometry {
     /// Points geometry
     Points(PointCloud),

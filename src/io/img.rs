@@ -3,8 +3,6 @@ use image::{io::Reader, *};
 use std::io::Cursor;
 use std::path::Path;
 
-pub use serde::{Serialize,Deserialize};
-
 pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D> {
     let name = path
         .as_ref()

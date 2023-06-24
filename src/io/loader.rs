@@ -6,7 +6,6 @@ use crate::{io::RawAssets, Error, Result};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-pub use serde::{Serialize,Deserialize};
 
 ///
 /// Loads all of the resources in the given paths and returns the [RawAssets] resources.

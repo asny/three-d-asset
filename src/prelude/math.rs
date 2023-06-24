@@ -2,8 +2,6 @@
 //! Basic math functionality. Mostly just an re-export of [cgmath](https://crates.io/crates/cgmath).
 //!
 
-pub use serde::{Serialize,Deserialize};
-
 pub use cgmath::{
     dot, frustum, ortho, perspective, vec2, vec3, vec4, Deg, Matrix2, Matrix3, Matrix4, Point2,
     Point3, Quaternion, Rad, Vector2, Vector3, Vector4,

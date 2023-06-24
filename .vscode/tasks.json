@@ -3,9 +3,8 @@
 	"tasks": [
 		{
 			"type": "cargo",
-			"command": "build",
+			"command": "clippy",
 			"args": [
-				"--release"
 			],
 			"problemMatcher": [
 				"$rustc",

@@ -1,13 +1,11 @@
 #[doc(inline)]
 pub use crate::texture::{Interpolation, TextureData, Wrapping};
 
-pub use serde::{Serialize,Deserialize};
-
 ///
 /// A CPU-side version of a 2D texture.
 ///
 #[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Texture2D {
     /// Name of this texture.
     pub name: String,
