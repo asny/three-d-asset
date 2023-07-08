@@ -29,7 +29,9 @@ pub struct Texture2D {
 
 impl Texture2D {
     ///
-    /// Returns a clone of this texture where the data is converted to linear sRGB color space (assuming sRGB color space with or without an alpha channel).
+    /// Returns a clone of this texture where the data is converted to linear sRGB color space if the data is either
+    /// [TextureData::RgbU8] (assuming sRGB color space) or [TextureData::RgbaU8] (assuming sRGB color space with an alpha channel),
+    /// otherwise it returns `None`.
     ///
     pub fn to_linear_srgb(&self) -> Option<Self> {
         let convert = |rgb: &[u8]| {
