@@ -27,6 +27,50 @@ pub struct Texture2D {
     pub wrap_t: Wrapping,
 }
 
+impl Texture2D {
+    ///
+    /// Returns a clone of this texture where the data is converted to linear sRGB color space (assuming sRGB color space with or without an alpha channel).
+    ///
+    pub fn to_linear_srgb(&self) -> Option<Self> {
+        let convert = |rgb: &[u8]| {
+            let mut linear_rgb = [0u8; 3];
+            for i in 0..3 {
+                let c = rgb[i] as f32 / 255.0;
+                let c = if c < 0.04045 {
+                    c / 12.92
+                } else {
+                    ((c + 0.055) / 1.055).powf(2.4)
+                };
+                linear_rgb[i] = (c * 255.0) as u8;
+            }
+            linear_rgb
+        };
+
+        let data = match &self.data {
+            TextureData::RgbU8(data) => {
+                TextureData::RgbU8(data.iter().map(|color| convert(color)).collect())
+            }
+            TextureData::RgbaU8(data) => TextureData::RgbaU8(
+                data.into_iter()
+                    .map(|color| {
+                        let rgb = convert(color);
+                        let mut rgba = color.clone();
+                        for i in 0..3 {
+                            rgba[i] = rgb[i];
+                        }
+                        rgba
+                    })
+                    .collect(),
+            ),
+            _ => return None,
+        };
+        Some(Self {
+            data,
+            ..self.clone()
+        })
+    }
+}
+
 impl Default for Texture2D {
     fn default() -> Self {
         Self {
