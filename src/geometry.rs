@@ -203,13 +203,12 @@ impl Positions {
     ///
     pub fn compute_aabb(&self) -> AxisAlignedBoundingBox {
         match self {
-            Positions::F32(positions) => {
-                AxisAlignedBoundingBox::new_with_positions(positions.clone())
-            }
+            Positions::F32(ref positions) => AxisAlignedBoundingBox::new_with_positions(positions),
             Positions::F64(ref positions) => AxisAlignedBoundingBox::new_with_positions(
-                positions
+                &positions
                     .iter()
-                    .map(|v| Vec3::new(v.x as f32, v.y as f32, v.z as f32)),
+                    .map(|v| Vec3::new(v.x as f32, v.y as f32, v.z as f32))
+                    .collect::<Vec<_>>(),
             ),
         }
     }

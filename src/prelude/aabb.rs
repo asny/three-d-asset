@@ -33,7 +33,7 @@ impl AxisAlignedBoundingBox {
     ///
     /// Constructs a new bounding box and expands it such that all of the given positions are contained inside the bounding box.
     ///
-    pub fn new_with_positions(positions: impl IntoIterator<Item = Vec3>) -> Self {
+    pub fn new_with_positions(positions: &[Vec3]) -> Self {
         let mut aabb = Self::EMPTY;
         aabb.expand(positions);
         aabb
@@ -43,10 +43,7 @@ impl AxisAlignedBoundingBox {
     /// Constructs a new bounding box and expands it such that all of the given positions transformed with the given transformation are contained inside the bounding box.
     /// A position consisting of an x, y and z coordinate corresponds to three consecutive value in the positions array.
     ///
-    pub fn new_with_transformed_positions(
-        positions: impl IntoIterator<Item = Vec3>,
-        transformation: &Mat4,
-    ) -> Self {
+    pub fn new_with_transformed_positions(positions: &[Vec3], transformation: &Mat4) -> Self {
         let mut aabb = Self::EMPTY;
         aabb.expand_with_transformation(positions, transformation);
         aabb
@@ -101,7 +98,7 @@ impl AxisAlignedBoundingBox {
     ///
     /// Expands the bounding box such that all of the given positions are contained inside the bounding box.
     ///
-    pub fn expand(&mut self, positions: impl IntoIterator<Item = Vec3>) {
+    pub fn expand(&mut self, positions: &[Vec3]) {
         for p in positions {
             self.min.x = self.min.x.min(p.x);
             self.min.y = self.min.y.min(p.y);
@@ -116,15 +113,12 @@ impl AxisAlignedBoundingBox {
     ///
     /// Expands the bounding box such that all of the given positions transformed with the given transformation are contained inside the bounding box.
     ///
-    pub fn expand_with_transformation(
-        &mut self,
-        positions: impl IntoIterator<Item = Vec3>,
-        transformation: &Mat4,
-    ) {
+    pub fn expand_with_transformation(&mut self, positions: &[Vec3], transformation: &Mat4) {
         self.expand(
-            positions
-                .into_iter()
-                .map(|p| (transformation * p.extend(1.0)).truncate()),
+            &positions
+                .iter()
+                .map(|p| (transformation * p.extend(1.0)).truncate())
+                .collect::<Vec<_>>(),
         )
     }
 
@@ -152,7 +146,7 @@ impl AxisAlignedBoundingBox {
     ///
     pub fn transform(&mut self, transformation: &Mat4) {
         let aabb = Self::new_with_transformed_positions(
-            [
+            &[
                 self.min,
                 Vec3::new(self.max.x, self.min.y, self.min.z),
                 Vec3::new(self.min.x, self.max.y, self.min.z),
