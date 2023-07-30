@@ -10,7 +10,6 @@ use std::path::{Path, PathBuf};
 /// or [RawAssets::deserialize] to deserialize an asset or [RawAssets::save] to save the assets.
 ///
 #[derive(Default)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct RawAssets(HashMap<PathBuf, Vec<u8>>);
 
 impl RawAssets {
