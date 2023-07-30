@@ -37,7 +37,7 @@ pcd = ["pcd-rs"]
 
 vol = []
 
-serde = ["half/serde","cgmath/serde"]
+serde = ["dep:serde", "half/serde", "cgmath/serde"]
 
 [dependencies]
 cgmath = "0.18"
@@ -49,7 +49,7 @@ wavefront_obj = { version = "10", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
 pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
 data-url = {version = "0.2", optional = true }
-serde = {version= "1" ,features = ["derive", "rc"] }
+serde = {version= "1", optional = true, features = ["derive", "rc"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3", features = ['Document', 'Window'] }
