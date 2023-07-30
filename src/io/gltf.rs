@@ -345,6 +345,16 @@ fn parse_material(
     })
 }
 
+impl Into<Wrapping> for ::gltf::texture::WrappingMode {
+    fn into(self) -> Wrapping {
+        match self {
+            ::gltf::texture::WrappingMode::ClampToEdge => Wrapping::ClampToEdge,
+            ::gltf::texture::WrappingMode::MirroredRepeat => Wrapping::MirroredRepeat,
+            ::gltf::texture::WrappingMode::Repeat => Wrapping::Repeat,
+        }
+    }
+}
+
 fn parse_texture<'a>(
     raw_assets: &mut RawAssets,
     path: &Path,
@@ -353,7 +363,7 @@ fn parse_texture<'a>(
 ) -> Result<Texture2D> {
     let gltf_image = gltf_texture.source();
     let gltf_source = gltf_image.source();
-    let tex = match gltf_source {
+    let mut tex: Texture2D = match gltf_source {
         ::gltf::image::Source::Uri { uri, .. } => {
             if uri.starts_with("data:") {
                 raw_assets.deserialize(uri)?
@@ -373,7 +383,33 @@ fn parse_texture<'a>(
             super::img::deserialize_img("", &buffer[view.offset()..view.offset() + view.length()])?
         }
     };
-    // TODO: Parse sampling parameters
+
+    let sampler = gltf_texture.sampler();
+    tex.mag_filter = match sampler.mag_filter() {
+        Some(::gltf::texture::MagFilter::Nearest) => Interpolation::Nearest,
+        Some(::gltf::texture::MagFilter::Linear) => Interpolation::Linear,
+        None => tex.mag_filter,
+    };
+    (tex.min_filter, tex.mip_map_filter) = match sampler.min_filter() {
+        Some(::gltf::texture::MinFilter::Nearest) => (Interpolation::Nearest, None),
+        Some(::gltf::texture::MinFilter::Linear) => (Interpolation::Linear, None),
+        Some(::gltf::texture::MinFilter::NearestMipmapNearest) => {
+            (Interpolation::Nearest, Some(Interpolation::Nearest))
+        }
+        Some(::gltf::texture::MinFilter::LinearMipmapNearest) => {
+            (Interpolation::Linear, Some(Interpolation::Nearest))
+        }
+        Some(::gltf::texture::MinFilter::NearestMipmapLinear) => {
+            (Interpolation::Nearest, Some(Interpolation::Linear))
+        }
+        Some(::gltf::texture::MinFilter::LinearMipmapLinear) => {
+            (Interpolation::Linear, Some(Interpolation::Linear))
+        }
+        None => (tex.min_filter, tex.mip_map_filter),
+    };
+    tex.wrap_s = sampler.wrap_s().into();
+    tex.wrap_t = sampler.wrap_t().into();
+
     Ok(tex)
 }
 

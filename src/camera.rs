@@ -196,8 +196,6 @@ pub struct Camera {
 impl Camera {
     ///
     /// New camera which projects the world with an orthographic projection.
-    /// See also [set_view](Self::set_view), [set_perspective_projection](Self::set_perspective_projection) and
-    /// [set_orthographic_projection](Self::set_orthographic_projection).
     ///
     pub fn new_orthographic(
         viewport: Viewport,

@@ -47,9 +47,9 @@ pub enum NormalDistributionFunction {
 pub struct PbrMaterial {
     /// Name. Used for matching geometry and material.
     pub name: String,
-    /// Albedo base color, also called diffuse color. Assumed to be in linear color space.
+    /// Albedo base color, also called diffuse color. Assumed to be in HDR or linear sRGB color space.
     pub albedo: Color,
-    /// Texture with albedo base colors, also called diffuse color. Assumed to be in sRGB with or without an alpha channel.
+    /// Texture with albedo base colors, also called diffuse color. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR.
     pub albedo_texture: Option<Texture2D>,
     /// A value in the range `[0..1]` specifying how metallic the material is.
     pub metallic: f32,
@@ -75,7 +75,7 @@ pub struct PbrMaterial {
     pub normal_texture: Option<Texture2D>,
     /// Color of light shining from an object.
     pub emissive: Color,
-    /// Texture with color of light shining from an object.
+    /// Texture with color of light shining from an object. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR.
     pub emissive_texture: Option<Texture2D>,
     /// Alpha cutout value for transparency in deferred rendering pipeline.
     pub alpha_cutout: Option<f32>,

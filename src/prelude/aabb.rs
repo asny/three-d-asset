@@ -97,7 +97,6 @@ impl AxisAlignedBoundingBox {
 
     ///
     /// Expands the bounding box such that all of the given positions are contained inside the bounding box.
-    /// A position consisting of an x, y and z coordinate corresponds to three consecutive value in the positions array.
     ///
     pub fn expand(&mut self, positions: &[Vec3]) {
         for p in positions {
@@ -113,7 +112,6 @@ impl AxisAlignedBoundingBox {
 
     ///
     /// Expands the bounding box such that all of the given positions transformed with the given transformation are contained inside the bounding box.
-    /// A position consisting of an x, y and z coordinate corresponds to three consecutive value in the positions array.
     ///
     pub fn expand_with_transformation(&mut self, positions: &[Vec3], transformation: &Mat4) {
         self.expand(
