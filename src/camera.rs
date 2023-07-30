@@ -169,28 +169,17 @@ pub enum ProjectionType {
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Camera {
-    /// The part of the screen/render target that this camera is projecting into.
-    pub viewport: Viewport,
-    /// The part of the screen/render target that this camera is projecting into.
-    pub projection_type: ProjectionType,
-    /// The near clipping plane of this camera's frustum.
-    pub z_near: f32,
-    /// The far clipping plane of this camera's frustum.
-    pub z_far: f32,
-    /// The position of this camera.
-    pub position: Vec3,
-    /// The point that this camera looks towards.
-    pub target: Vec3,
-    /// The up direction of this camera (might not be orthogonal to the view direction).
-    pub up: Vec3,
-    /// The view matrix, ie. the matrix that transforms objects from world space (as placed in the world) to view space (as seen from this camera).
-    pub view: Mat4,
-    /// The projection matrix, ie. the matrix that projects objects in view space onto this cameras image plane.
-    pub projection: Mat4,
-    /// TODO not sure what this does ¯\_(ツ)_/¯
-    pub screen2ray: Mat4,
-    /// This camera's frustum.
-    pub frustrum: [Vec4; 6],
+    viewport: Viewport,
+    projection_type: ProjectionType,
+    z_near: f32,
+    z_far: f32,
+    position: Vec3,
+    target: Vec3,
+    up: Vec3,
+    view: Mat4,
+    projection: Mat4,
+    screen2ray: Mat4,
+    frustrum: [Vec4; 6],
 }
 
 impl Camera {
