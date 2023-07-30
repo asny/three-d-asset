@@ -1,10 +1,12 @@
 use super::math::*;
 
+pub type Color = Srgba;
+
 /// Represents a color composed of a red, green and blue component.
 /// In addition, the alpha value determines the how transparent the color is (0 is fully transparent and 255 is fully opaque).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Color {
+pub struct Srgba {
     /// Red component
     pub r: u8,
     /// Green component
@@ -15,7 +17,7 @@ pub struct Color {
     pub a: u8,
 }
 
-impl Color {
+impl Srgba {
     ///
     /// Creates a new color with the given values.
     ///
@@ -104,8 +106,8 @@ impl Color {
     }
 }
 
-impl Default for Color {
+impl Default for Srgba {
     fn default() -> Self {
-        Color::WHITE
+        Self::WHITE
     }
 }
