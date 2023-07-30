@@ -14,6 +14,7 @@ pub use crate::prelude::*;
 /// A CPU-side version of a geometry.
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Geometry {
     /// Points geometry
     Points(PointCloud),
@@ -55,6 +56,7 @@ impl Geometry {
 /// An array of indices. Supports different data types.
 ///
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Indices {
     /// Do not use indices, ie. the faces are all unconnected.
     None,
@@ -121,6 +123,7 @@ impl std::default::Default for Indices {
 /// An array of positions. Supports f32 and f64 data types.
 ///
 #[derive(Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Positions {
     /// Uses 32 bit float for the vertex positions.
     F32(Vec<Vec3>),

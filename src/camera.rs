@@ -91,6 +91,7 @@ impl From<PixelPoint> for Vec2 {
 /// All values should be in physical pixels.
 ///
 #[derive(Debug, Copy, Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Viewport {
     /// The distance in pixels from the left edge of the screen/render target.
     pub x: i32,
@@ -146,6 +147,7 @@ impl Viewport {
 /// The type of projection used by a camera (orthographic or perspective) including parameters.
 ///
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum ProjectionType {
     /// Orthographic projection
     Orthographic {
@@ -163,6 +165,7 @@ pub enum ProjectionType {
 /// Represents a camera used for viewing 3D assets.
 ///
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Camera {
     viewport: Viewport,
     projection_type: ProjectionType,

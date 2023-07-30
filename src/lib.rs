@@ -41,6 +41,7 @@ pub use animation::*;
 /// For each node containing [Geometry], the [Geometry] should be visualised with the calculated transformation applied.
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Scene {
     /// The name. Might not be anything meaningful.
     pub name: String,
@@ -66,6 +67,7 @@ impl Default for Scene {
 /// Each node may also contain a transformation, animations, geometry and an index to the [Scene::materials].
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Node {
     /// The name. Might not be anything meaningful.
     pub name: String,
@@ -100,6 +102,7 @@ impl Default for Node {
 /// You can convert from a [Scene] to a [Model], but not the other way, because the tree structure is lost in the conversion.
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Model {
     /// The name. Might not be anything meaningful.
     pub name: String,
@@ -114,6 +117,7 @@ pub struct Model {
 /// should be applied to the geometry.
 ///
 #[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Primitive {
     /// The name. Might not be anything meaningful.
     pub name: String,

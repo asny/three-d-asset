@@ -5,6 +5,7 @@ use crate::prelude::*;
 /// Represents a set of points in 3D space, usually created with a scanner.
 ///
 #[derive(Default, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct PointCloud {
     /// The positions of the points.
     pub positions: Positions,

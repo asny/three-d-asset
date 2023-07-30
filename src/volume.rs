@@ -9,6 +9,7 @@ pub use crate::texture::texture3d::*;
 /// Volume data consisting of voxel data inside a cube.
 ///
 #[derive(Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct VoxelGrid {
     /// Name.
     pub name: String,

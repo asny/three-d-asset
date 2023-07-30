@@ -15,6 +15,7 @@ pub use crate::prelude::f16;
 ///
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Interpolation {
     Nearest,
     Linear,
@@ -33,6 +34,7 @@ impl Default for Interpolation {
 ///
 #[allow(missing_docs)]
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Wrapping {
     Repeat,
     MirroredRepeat,
@@ -65,6 +67,7 @@ pub enum Wrapping {
 /// ```
 ///
 #[derive(Clone, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum TextureData {
     /// One byte in the red channel.
     RU8(Vec<u8>),

@@ -5,6 +5,7 @@ pub use crate::texture::{Interpolation, TextureData, Wrapping};
 /// A CPU-side version of a 3D texture.
 ///
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Texture3D {
     /// Name of this texture.
     pub name: String,
