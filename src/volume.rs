@@ -5,8 +5,6 @@ pub use crate::prelude::*;
 #[doc(inline)]
 pub use crate::texture::texture3d::*;
 
-pub use serde::{Deserialize, Serialize};
-
 ///
 /// Volume data consisting of voxel data inside a cube.
 ///

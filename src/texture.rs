@@ -77,6 +77,7 @@ pub enum TextureData {
     RgbU8(Vec<[u8; 3]>),
     /// One byte in the red, green, blue and alpha channel.
     RgbaU8(Vec<[u8; 4]>),
+
     /// 16-bit float in the red channel.
     RF16(Vec<f16>),
     /// 16-bit float in the red and green channel.
@@ -85,6 +86,7 @@ pub enum TextureData {
     RgbF16(Vec<[f16; 3]>),
     /// 16-bit float in the red, green, blue and alpha channel.
     RgbaF16(Vec<[f16; 4]>),
+
     /// 32-bit float in the red channel.
     RF32(Vec<f32>),
     /// 32-bit float in the red and green channel.

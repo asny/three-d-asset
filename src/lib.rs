@@ -102,7 +102,7 @@ impl Default for Node {
 /// You can convert from a [Scene] to a [Model], but not the other way, because the tree structure is lost in the conversion.
 ///
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Model {
     /// The name. Might not be anything meaningful.
     pub name: String,
@@ -117,7 +117,7 @@ pub struct Model {
 /// should be applied to the geometry.
 ///
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde-core", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Primitive {
     /// The name. Might not be anything meaningful.
     pub name: String,
