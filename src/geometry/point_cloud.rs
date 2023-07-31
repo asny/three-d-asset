@@ -10,7 +10,7 @@ pub struct PointCloud {
     /// The positions of the points.
     pub positions: Positions,
     /// The colors of the points.
-    pub colors: Option<Vec<Color>>,
+    pub colors: Option<Vec<Srgba>>,
 }
 
 impl std::fmt::Debug for PointCloud {

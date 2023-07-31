@@ -34,7 +34,7 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                     pcd_rs::Field::F32(ref v) => v[0].to_ne_bytes(),
                     _ => unimplemented!(),
                 };
-                Color {
+                Srgba {
                     r: t[2],
                     g: t[1],
                     b: t[0],

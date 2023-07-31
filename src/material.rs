@@ -3,7 +3,7 @@
 //!
 
 #[doc(inline)]
-pub use crate::{prelude::Color, texture::texture2d::*};
+pub use crate::{prelude::Srgba, texture::texture2d::*};
 
 /// Lighting models which specify how the lighting is computed when rendering a material.
 /// This is a trade-off between how fast the computations are versus how physically correct they look.
@@ -47,9 +47,9 @@ pub enum NormalDistributionFunction {
 pub struct PbrMaterial {
     /// Name. Used for matching geometry and material.
     pub name: String,
-    /// Albedo base color, also called diffuse color. Assumed to be in HDR or linear sRGB color space.
-    pub albedo: Color,
-    /// Texture with albedo base colors, also called diffuse color. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR.
+    /// Albedo base color, also called diffuse color.
+    pub albedo: Srgba,
+    /// Texture with albedo base colors, also called diffuse colors. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR color space.
     pub albedo_texture: Option<Texture2D>,
     /// A value in the range `[0..1]` specifying how metallic the material is.
     pub metallic: f32,
@@ -74,8 +74,8 @@ pub struct PbrMaterial {
     /// A tangent space normal map, also known as bump map.
     pub normal_texture: Option<Texture2D>,
     /// Color of light shining from an object.
-    pub emissive: Color,
-    /// Texture with color of light shining from an object. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR.
+    pub emissive: Srgba,
+    /// Texture with color of light shining from an object. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR color space.
     pub emissive_texture: Option<Texture2D>,
     /// Alpha cutout value for transparency in deferred rendering pipeline.
     pub alpha_cutout: Option<f32>,
@@ -93,7 +93,7 @@ impl Default for PbrMaterial {
     fn default() -> Self {
         Self {
             name: "default".to_string(),
-            albedo: Color::WHITE,
+            albedo: Srgba::WHITE,
             albedo_texture: None,
             occlusion_metallic_roughness_texture: None,
             metallic_roughness_texture: None,
@@ -103,7 +103,7 @@ impl Default for PbrMaterial {
             occlusion_strength: 1.0,
             normal_texture: None,
             normal_scale: 1.0,
-            emissive: Color::BLACK,
+            emissive: Srgba::BLACK,
             emissive_texture: None,
             index_of_refraction: 1.5,
             transmission: 0.0,

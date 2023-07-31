@@ -1,7 +1,7 @@
 #[deprecated = "Renamed to Srgba"]
 pub type Color = Srgba;
 
-/// Represents a color composed of a red, green and blue component.
+/// Represents a color composed of a red, green and blue component in the sRGB color space.
 /// In addition, the alpha value determines the how transparent the color is (0 is fully transparent and 255 is fully opaque).
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -49,15 +49,15 @@ impl Srgba {
     }
 
     /// Opaque red
-    pub const RED: Color = Color::new_opaque(255, 0, 0);
+    pub const RED: Self = Self::new_opaque(255, 0, 0);
     /// Opaque green
-    pub const GREEN: Color = Color::new_opaque(0, 255, 0);
+    pub const GREEN: Self = Self::new_opaque(0, 255, 0);
     /// Opaque blue
-    pub const BLUE: Color = Color::new_opaque(0, 0, 255);
+    pub const BLUE: Self = Self::new_opaque(0, 0, 255);
     /// Opaque white
-    pub const WHITE: Color = Color::new_opaque(255, 255, 255);
+    pub const WHITE: Self = Self::new_opaque(255, 255, 255);
     /// Opaque black
-    pub const BLACK: Color = Color::new_opaque(0, 0, 0);
+    pub const BLACK: Self = Self::new_opaque(0, 0, 0);
 }
 
 impl From<[f32; 3]> for Srgba {
