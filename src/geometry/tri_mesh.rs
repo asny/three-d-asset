@@ -19,7 +19,6 @@ pub struct TriMesh {
     /// The uv coordinates of the vertices.
     pub uvs: Option<Vec<Vec2>>,
     /// The colors of the vertices.
-    /// The colors are assumed to be in sRGB color space.
     pub colors: Option<Vec<Srgba>>,
 }
 

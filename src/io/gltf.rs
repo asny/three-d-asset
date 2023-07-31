@@ -232,7 +232,7 @@ fn parse_model(mesh: &::gltf::mesh::Mesh, buffers: &[::gltf::buffer::Data]) -> R
             let colors = reader.read_colors(0).map(|values| {
                 values
                     .into_rgba_u8()
-                    .map(|c| Color::new(c[0], c[1], c[2], c[3]))
+                    .map(|c| Srgba::new(c[0], c[1], c[2], c[3]))
                     .collect()
             });
 

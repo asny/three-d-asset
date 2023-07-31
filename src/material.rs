@@ -49,7 +49,7 @@ pub struct PbrMaterial {
     pub name: String,
     /// Albedo base color, also called diffuse color.
     pub albedo: Srgba,
-    /// Texture with albedo base colors, also called diffuse colors. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR color space.
+    /// Texture with albedo base colors, also called diffuse colors.
     pub albedo_texture: Option<Texture2D>,
     /// A value in the range `[0..1]` specifying how metallic the material is.
     pub metallic: f32,
@@ -75,7 +75,7 @@ pub struct PbrMaterial {
     pub normal_texture: Option<Texture2D>,
     /// Color of light shining from an object.
     pub emissive: Srgba,
-    /// Texture with color of light shining from an object. Assumed to be in sRGB (`RgbU8`), sRGB with an alpha channel (`RgbaU8`) or HDR color space.
+    /// Texture with color of light shining from an object.
     pub emissive_texture: Option<Texture2D>,
     /// Alpha cutout value for transparency in deferred rendering pipeline.
     pub alpha_cutout: Option<f32>,
