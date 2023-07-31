@@ -319,7 +319,7 @@ fn parse_material(
         };
     Ok(PbrMaterial {
         name: material_name(material),
-        albedo: Color::from_rgba_slice(&color),
+        albedo: color.into(),
         albedo_texture,
         metallic: pbr.metallic_factor(),
         roughness: pbr.roughness_factor(),
@@ -329,7 +329,7 @@ fn parse_material(
         occlusion_texture,
         occlusion_strength,
         occlusion_metallic_roughness_texture: None,
-        emissive: Color::from_rgb_slice(&material.emissive_factor()),
+        emissive: material.emissive_factor().into(),
         emissive_texture,
         transmission: material
             .transmission()

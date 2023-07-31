@@ -1,5 +1,4 @@
-use super::math::*;
-
+#[deprecated = "Renamed to Srgba"]
 pub type Color = Srgba;
 
 /// Represents a color composed of a red, green and blue component.
@@ -19,41 +18,34 @@ pub struct Srgba {
 
 impl Srgba {
     ///
-    /// Creates a new color with the given values.
+    /// Creates a new sRGBA color with the given values.
     ///
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 
     ///
-    /// Creates a new color with the given red, green and blue values and an alpha value of 255.
+    /// Creates a new sRGB color with the given red, green and blue values and an alpha value of 255.
     ///
     pub const fn new_opaque(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b, a: 255 }
     }
 
-    ///
-    /// Creates a new color from three float elements where each element are in the range `0.0..=1.0`.
-    ///
-    pub fn from_rgb_slice(rgba: &[f32; 3]) -> Self {
-        Self {
-            r: (rgba[0] * 255.0) as u8,
-            g: (rgba[1] * 255.0) as u8,
-            b: (rgba[2] * 255.0) as u8,
-            ..Default::default()
-        }
-    }
-
-    ///
-    /// Creates a new color from four float elements where each element are in the range `0.0..=1.0`.
-    ///
-    pub fn from_rgba_slice(rgba: &[f32; 4]) -> Self {
-        Self {
-            r: (rgba[0] * 255.0) as u8,
-            g: (rgba[1] * 255.0) as u8,
-            b: (rgba[2] * 255.0) as u8,
-            a: (rgba[3] * 255.0) as u8,
-        }
+    pub fn to_linear_srgba(&self) -> [f32; 4] {
+        let convert = |c: u8| {
+            let c = c as f32 / 255.0;
+            if c < 0.04045 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        };
+        [
+            convert(self.r),
+            convert(self.g),
+            convert(self.b),
+            self.a as f32 / 255.0,
+        ]
     }
 
     /// Opaque red
@@ -66,43 +58,82 @@ impl Srgba {
     pub const WHITE: Color = Color::new_opaque(255, 255, 255);
     /// Opaque black
     pub const BLACK: Color = Color::new_opaque(0, 0, 0);
+}
 
-    /// Convert to [`Vec3`] by mapping the red, green and blue component to the range `0.0..=1.0`.
-    pub fn to_vec3(&self) -> Vec3 {
-        Vec3::new(
-            self.r as f32 / 255.0,
-            self.g as f32 / 255.0,
-            self.b as f32 / 255.0,
-        )
+impl From<[f32; 3]> for Srgba {
+    fn from(value: [f32; 3]) -> Self {
+        Self {
+            r: (value[0] * 255.0) as u8,
+            g: (value[1] * 255.0) as u8,
+            b: (value[2] * 255.0) as u8,
+            a: 255,
+        }
     }
+}
 
-    /// Convert to [`Vec4`] by mapping each component to the range `0.0..=1.0`.
-    pub fn to_vec4(&self) -> Vec4 {
-        Vec4::new(
-            self.r as f32 / 255.0,
-            self.g as f32 / 255.0,
-            self.b as f32 / 255.0,
-            self.a as f32 / 255.0,
-        )
+impl From<[f32; 4]> for Srgba {
+    fn from(value: [f32; 4]) -> Self {
+        Self {
+            r: (value[0] * 255.0) as u8,
+            g: (value[1] * 255.0) as u8,
+            b: (value[2] * 255.0) as u8,
+            a: (value[3] * 255.0) as u8,
+        }
     }
+}
 
-    /// Convert to a slice by mapping the red, green and blue component to the range `0.0..=1.0`.
-    pub fn to_rgb_slice(&self) -> [f32; 3] {
+impl From<[u8; 3]> for Srgba {
+    fn from(value: [u8; 3]) -> Self {
+        Self {
+            r: value[0],
+            g: value[1],
+            b: value[2],
+            a: 255,
+        }
+    }
+}
+
+impl From<[u8; 4]> for Srgba {
+    fn from(value: [u8; 4]) -> Self {
+        Self {
+            r: value[0],
+            g: value[1],
+            b: value[2],
+            a: value[3],
+        }
+    }
+}
+
+impl From<Srgba> for [f32; 3] {
+    fn from(value: Srgba) -> Self {
         [
-            self.r as f32 / 255.0,
-            self.g as f32 / 255.0,
-            self.b as f32 / 255.0,
+            value.r as f32 / 255.0,
+            value.g as f32 / 255.0,
+            value.b as f32 / 255.0,
         ]
     }
+}
 
-    /// Convert to a slice by mapping each component to the range `0.0..=1.0`.
-    pub fn to_rgba_slice(&self) -> [f32; 4] {
+impl From<Srgba> for [f32; 4] {
+    fn from(value: Srgba) -> Self {
         [
-            self.r as f32 / 255.0,
-            self.g as f32 / 255.0,
-            self.b as f32 / 255.0,
-            self.a as f32 / 255.0,
+            value.r as f32 / 255.0,
+            value.g as f32 / 255.0,
+            value.b as f32 / 255.0,
+            value.a as f32 / 255.0,
         ]
+    }
+}
+
+impl From<Srgba> for [u8; 3] {
+    fn from(value: Srgba) -> Self {
+        [value.r, value.g, value.b]
+    }
+}
+
+impl From<Srgba> for [u8; 4] {
+    fn from(value: Srgba) -> Self {
+        [value.r, value.g, value.b, value.a]
     }
 }
 
