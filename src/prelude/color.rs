@@ -1,5 +1,7 @@
 use crate::prelude::*;
 
+/// Represents a color composed of a red, green and blue component in the sRGB color space.
+/// In addition, the alpha value determines the how transparent the color is (0 is fully transparent and 255 is fully opaque).
 #[deprecated = "Renamed to Srgba"]
 pub type Color = Srgba;
 
@@ -33,7 +35,10 @@ impl Srgba {
         Self { r, g, b, a: 255 }
     }
 
-    pub fn to_linear_srgba(&self) -> Vec4 {
+    ///
+    /// Returns the color in linear sRGB color space.
+    ///
+    pub fn to_linear_srgb(&self) -> Vec4 {
         let convert = |c: u8| {
             let c = c as f32 / 255.0;
             if c < 0.04045 {

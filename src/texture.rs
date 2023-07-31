@@ -126,10 +126,10 @@ impl TextureData {
     pub fn to_linear_srgb(&mut self) {
         match self {
             TextureData::RgbU8(data) => data.iter_mut().for_each(|color| {
-                *color = Srgba::from(Srgba::from(*color).to_linear_srgba()).into();
+                *color = Srgba::from(Srgba::from(*color).to_linear_srgb()).into();
             }),
             TextureData::RgbaU8(data) => data.iter_mut().for_each(|color| {
-                *color = Srgba::from(Srgba::from(*color).to_linear_srgba()).into();
+                *color = Srgba::from(Srgba::from(*color).to_linear_srgb()).into();
             }),
             _ => {}
         };
