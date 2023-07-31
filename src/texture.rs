@@ -9,6 +9,7 @@ pub(crate) mod texture3d;
 pub use texture3d::*;
 
 pub use crate::prelude::f16;
+use crate::Srgba;
 
 ///
 /// Possible modes of interpolation which determines the texture output between texture pixels.
@@ -113,5 +114,24 @@ impl std::fmt::Debug for TextureData {
             Self::RgbF32(values) => write!(f, "RGB f32 ({:?})", values.len()),
             Self::RgbaF32(values) => write!(f, "RGBA f32 ({:?})", values.len()),
         }
+    }
+}
+
+impl TextureData {
+    ///
+    /// Converts the texture data to linear sRGB color space if the data is either
+    /// [TextureData::RgbU8] (assuming sRGB color space) or [TextureData::RgbaU8] (assuming sRGB color space with an alpha channel).
+    /// Does nothing if the data is any other data type.
+    ///
+    pub fn to_linear_srgb(&mut self) {
+        match self {
+            TextureData::RgbU8(data) => data.iter_mut().for_each(|color| {
+                *color = Srgba::from(Srgba::from(*color).to_linear_srgb()).into();
+            }),
+            TextureData::RgbaU8(data) => data.iter_mut().for_each(|color| {
+                *color = Srgba::from(Srgba::from(*color).to_linear_srgb()).into();
+            }),
+            _ => {}
+        };
     }
 }

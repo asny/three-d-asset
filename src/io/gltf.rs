@@ -232,7 +232,7 @@ fn parse_model(mesh: &::gltf::mesh::Mesh, buffers: &[::gltf::buffer::Data]) -> R
             let colors = reader.read_colors(0).map(|values| {
                 values
                     .into_rgba_u8()
-                    .map(|c| Color::new(c[0], c[1], c[2], c[3]))
+                    .map(|c| Srgba::new(c[0], c[1], c[2], c[3]))
                     .collect()
             });
 
@@ -319,7 +319,7 @@ fn parse_material(
         };
     Ok(PbrMaterial {
         name: material_name(material),
-        albedo: Color::from_rgba_slice(&color),
+        albedo: color.into(),
         albedo_texture,
         metallic: pbr.metallic_factor(),
         roughness: pbr.roughness_factor(),
@@ -329,7 +329,7 @@ fn parse_material(
         occlusion_texture,
         occlusion_strength,
         occlusion_metallic_roughness_texture: None,
-        emissive: Color::from_rgb_slice(&material.emissive_factor()),
+        emissive: material.emissive_factor().into(),
         emissive_texture,
         transmission: material
             .transmission()
