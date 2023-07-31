@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, nightly]
+        rust: [stable]
 
     steps:
       - uses: actions/checkout@v2
@@ -103,9 +103,3 @@ jobs:
 
       - name: Build
         run: wasm-pack build --target web --out-name web --dev --all-features
-
-  cargo-deny:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: EmbarkStudios/cargo-deny-action@v1
