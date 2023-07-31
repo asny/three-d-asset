@@ -1,3 +1,5 @@
+use crate::prelude::*;
+
 #[deprecated = "Renamed to Srgba"]
 pub type Color = Srgba;
 
@@ -31,7 +33,7 @@ impl Srgba {
         Self { r, g, b, a: 255 }
     }
 
-    pub fn to_linear_srgba(&self) -> [f32; 4] {
+    pub fn to_linear_srgba(&self) -> Vec4 {
         let convert = |c: u8| {
             let c = c as f32 / 255.0;
             if c < 0.04045 {
@@ -40,12 +42,12 @@ impl Srgba {
                 ((c + 0.055) / 1.055).powf(2.4)
             }
         };
-        [
+        vec4(
             convert(self.r),
             convert(self.g),
             convert(self.b),
             self.a as f32 / 255.0,
-        ]
+        )
     }
 
     /// Opaque red
@@ -78,6 +80,27 @@ impl From<[f32; 4]> for Srgba {
             g: (value[1] * 255.0) as u8,
             b: (value[2] * 255.0) as u8,
             a: (value[3] * 255.0) as u8,
+        }
+    }
+}
+impl From<Vec3> for Srgba {
+    fn from(value: Vec3) -> Self {
+        Self {
+            r: (value.x * 255.0) as u8,
+            g: (value.y * 255.0) as u8,
+            b: (value.z * 255.0) as u8,
+            a: 255,
+        }
+    }
+}
+
+impl From<Vec4> for Srgba {
+    fn from(value: Vec4) -> Self {
+        Self {
+            r: (value.x * 255.0) as u8,
+            g: (value.y * 255.0) as u8,
+            b: (value.z * 255.0) as u8,
+            a: (value.w * 255.0) as u8,
         }
     }
 }
@@ -122,6 +145,27 @@ impl From<Srgba> for [f32; 4] {
             value.b as f32 / 255.0,
             value.a as f32 / 255.0,
         ]
+    }
+}
+
+impl From<Srgba> for Vec3 {
+    fn from(value: Srgba) -> Self {
+        vec3(
+            value.r as f32 / 255.0,
+            value.g as f32 / 255.0,
+            value.b as f32 / 255.0,
+        )
+    }
+}
+
+impl From<Srgba> for Vec4 {
+    fn from(value: Srgba) -> Self {
+        vec4(
+            value.r as f32 / 255.0,
+            value.g as f32 / 255.0,
+            value.b as f32 / 255.0,
+            value.a as f32 / 255.0,
+        )
     }
 }
 
