@@ -141,11 +141,27 @@ async fn load_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Resul
         }
         for (path, handle) in handles.drain(..) {
             let bytes = handle
-                .map_err(|e| Error::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
+                .map_err(|e| {
+                    Error::FailedLoadingUrlWithReqwest(path.to_str().unwrap().to_string(), e)
+                })?
                 .bytes()
                 .await
-                .map_err(|e| Error::FailedLoadingUrl(path.to_str().unwrap().to_string(), e))?
+                .map_err(|e| {
+                    Error::FailedLoadingUrlWithReqwest(path.to_str().unwrap().to_string(), e)
+                })?
                 .to_vec();
+
+            #[cfg(target_arch = "wasm32")]
+            {
+                if let Ok(response) = std::str::from_utf8(&bytes) {
+                    if response.starts_with("<!DOCTYPE html>") {
+                        Err(Error::FailedLoadingUrl(
+                            path.to_str().unwrap().to_string(),
+                            response.to_string(),
+                        ))?;
+                    }
+                }
+            }
             raw_assets.insert(path, bytes);
         }
     }

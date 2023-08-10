@@ -245,7 +245,10 @@ pub enum Error {
     FailedLoading(String, std::io::Error),
     #[cfg(feature = "reqwest")]
     #[error("error while loading the url {0}: {1}")]
-    FailedLoadingUrl(String, reqwest::Error),
+    FailedLoadingUrlWithReqwest(String, reqwest::Error),
+    #[cfg(feature = "reqwest")]
+    #[error("error while loading the url {0}: {1}")]
+    FailedLoadingUrl(String, String),
     #[cfg(feature = "reqwest")]
     #[error("error while parsing the url {0}")]
     FailedParsingUrl(String),
