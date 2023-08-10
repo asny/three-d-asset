@@ -153,13 +153,14 @@ async fn load_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Resul
 
             #[cfg(target_arch = "wasm32")]
             {
-                if let Ok(response) = std::str::from_utf8(&bytes) {
-                    if response.starts_with("<!DOCTYPE html>") {
-                        Err(Error::FailedLoadingUrl(
-                            path.to_str().unwrap().to_string(),
-                            response.to_string(),
-                        ))?;
-                    }
+                if std::str::from_utf8(&bytes[0..15])
+                    .map(|r| r.starts_with("<!DOCTYPE html>"))
+                    .unwrap_or(false)
+                {
+                    Err(Error::FailedLoadingUrl(
+                        path.to_str().unwrap().to_string(),
+                        std::str::from_utf8(&bytes).unwrap().to_string(),
+                    ))?;
                 }
             }
             raw_assets.insert(path, bytes);
