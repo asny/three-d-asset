@@ -48,7 +48,7 @@ gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_mat
 wavefront_obj = { version = "10", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
 pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
-data-url = {version = "0.2", optional = true }
+data-url = {version = "0.3", optional = true }
 serde = {version= "1", optional = true, features = ["derive", "rc"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
