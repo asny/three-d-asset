@@ -618,7 +618,7 @@ impl Camera {
     ///
     pub fn rotate_around(&mut self, point: &Vec3, x: f32, y: f32) {
         let dir = (point - self.position()).normalize();
-        let right = dir.cross(*self.up());
+        let right = dir.cross(self.up().normalize());
         let up = right.cross(dir);
         let new_dir = (point - self.position() + right * x - up * y).normalize();
         let rotation = rotation_matrix_from_dir_to_dir(dir, new_dir);
@@ -633,7 +633,7 @@ impl Camera {
     ///
     pub fn rotate_around_with_fixed_up(&mut self, point: &Vec3, x: f32, y: f32) {
         let dir = (point - self.position()).normalize();
-        let right = dir.cross(*self.up());
+        let right = dir.cross(self.up().normalize());
         let mut up = right.cross(dir);
         let new_dir = (point - self.position() + right * x - up * y).normalize();
         up = *self.up();
