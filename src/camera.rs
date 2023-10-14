@@ -292,7 +292,7 @@ impl Camera {
     pub fn set_view(&mut self, position: Vec3, target: Vec3, up: Vec3) {
         self.position = position;
         self.target = target;
-        self.up = up;
+        self.up = up.normalize();
         self.view = Mat4::look_at_rh(
             Point3::from_vec(self.position),
             Point3::from_vec(self.target),
@@ -618,7 +618,7 @@ impl Camera {
     ///
     pub fn rotate_around(&mut self, point: &Vec3, x: f32, y: f32) {
         let dir = (point - self.position()).normalize();
-        let right = dir.cross(self.up().normalize());
+        let right = dir.cross(self.up);
         let up = right.cross(dir);
         let new_dir = (point - self.position() + right * x - up * y).normalize();
         let rotation = rotation_matrix_from_dir_to_dir(dir, new_dir);
@@ -633,10 +633,10 @@ impl Camera {
     ///
     pub fn rotate_around_with_fixed_up(&mut self, point: &Vec3, x: f32, y: f32) {
         let dir = (point - self.position()).normalize();
-        let right = dir.cross(self.up().normalize());
-        let mut up = right.cross(dir);
+        let right = dir.cross(self.up);
+        let up = right.cross(dir);
         let new_dir = (point - self.position() + right * x - up * y).normalize();
-        up = *self.up();
+        let up = self.up;
         if new_dir.dot(up).abs() < 0.999 {
             let rotation = rotation_matrix_from_dir_to_dir(dir, new_dir);
             let new_position =
@@ -666,7 +666,7 @@ impl Camera {
         let distance = point.distance(position);
         let direction = (point - position).normalize();
         let target = *self.target();
-        let up = *self.up();
+        let up = self.up;
         let new_distance = (distance - delta).clamp(minimum_distance, maximum_distance);
         let new_position = point - direction * new_distance;
         self.set_view(new_position, new_position + (target - position), up);
