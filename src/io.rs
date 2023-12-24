@@ -61,6 +61,17 @@ mod vol;
 mod pcd;
 
 ///
+/// Deserialize a single file from raw bytes.
+///
+/// If the file depends on other files, use [RawAssets::insert] to insert the bytes for each of them in [RawAssets] before deserializing.
+///
+pub fn deserialize<T: Deserialize>(bytes: Vec<u8>) -> crate::Result<T> {
+    let mut assets = RawAssets::new();
+    assets.insert("", bytes);
+    assets.deserialize("")
+}
+
+///
 /// Loads and deserialize a single file. If the file depends on other files, those files are also loaded.
 ///
 #[cfg(not(target_arch = "wasm32"))]
