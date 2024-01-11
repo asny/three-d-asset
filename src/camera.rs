@@ -177,6 +177,7 @@ pub struct Camera {
     view: Mat4,
     projection: Mat4,
     screen2ray: Mat4,
+    screen2world: Mat4,
     frustrum: [Vec4; 6],
 }
 
@@ -375,10 +376,10 @@ impl Camera {
     ///
     pub fn position_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
-            ProjectionType::Orthographic { height } => {
-                let width = height * self.viewport.aspect();
+            ProjectionType::Orthographic { .. } => {
                 let coords = coords.into();
-                self.position() + vec3((coords.u - 0.5) * width, (coords.v - 0.5) * height, 0.0)
+                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
+                (self.screen2world * screen_pos).truncate()
             }
             ProjectionType::Perspective { .. } => *self.position(),
         }
@@ -544,6 +545,7 @@ impl Camera {
             view: Mat4::identity(),
             projection: Mat4::identity(),
             screen2ray: Mat4::identity(),
+            screen2world: Mat4::identity(),
         }
     }
 
@@ -551,6 +553,7 @@ impl Camera {
         let mut v = self.view;
         v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         self.screen2ray = (self.projection * v).invert().unwrap();
+        self.screen2world = (self.projection * self.view).invert().unwrap();
     }
 
     fn update_frustrum(&mut self) {
