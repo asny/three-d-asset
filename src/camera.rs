@@ -375,10 +375,10 @@ impl Camera {
     ///
     pub fn position_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
-            ProjectionType::Orthographic { height } => {
-                let width = height * self.viewport.aspect();
+            ProjectionType::Orthographic { .. } => {
                 let coords = coords.into();
-                self.position() + vec3((coords.u - 0.5) * width, (coords.v - 0.5) * height, 0.0)
+                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
+                (self.screen2ray * screen_pos).truncate()
             }
             ProjectionType::Perspective { .. } => *self.position(),
         }
@@ -549,7 +549,9 @@ impl Camera {
 
     fn update_screen2ray(&mut self) {
         let mut v = self.view;
-        v[3] = vec4(0.0, 0.0, 0.0, 1.0);
+        if let ProjectionType::Perspective { .. } = self.projection_type {
+            v[3] = vec4(0.0, 0.0, 0.0, 1.0);
+        }
         self.screen2ray = (self.projection * v).invert().unwrap();
     }
 
