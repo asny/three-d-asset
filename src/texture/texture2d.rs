@@ -20,7 +20,6 @@ pub struct Texture2D {
     /// The way the pixel data is interpolated when the texture is close
     pub mag_filter: Interpolation,
     /// Specifies whether mipmaps should be created for this texture and what type of interpolation to use between the two closest mipmaps.
-    /// Note, however, that the mipmaps only will be created if the width and height of the texture are power of two.
     pub mip_map_filter: Option<Interpolation>,
     /// Determines how the texture is sampled outside the [0..1] s coordinate range (the first value of the uv coordinates).
     pub wrap_s: Wrapping,
