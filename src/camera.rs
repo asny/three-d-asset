@@ -634,17 +634,34 @@ impl Camera {
     /// The input `x` specifies the amount of rotation in the left direction and `y` specifies the amount of rotation in the up direction.
     ///
     pub fn rotate_around_with_fixed_up(&mut self, point: &Vec3, x: f32, y: f32) {
-        let dir = (point - self.position()).normalize();
-        let right = dir.cross(self.up);
-        let up = right.cross(dir);
-        let new_dir = (point - self.position() + right * x - up * y).normalize();
-        let up = self.up;
-        if new_dir.dot(up).abs() < 0.999 {
-            let rotation = rotation_matrix_from_dir_to_dir(dir, new_dir);
-            let new_position =
-                (rotation * (self.position() - point).extend(1.0)).truncate() + point;
-            let new_target = (rotation * (self.target() - point).extend(1.0)).truncate() + point;
-            self.set_view(new_position, new_target, up);
+        // Since rotations in linear algebra always describe rotations about the origin, we
+        // subtract the point, do all rotations, and add the point again
+        let position = self.position() - point;
+        let target = self.target() - point;
+        // We use Rodrigues' rotation formula to rotate around the fixed `up` vector and around the
+        // horizon which is calculated from the camera's view direction and `up`
+        // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
+        let k_x = self.up.normalize();
+        let k_y = (target - position).normalize().cross(self.up);
+        // Prepare cos and sin terms, inverted because the method rotates left and up while
+        // rotations follow the right hand rule
+        let cos_x = (-x).cos();
+        let sin_x = (-x).sin();
+        let cos_y = (-y).cos();
+        let sin_y = (-y).sin();
+        // Do the rotations following the rotation formula
+        let rodrigues =
+            |v, k: Vec3, cos, sin| v * cos + k.cross(v) * sin + k * k.dot(v) * (1.0 - cos);
+        let position_x = rodrigues(position, k_x, cos_x, sin_x);
+        let target_x = rodrigues(target, k_x, cos_x, sin_x);
+        let position_y = rodrigues(position_x, k_y, cos_y, sin_y);
+        let target_y = rodrigues(target_x, k_y, cos_y, sin_y);
+        // Forbid to face the camera exactly up or down, fall back to just rotate in x direction
+        let new_dir = target_y - position_y;
+        if new_dir.dot(self.up).abs() < 0.999 {
+            self.set_view(position_y + point, target_y + point, self.up);
+        } else {
+            self.set_view(position_x + point, target_x + point, self.up);
         }
     }
 
