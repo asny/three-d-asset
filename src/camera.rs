@@ -638,11 +638,12 @@ impl Camera {
         // subtract the point, do all rotations, and add the point again
         let position = self.position() - point;
         let target = self.target() - point;
+        let up = self.up.normalize();
         // We use Rodrigues' rotation formula to rotate around the fixed `up` vector and around the
         // horizon which is calculated from the camera's view direction and `up`
         // https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula
-        let k_x = self.up.normalize();
-        let k_y = (target - position).normalize().cross(self.up);
+        let k_x = up;
+        let k_y = (target - position).cross(up).normalize();
         // Prepare cos and sin terms, inverted because the method rotates left and up while
         // rotations follow the right hand rule
         let cos_x = (-x).cos();
@@ -657,8 +658,8 @@ impl Camera {
         let position_y = rodrigues(position_x, k_y, cos_y, sin_y);
         let target_y = rodrigues(target_x, k_y, cos_y, sin_y);
         // Forbid to face the camera exactly up or down, fall back to just rotate in x direction
-        let new_dir = target_y - position_y;
-        if new_dir.dot(self.up).abs() < 0.999 {
+        let new_dir = (target_y - position_y).normalize();
+        if new_dir.dot(up).abs() < 0.999 {
             self.set_view(position_y + point, target_y + point, self.up);
         } else {
             self.set_view(position_x + point, target_x + point, self.up);
