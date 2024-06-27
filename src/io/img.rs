@@ -112,6 +112,12 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
             #[cfg(feature = "gif")]
             image::ImageOutputFormat::Gif
         }
+        "webp" => {
+            #[cfg(not(feature = "webp"))]
+            return Err(Error::FeatureMissing("webp".to_string()));
+            #[cfg(feature = "webp")]
+            image::ImageOutputFormat::WebP
+        }
         _ => return Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
     };
     let img = match &tex.data {
@@ -265,5 +271,12 @@ mod test {
         }
         assert_eq!(tex.width, 1024);
         assert_eq!(tex.height, 512);
+    }
+
+    #[cfg(feature = "webp")]
+    #[test]
+    pub fn webp() {
+        test_serialize("webp");
+        test_deserialize("webp");
     }
 }
