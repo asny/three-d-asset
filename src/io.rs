@@ -48,6 +48,9 @@ pub use saver::*;
 #[cfg(feature = "obj")]
 mod obj;
 
+#[cfg(feature = "stl")]
+mod stl;
+
 #[cfg(feature = "gltf")]
 mod gltf;
 
@@ -180,6 +183,13 @@ impl Deserialize for crate::Scene {
 
                 #[cfg(feature = "obj")]
                 obj::deserialize_obj(raw_assets, &path)
+            }
+            "stl" => {
+                #[cfg(not(feature = "stl"))]
+                return Err(Error::FeatureMissing("stl".to_string()));
+
+                #[cfg(feature = "stl")]
+                stl::deserialize_stl(raw_assets, &path)
             }
             "pcd" => {
                 #[cfg(not(feature = "pcd"))]
