@@ -33,6 +33,7 @@ bmp = ["image/bmp"]
 
 obj = ["wavefront_obj"]
 gltf = ["dep:gltf"]
+stl = ["dep:stl_io"]
 
 pcd = ["pcd-rs"]
 
@@ -47,6 +48,7 @@ thiserror = "1"
 reqwest = {version = "0.11", optional = true, default-features = false }
 gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
 wavefront_obj = { version = "10", optional = true }
+stl_io = { version = "0.8.2", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
 pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
 data-url = {version = "0.3", optional = true }
