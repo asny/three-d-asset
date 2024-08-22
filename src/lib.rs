@@ -226,7 +226,7 @@ pub enum Error {
     #[error("error while parsing an .pcd file")]
     Pcd(#[from] pcd_rs::anyhow::Error),
 
-    #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(any(not(target_arch = "wasm32"), feature = "stl"))]
     #[error("io error")]
     IO(#[from] std::io::Error),
     #[cfg(feature = "gltf")]
