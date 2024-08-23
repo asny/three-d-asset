@@ -17,9 +17,10 @@ When in memory, the assets can be for example be
 ### Model
 
 | Format   | Deserialize | Serialize | Feature |
-| -------- | ----------- | --------- | ------- |
-| OBJ/MTL  | ✅          | ❌        | `obj`   |
-| GLTF/GLB | ✅          | ❌        | `gltf`  |
+|----------|-------------|-----------|---------|
+| OBJ/MTL  | ✅          | ❌        | `obj`   |
+| GLTF/GLB | ✅          | ❌        | `gltf`  |
+| STL      | ✅          | ❌        | `stl`   |
 
 ### Texture2D
 
