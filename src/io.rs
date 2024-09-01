@@ -141,15 +141,20 @@ impl Deserialize for crate::Texture2D {
         #[allow(unused_variables)]
         let bytes = raw_assets.get(&path)?;
 
-        #[cfg(not(feature = "image"))]
-        return Err(Error::FeatureMissing(extension));
-
         if cfg!(feature = "svg") && "svg" == extension {
-            return img::deserialize_svg(path, bytes);
-        }
+            // to satisfy the compiler during wasm compile
+            #[cfg(not(feature = "svg"))]
+            return Err(Error::FeatureMissing("svg".to_string()));
 
-        #[cfg(feature = "image")]
-        img::deserialize_img(path, bytes)
+            #[cfg(feature = "svg")]
+            return img::deserialize_svg(path, bytes);
+        } else {
+            #[cfg(not(feature = "image"))]
+            return Err(Error::FeatureMissing(extension));
+
+            #[cfg(feature = "image")]
+            return img::deserialize_img(path, bytes);
+        }
     }
 }
 
