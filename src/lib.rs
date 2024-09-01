@@ -218,6 +218,11 @@ pub enum Error {
     #[cfg(feature = "image")]
     #[error("error while parsing an image file")]
     Image(#[from] image::ImageError),
+
+    #[cfg(feature = "svg")]
+    #[error("error while parsing svg file")]
+    Svg(#[from] resvg::usvg::Error),
+
     #[cfg(feature = "obj")]
     #[error("error while parsing an .obj file")]
     Obj(#[from] wavefront_obj::ParseError),

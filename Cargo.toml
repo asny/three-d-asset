@@ -31,6 +31,8 @@ tga = ["image/tga"]
 gif = ["image/gif"]
 bmp = ["image/bmp"]
 
+svg = ["dep:resvg"]
+
 obj = ["wavefront_obj"]
 gltf = ["dep:gltf"]
 stl = ["dep:stl_io"]
@@ -50,6 +52,7 @@ gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_mat
 wavefront_obj = { version = "10", optional = true }
 stl_io = { version = "0.8.2", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
+resvg = { version = "0.43.0", optional = true }
 pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
 data-url = {version = "0.3", optional = true }
 serde = {version= "1", optional = true, features = ["derive", "rc"] }
