@@ -72,6 +72,45 @@ pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D
     })
 }
 
+#[cfg(feature = "svg")]
+pub fn deserialize_svg(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D> {
+    use cgmath::num_traits::ToPrimitive;
+
+    let name = path
+        .as_ref()
+        .to_str()
+        .filter(|s| !s.starts_with("data:"))
+        .unwrap_or("default")
+        .to_owned();
+    let tree = resvg::usvg::Tree::from_data(bytes, &resvg::usvg::Options::default())?;
+    // TODO: should we have more error checking here?
+    let (width, height) = (
+        tree.size().width().to_u32().unwrap(),
+        tree.size().height().to_u32().unwrap(),
+    );
+    let mut pixmap = resvg::tiny_skia::Pixmap::new(width, height).unwrap();
+    resvg::render(
+        &tree,
+        resvg::tiny_skia::Transform::default(),
+        &mut pixmap.as_mut(),
+    );
+
+    // process the data to our desired RGBAU8 format
+    let texture_data: Vec<[u8; 4]> = pixmap
+        .pixels()
+        .iter()
+        .map(|pixel| [pixel.red(), pixel.green(), pixel.blue(), pixel.alpha()])
+        .collect();
+
+    Ok(Texture2D {
+        name,
+        data: TextureData::RgbaU8(texture_data),
+        width,
+        height,
+        ..Default::default()
+    })
+}
+
 pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
     #![allow(unreachable_code)]
     #![allow(unused_variables)]
@@ -265,5 +304,22 @@ mod test {
         }
         assert_eq!(tex.width, 1024);
         assert_eq!(tex.height, 512);
+    }
+
+    #[cfg(feature = "svg")]
+    #[test]
+    pub fn svg() {
+        let tex: crate::Texture2D = crate::io::load_and_deserialize("test_data/test.svg").unwrap();
+        if let crate::TextureData::RgbaU8(data) = tex.data {
+            assert_eq!(data[0], [0, 0, 0, 0]);
+            assert_eq!(data[25036], [0, 51, 255, 255]);
+            assert_eq!(data[20062], [255, 0, 0, 255]);
+            assert_eq!(data[58095], [0, 255, 0, 255]);
+        } else {
+            panic!("Wrong texture data");
+        }
+
+        assert_eq!(tex.width, 320);
+        assert_eq!(tex.height, 240);
     }
 }

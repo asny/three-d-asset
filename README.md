@@ -25,14 +25,15 @@ When in memory, the assets can be for example be
 ### Texture2D
 
 | Format | Deserialize | Serialize | Feature |
-| ------ | ----------- | --------- | ------- |
+|--------|-------------|-----------|---------|
 | PNG    | ✅          | ✅        | `png`   |
-| JPEG   | ✅          | ✅        |  `jpeg` |
+| JPEG   | ✅          | ✅        | `jpeg`  |
 | HDR    | ✅          | ❌        | `hdr`   |
 | GIF    | ✅          | ✅        | `gif`   |
 | TGA    | ✅          | ✅        | `tga`   |
 | TIFF   | ✅          | ✅        | `tiff`  |
 | BMP    | ✅          | ✅        | `bmp`   |
+| SVG    | ✅          | ❌        | `svg`   |
 
 ### PointCloud
 
