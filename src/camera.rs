@@ -298,6 +298,7 @@ impl Camera {
             Point3::from_vec(self.target),
             self.up,
         );
+        self.view.w.w *= position.distance(target);
         self.update_screen2ray();
         self.update_frustrum();
     }
@@ -685,16 +686,10 @@ impl Camera {
         let position = *self.position();
         let distance = point.distance(position);
         let direction = (point - position).normalize();
-        let target = *self.target();
+        let target = self.target;
         let up = self.up;
         let new_distance = (distance - delta).clamp(minimum_distance, maximum_distance);
         let new_position = point - direction * new_distance;
-        self.set_view(new_position, new_position + (target - position), up);
-        if let ProjectionType::Orthographic { height } = self.projection_type() {
-            let h = new_distance * height / distance;
-            let z_near = self.z_near();
-            let z_far = self.z_far();
-            self.set_orthographic_projection(h, z_near, z_far);
-        }
+        self.set_view(new_position, target, up);
     }
 }
