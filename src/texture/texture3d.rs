@@ -23,12 +23,16 @@ pub struct Texture3D {
     pub mag_filter: Interpolation,
     /// Specifies whether mipmaps should be created for this texture and what type of interpolation to use between the two closest mipmaps.
     pub mip_map_filter: Option<Interpolation>,
+    /// Specifies the maximum number of mipmaps that can be created for this texture.
+    pub mip_map_limit: Option<u32>,
     /// Determines how the texture is sampled outside the [0..1] s coordinate range (the first value of the uvw coordinates).
     pub wrap_s: Wrapping,
     /// Determines how the texture is sampled outside the [0..1] t coordinate range (the second value of the uvw coordinates).
     pub wrap_t: Wrapping,
     /// Determines how the texture is sampled outside the [0..1] r coordinate range (the third value of the uvw coordinates).
     pub wrap_r: Wrapping,
+    /// Specifies the level of anisotropic filtering to be applied.
+    pub anisotropic_filter: Option<u32>,
 }
 
 impl Default for Texture3D {
@@ -42,9 +46,11 @@ impl Default for Texture3D {
             min_filter: Interpolation::Linear,
             mag_filter: Interpolation::Linear,
             mip_map_filter: Some(Interpolation::Linear),
+            mip_map_limit: None,
             wrap_s: Wrapping::Repeat,
             wrap_t: Wrapping::Repeat,
             wrap_r: Wrapping::Repeat,
+            anisotropic_filter: None,
         }
     }
 }
