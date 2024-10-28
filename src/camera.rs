@@ -302,9 +302,8 @@ impl Camera {
         self.z_far = z_far;
         let field_of_view_y = field_of_view_y.into();
         self.projection_type = ProjectionType::Planar { field_of_view_y };
-        self.projection =
-            cgmath::planar(field_of_view_y, self.viewport.aspect(), 2.0, z_near, z_far)
-                * Mat4::from_translation(vec3(0.0, 0.0, 1.0));
+        self.projection = planar(field_of_view_y, self.viewport.aspect(), 2.0, z_near, z_far)
+            * Mat4::from_translation(vec3(0.0, 0.0, 1.0));
         self.update_screen2ray();
         self.update_frustrum();
     }
