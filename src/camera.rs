@@ -615,7 +615,6 @@ impl Camera {
         let mut v = self.view;
         v /= v[3][3];
         if let ProjectionType::Perspective { .. } = self.projection_type {
-            v /= v[3][3];
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
         self.screen2ray = (self.projection * v)
