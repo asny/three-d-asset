@@ -669,6 +669,14 @@ impl Camera {
     }
 
     ///
+    /// Moves the camera towards the camera target by the amount delta while keeping the given minimum and maximum distance to the target.
+    ///
+    pub fn zoom(&mut self, delta: f32, minimum_distance: f32, maximum_distance: f32) {
+        let target = self.target;
+        self.zoom_towards(&target, delta, minimum_distance, maximum_distance);
+    }
+
+    ///
     /// Moves the camera towards the given point by the amount delta while keeping the given minimum and maximum distance to the point.
     /// Note that the camera target is also updated so that the view direction is the same.
     ///
