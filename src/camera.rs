@@ -560,7 +560,9 @@ impl Camera {
         if let ProjectionType::Perspective { .. } = self.projection_type {
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
-        self.screen2ray = (self.projection * v).invert().unwrap();
+        self.screen2ray = (self.projection * v)
+            .invert()
+            .unwrap_or_else(|| Mat4::identity());
     }
 
     fn update_frustrum(&mut self) {
