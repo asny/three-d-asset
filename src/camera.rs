@@ -365,7 +365,7 @@ impl Camera {
     /// Returns whether or not the given bounding box is within the camera frustum.
     /// It returns false if it is fully outside and true if it is inside or intersects.
     ///
-    pub fn in_frustum(&self, aabb: &AxisAlignedBoundingBox) -> bool {
+    pub fn in_frustum(&self, aabb: AxisAlignedBoundingBox) -> bool {
         if aabb.is_infinite() {
             return true;
         }
@@ -520,15 +520,15 @@ impl Camera {
     ///
     /// Returns the view matrix, ie. the matrix that transforms objects from world space (as placed in the world) to view space (as seen from this camera).
     ///
-    pub fn view(&self) -> &Mat4 {
-        &self.view
+    pub fn view(&self) -> Mat4 {
+        self.view
     }
 
     ///
     /// Returns the projection matrix, ie. the matrix that projects objects in view space onto this cameras image plane.
     ///
-    pub fn projection(&self) -> &Mat4 {
-        &self.projection
+    pub fn projection(&self) -> Mat4 {
+        self.projection
     }
 
     ///
