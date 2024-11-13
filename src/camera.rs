@@ -414,7 +414,7 @@ impl Camera {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.position_at_uv_coordinates(coords)
             }
-            ProjectionType::Perspective { .. } => *self.position(),
+            ProjectionType::Perspective { .. } => self.position,
         }
     }
 
@@ -428,7 +428,7 @@ impl Camera {
                 let screen_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0);
                 self.screen2ray.transform_point(screen_pos).to_vec()
             }
-            ProjectionType::Perspective { .. } => *self.position(),
+            ProjectionType::Perspective { .. } => self.position,
         }
     }
 
@@ -555,23 +555,23 @@ impl Camera {
     ///
     /// Returns the position of this camera.
     ///
-    pub fn position(&self) -> &Vec3 {
-        &self.position
+    pub fn position(&self) -> Vec3 {
+        self.position
     }
 
     ///
     /// Returns the target of this camera, ie the point that this camera looks towards.
     ///
-    pub fn target(&self) -> &Vec3 {
-        &self.target
+    pub fn target(&self) -> Vec3 {
+        self.target
     }
 
     ///
     /// Returns the up direction of this camera.
     /// This will probably not be orthogonal to the view direction, use [up_orthogonal](Camera::up_orthogonal) instead if that is needed.
     ///
-    pub fn up(&self) -> &Vec3 {
-        &self.up
+    pub fn up(&self) -> Vec3 {
+        self.up
     }
 
     ///
@@ -637,7 +637,7 @@ impl Camera {
     ///
     /// Translate the camera by the given change while keeping the same view and up directions.
     ///
-    pub fn translate(&mut self, change: &Vec3) {
+    pub fn translate(&mut self, change: Vec3) {
         self.set_view(self.position + change, self.target + change, self.up);
     }
 
@@ -685,7 +685,7 @@ impl Camera {
     /// The input `x` specifies the amount of rotation in the left direction and `y` specifies the amount of rotation in the up direction.
     /// If you want the camera up direction to stay fixed, use the [rotate_around_with_fixed_up](Camera::rotate_around_with_fixed_up) function instead.
     ///
-    pub fn rotate_around(&mut self, point: &Vec3, x: f32, y: f32) {
+    pub fn rotate_around(&mut self, point: Vec3, x: f32, y: f32) {
         let dir = (point - self.position()).normalize();
         let right = dir.cross(self.up);
         let up = right.cross(dir);
@@ -700,7 +700,7 @@ impl Camera {
     /// Rotate the camera around the given point while keeping the same distance to the point and the same up direction.
     /// The input `x` specifies the amount of rotation in the left direction and `y` specifies the amount of rotation in the up direction.
     ///
-    pub fn rotate_around_with_fixed_up(&mut self, point: &Vec3, x: f32, y: f32) {
+    pub fn rotate_around_with_fixed_up(&mut self, point: Vec3, x: f32, y: f32) {
         // Since rotations in linear algebra always describe rotations about the origin, we
         // subtract the point, do all rotations, and add the point again
         let position = self.position() - point;
@@ -737,8 +737,7 @@ impl Camera {
     /// Moves the camera towards the camera target by the amount delta while keeping the given minimum and maximum distance to the target.
     ///
     pub fn zoom(&mut self, delta: f32, minimum_distance: f32, maximum_distance: f32) {
-        let target = self.target;
-        self.zoom_towards(&target, delta, minimum_distance, maximum_distance);
+        self.zoom_towards(self.target, delta, minimum_distance, maximum_distance);
     }
 
     ///
@@ -747,7 +746,7 @@ impl Camera {
     ///
     pub fn zoom_towards(
         &mut self,
-        point: &Vec3,
+        point: Vec3,
         delta: f32,
         minimum_distance: f32,
         maximum_distance: f32,
@@ -758,12 +757,11 @@ impl Camera {
             "minimum_distance larger than maximum_distance"
         );
 
-        let position = *self.position();
-        let distance = point.distance(position);
+        let distance = point.distance(self.position);
         if distance > f32::EPSILON {
             let delta_clamped =
                 distance - (distance - delta).clamp(minimum_distance, maximum_distance);
-            let v = (point - position) * delta_clamped / distance;
+            let v = (point - self.position) * delta_clamped / distance;
             self.set_view(
                 self.position + v,
                 self.target + v - v.project_on(self.view_direction()),

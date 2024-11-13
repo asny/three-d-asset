@@ -165,7 +165,7 @@ impl AxisAlignedBoundingBox {
     ///
     /// The distance from position to the point in this bounding box that is closest to position.
     ///
-    pub fn distance(&self, position: &Vec3) -> f32 {
+    pub fn distance(&self, position: Vec3) -> f32 {
         let x = (self.min.x - position.x)
             .max(position.x - self.max.x)
             .max(0.0);
@@ -186,7 +186,7 @@ impl AxisAlignedBoundingBox {
     ///
     /// The distance from position to the point in this bounding box that is furthest away from position.
     ///
-    pub fn distance_max(&self, position: &Vec3) -> f32 {
+    pub fn distance_max(&self, position: Vec3) -> f32 {
         let x = (position.x - self.min.x)
             .abs()
             .max((self.max.x - position.x).abs());
