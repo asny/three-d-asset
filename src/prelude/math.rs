@@ -79,6 +79,8 @@ pub fn rotation_matrix_from_dir_to_dir(source_dir: Vec3, target_dir: Vec3) -> Ma
     )))
 }
 
+// NOTE: Can be removed once https://github.com/rustgd/cgmath/pull/556 has been released.
+
 /// Create a planar projection matrix, which can be either perspective or orthographic.
 ///
 /// The projection frustum is always `height` units high at the origin along the view direction,
@@ -103,7 +105,6 @@ pub fn planar<S: cgmath::BaseFloat, A: Into<Rad<S>>>(
 
 /// A planar projection based on a vertical field-of-view angle.
 #[derive(Copy, Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 struct PlanarFov<S> {
     pub fovy: Rad<S>,
     pub aspect: S,
