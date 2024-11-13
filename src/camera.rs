@@ -511,10 +511,18 @@ impl Camera {
     }
 
     ///
-    /// Returns the up direction of this camera (might not be orthogonal to the view direction).
+    /// Returns the up direction of this camera.
+    /// This will probably not be orthogonal to the view direction, use [up_orthogonal](Camera::up_orthogonal) instead if that is needed.
     ///
     pub fn up(&self) -> &Vec3 {
         &self.up
+    }
+
+    ///
+    /// Returns the up direction of this camera that is orthogonal to the view direction.
+    ///
+    pub fn up_orthogonal(&self) -> Vec3 {
+        self.right_direction().cross(self.view_direction())
     }
 
     ///
