@@ -670,6 +670,7 @@ impl Camera {
 
     ///
     /// Moves the camera towards the given point by the amount delta while keeping the given minimum and maximum distance to the point.
+    /// Note that the camera target is also updated so that the view direction is the same.
     ///
     pub fn zoom_towards(
         &mut self,
@@ -686,11 +687,12 @@ impl Camera {
 
         let position = *self.position();
         let distance = point.distance(position);
-        let direction = (point - position).normalize();
-        let target = self.target;
-        let up = self.up;
-        let new_distance = (distance - delta).clamp(minimum_distance, maximum_distance);
-        let new_position = point - direction * new_distance;
-        self.set_view(new_position, target, up);
+        let delta_clamped = distance - (distance - delta).clamp(minimum_distance, maximum_distance);
+        let v = (point - position) * delta_clamped / distance;
+        self.set_view(
+            self.position + v,
+            self.target + v - v.project_on(self.view_direction()),
+            self.up,
+        );
     }
 }
