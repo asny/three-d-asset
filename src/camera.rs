@@ -695,12 +695,15 @@ impl Camera {
 
         let position = *self.position();
         let distance = point.distance(position);
-        let delta_clamped = distance - (distance - delta).clamp(minimum_distance, maximum_distance);
-        let v = (point - position) * delta_clamped / distance;
-        self.set_view(
-            self.position + v,
-            self.target + v - v.project_on(self.view_direction()),
-            self.up,
-        );
+        if distance > f32::EPSILON {
+            let delta_clamped =
+                distance - (distance - delta).clamp(minimum_distance, maximum_distance);
+            let v = (point - position) * delta_clamped / distance;
+            self.set_view(
+                self.position + v,
+                self.target + v - v.project_on(self.view_direction()),
+                self.up,
+            );
+        }
     }
 }
