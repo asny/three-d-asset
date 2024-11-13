@@ -43,7 +43,7 @@ impl AxisAlignedBoundingBox {
     /// Constructs a new bounding box and expands it such that all of the given positions transformed with the given transformation are contained inside the bounding box.
     /// A position consisting of an x, y and z coordinate corresponds to three consecutive value in the positions array.
     ///
-    pub fn new_with_transformed_positions(positions: &[Vec3], transformation: &Mat4) -> Self {
+    pub fn new_with_transformed_positions(positions: &[Vec3], transformation: Mat4) -> Self {
         let mut aabb = Self::EMPTY;
         aabb.expand_with_transformation(positions, transformation);
         aabb
@@ -95,6 +95,53 @@ impl AxisAlignedBoundingBox {
         self.max - self.min
     }
 
+    /// Expands the bounding box to be at least the given size, keeping the center the same.
+    pub fn ensure_size(&mut self, min_size: Vec3) {
+        if !self.is_empty() && !self.is_infinite() {
+            let size = self.size();
+            if size.x < min_size.x {
+                let diff = min_size.x - size.x;
+                self.min.x -= 0.5 * diff;
+                self.max.x += 0.5 * diff;
+            }
+            if size.y < min_size.y {
+                let diff = min_size.y - size.y;
+                self.min.y -= 0.5 * diff;
+                self.max.y += 0.5 * diff;
+            }
+            if size.z < min_size.z {
+                let diff = min_size.z - size.z;
+                self.min.z -= 0.5 * diff;
+                self.max.z += 0.5 * diff;
+            }
+        }
+    }
+
+    /// Returns the intersection between this and the other given bounding box.
+    pub fn intersection(self, other: Self) -> Self {
+        let min_a = self.min();
+        let max_a = self.max();
+        let min_b = other.min();
+        let max_b = other.max();
+
+        if min_a.x >= max_b.x || min_a.y >= max_b.y || min_b.x >= max_a.x || min_b.y >= max_a.y {
+            return Self::EMPTY;
+        }
+
+        let min = vec3(
+            min_a.x.max(min_b.x),
+            min_a.y.max(min_b.y),
+            min_a.z.max(min_b.z),
+        );
+        let max = vec3(
+            max_a.x.min(max_b.x),
+            max_a.y.min(max_b.y),
+            max_a.z.min(max_b.z),
+        );
+
+        Self::new_with_positions(&[min, max])
+    }
+
     ///
     /// Expands the bounding box such that all of the given positions are contained inside the bounding box.
     ///
@@ -113,7 +160,7 @@ impl AxisAlignedBoundingBox {
     ///
     /// Expands the bounding box such that all of the given positions transformed with the given transformation are contained inside the bounding box.
     ///
-    pub fn expand_with_transformation(&mut self, positions: &[Vec3], transformation: &Mat4) {
+    pub fn expand_with_transformation(&mut self, positions: &[Vec3], transformation: Mat4) {
         self.expand(
             &positions
                 .iter()
@@ -125,41 +172,59 @@ impl AxisAlignedBoundingBox {
     ///
     /// Expand the bounding box such that it also contains the given other bounding box.
     ///
-    pub fn expand_with_aabb(&mut self, other: &AxisAlignedBoundingBox) {
-        self.min = Vec3::new(
-            f32::min(self.min.x, other.min.x),
-            f32::min(self.min.y, other.min.y),
-            f32::min(self.min.z, other.min.z),
-        );
-        self.max = Vec3::new(
-            f32::max(self.max.x, other.max.x),
-            f32::max(self.max.y, other.max.y),
-            f32::max(self.max.z, other.max.z),
-        );
+    pub fn expand_with_aabb(&mut self, other: AxisAlignedBoundingBox) {
+        if self.is_empty() {
+            *self = other;
+        } else if !other.is_empty() {
+            self.expand(&[other.min(), other.max()]);
+        }
     }
 
     ///
     /// Transforms the bounding box by the given transformation.
     ///
-    /// **Note:** Use [new_with_transformed_positions](crate::AxisAlignedBoundingBox::new_with_transformed_positions) instead of
-    /// [new_with_positions](crate::AxisAlignedBoundingBox::new_with_positions) followed by this method to create a more tight bounding box.
+    pub fn transform(&mut self, transformation: Mat4) {
+        if !self.is_empty() && !self.is_infinite() {
+            *self = Self::new_with_transformed_positions(
+                &[
+                    self.min,
+                    vec3(self.max.x, self.min.y, self.min.z),
+                    vec3(self.min.x, self.max.y, self.min.z),
+                    vec3(self.min.x, self.min.y, self.max.z),
+                    vec3(self.min.x, self.max.y, self.max.z),
+                    vec3(self.max.x, self.min.y, self.max.z),
+                    vec3(self.max.x, self.max.y, self.min.z),
+                    self.max,
+                ],
+                transformation,
+            );
+        }
+    }
+
     ///
-    pub fn transform(&mut self, transformation: &Mat4) {
-        let aabb = Self::new_with_transformed_positions(
-            &[
-                self.min,
-                Vec3::new(self.max.x, self.min.y, self.min.z),
-                Vec3::new(self.min.x, self.max.y, self.min.z),
-                Vec3::new(self.min.x, self.min.y, self.max.z),
-                Vec3::new(self.min.x, self.max.y, self.max.z),
-                Vec3::new(self.max.x, self.min.y, self.max.z),
-                Vec3::new(self.max.x, self.max.y, self.min.z),
-                self.max,
-            ],
-            transformation,
-        );
-        self.min = aabb.min;
-        self.max = aabb.max;
+    /// Returns the bounding box transformed by the given transformation.
+    ///
+    pub fn transformed(mut self, transformation: Mat4) -> AxisAlignedBoundingBox {
+        self.transform(transformation);
+        self
+    }
+
+    /// Returns true if the given bounding box is fully inside this bounding box.
+    pub fn contains(&self, aabb: AxisAlignedBoundingBox) -> bool {
+        !self.is_empty()
+            && !aabb.is_empty()
+            && self.is_inside(aabb.min())
+            && self.is_inside(aabb.max())
+    }
+
+    /// Returns true if the given position is inside this bounding box.
+    pub fn is_inside(&self, position: Vec3) -> bool {
+        self.min.x <= position.x
+            && position.x <= self.max.x
+            && self.min.y <= position.y
+            && position.y <= self.max.y
+            && self.min.z <= position.z
+            && position.z <= self.max.z
     }
 
     ///
