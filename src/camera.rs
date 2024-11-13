@@ -567,10 +567,18 @@ impl Camera {
     }
 
     ///
-    /// Returns the up direction of this camera (might not be orthogonal to the view direction).
+    /// Returns the up direction of this camera.
+    /// This will probably not be orthogonal to the view direction, use [up_orthogonal](Camera::up_orthogonal) instead if that is needed.
     ///
     pub fn up(&self) -> &Vec3 {
         &self.up
+    }
+
+    ///
+    /// Returns the up direction of this camera that is orthogonal to the view direction.
+    ///
+    pub fn up_orthogonal(&self) -> Vec3 {
+        self.right_direction().cross(self.view_direction())
     }
 
     ///
@@ -605,11 +613,14 @@ impl Camera {
 
     fn update_screen2ray(&mut self) {
         let mut v = self.view;
+        v /= v[3][3];
         if let ProjectionType::Perspective { .. } = self.projection_type {
             v /= v[3][3];
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
-        self.screen2ray = (self.projection * v).invert().unwrap();
+        self.screen2ray = (self.projection * v)
+            .invert()
+            .unwrap_or_else(|| Mat4::identity());
     }
 
     fn update_frustrum(&mut self) {
@@ -724,7 +735,16 @@ impl Camera {
     }
 
     ///
+    /// Moves the camera towards the camera target by the amount delta while keeping the given minimum and maximum distance to the target.
+    ///
+    pub fn zoom(&mut self, delta: f32, minimum_distance: f32, maximum_distance: f32) {
+        let target = self.target;
+        self.zoom_towards(&target, delta, minimum_distance, maximum_distance);
+    }
+
+    ///
     /// Moves the camera towards the given point by the amount delta while keeping the given minimum and maximum distance to the point.
+    /// Note that the camera target is also updated so that the view direction is the same.
     ///
     pub fn zoom_towards(
         &mut self,
@@ -741,11 +761,15 @@ impl Camera {
 
         let position = *self.position();
         let distance = point.distance(position);
-        let direction = (point - position).normalize();
-        let target = self.target;
-        let up = self.up;
-        let new_distance = (distance - delta).clamp(minimum_distance, maximum_distance);
-        let new_position = point - direction * new_distance;
-        self.set_view(new_position, target, up);
+        if distance > f32::EPSILON {
+            let delta_clamped =
+                distance - (distance - delta).clamp(minimum_distance, maximum_distance);
+            let v = (point - position) * delta_clamped / distance;
+            self.set_view(
+                self.position + v,
+                self.target + v - v.project_on(self.view_direction()),
+                self.up,
+            );
+        }
     }
 }
