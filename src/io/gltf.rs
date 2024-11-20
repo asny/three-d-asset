@@ -390,22 +390,38 @@ fn parse_texture<'a>(
         Some(::gltf::texture::MagFilter::Linear) => Interpolation::Linear,
         None => tex.mag_filter,
     };
-    (tex.min_filter, tex.mip_map_filter) = match sampler.min_filter() {
+    (tex.min_filter, tex.mipmap) = match sampler.min_filter() {
         Some(::gltf::texture::MinFilter::Nearest) => (Interpolation::Nearest, None),
         Some(::gltf::texture::MinFilter::Linear) => (Interpolation::Linear, None),
-        Some(::gltf::texture::MinFilter::NearestMipmapNearest) => {
-            (Interpolation::Nearest, Some(Interpolation::Nearest))
-        }
-        Some(::gltf::texture::MinFilter::LinearMipmapNearest) => {
-            (Interpolation::Linear, Some(Interpolation::Nearest))
-        }
-        Some(::gltf::texture::MinFilter::NearestMipmapLinear) => {
-            (Interpolation::Nearest, Some(Interpolation::Linear))
-        }
-        Some(::gltf::texture::MinFilter::LinearMipmapLinear) => {
-            (Interpolation::Linear, Some(Interpolation::Linear))
-        }
-        None => (tex.min_filter, tex.mip_map_filter),
+        Some(::gltf::texture::MinFilter::NearestMipmapNearest) => (
+            Interpolation::Nearest,
+            Some(Mipmap {
+                filter: Interpolation::Nearest,
+                ..Default::default()
+            }),
+        ),
+        Some(::gltf::texture::MinFilter::LinearMipmapNearest) => (
+            Interpolation::Linear,
+            Some(Mipmap {
+                filter: Interpolation::Nearest,
+                ..Default::default()
+            }),
+        ),
+        Some(::gltf::texture::MinFilter::NearestMipmapLinear) => (
+            Interpolation::Nearest,
+            Some(Mipmap {
+                filter: Interpolation::Linear,
+                ..Default::default()
+            }),
+        ),
+        Some(::gltf::texture::MinFilter::LinearMipmapLinear) => (
+            Interpolation::Linear,
+            Some(Mipmap {
+                filter: Interpolation::Linear,
+                ..Default::default()
+            }),
+        ),
+        None => (tex.min_filter, tex.mipmap),
     };
     tex.wrap_s = sampler.wrap_s().into();
     tex.wrap_t = sampler.wrap_t().into();

@@ -1,5 +1,5 @@
 #[doc(inline)]
-pub use crate::texture::{Interpolation, TextureData, Wrapping};
+pub use super::{Interpolation, Mipmap, TextureData, Wrapping};
 
 ///
 /// A CPU-side version of a 2D texture.
@@ -19,8 +19,8 @@ pub struct Texture2D {
     pub min_filter: Interpolation,
     /// The way the pixel data is interpolated when the texture is close
     pub mag_filter: Interpolation,
-    /// Specifies whether mipmaps should be created for this texture and what type of interpolation to use between the two closest mipmaps.
-    pub mip_map_filter: Option<Interpolation>,
+    /// Specifies the [Mipmap] settings for this texture. If this is `None`, no mipmaps are created.
+    pub mipmap: Option<Mipmap>,
     /// Determines how the texture is sampled outside the [0..1] s coordinate range (the first value of the uv coordinates).
     pub wrap_s: Wrapping,
     /// Determines how the texture is sampled outside the [0..1] t coordinate range (the second value of the uv coordinates).
@@ -36,7 +36,7 @@ impl Default for Texture2D {
             height: 1,
             min_filter: Interpolation::Linear,
             mag_filter: Interpolation::Linear,
-            mip_map_filter: Some(Interpolation::Linear),
+            mipmap: Some(Mipmap::default()),
             wrap_s: Wrapping::Repeat,
             wrap_t: Wrapping::Repeat,
         }
