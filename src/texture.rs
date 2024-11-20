@@ -158,4 +158,18 @@ impl TextureData {
             _ => {}
         };
     }
+
+    ///
+    /// Converts the texture data to color [TextureData::RgbU8] if the data is [TextureData::RU8] (assuming gray scale colors).
+    /// Does nothing if the data is any other data type.
+    ///
+    pub fn to_color(&mut self) {
+        match self {
+            TextureData::RU8(data) => {
+                *self =
+                    TextureData::RgbU8(data.iter().map(|color| [*color, *color, *color]).collect())
+            }
+            _ => {}
+        };
+    }
 }
