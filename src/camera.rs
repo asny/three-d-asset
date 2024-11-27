@@ -237,10 +237,11 @@ impl Camera {
     }
 
     ///
-    /// Specify the camera to use orthographic projection with the given height and depth.
+    /// Specify the camera to use orthographic projection with the given dimensions.
     /// The view frustum height is `+/- height/2`.
     /// The view frustum width is calculated as `height * viewport.width / viewport.height`.
     /// The view frustum depth is `z_near` to `z_far`.
+    /// All of the above values are scaled by the zoom factor which is one over the distance between the camera position and target.
     ///
     pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
         self.projection_type = ProjectionType::Orthographic { height };
