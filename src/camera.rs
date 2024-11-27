@@ -677,7 +677,7 @@ impl Camera {
     }
 
     ///
-    /// Moves the camera towards the given point by the amount delta while keeping the given minimum and maximum distance to the point.
+    /// Moves the camera towards the given point by the amount delta while keeping the given minimum and maximum distance to the camera target.
     /// Note that the camera target is also updated so that the view direction is the same.
     ///
     pub fn zoom_towards(
@@ -687,18 +687,18 @@ impl Camera {
         minimum_distance: f32,
         maximum_distance: f32,
     ) {
-        let distance = point.distance(self.position);
-        if distance > f32::EPSILON {
+        let view = self.view_direction();
+        let towards = (point - self.position).normalize();
+        let cos_angle = view.dot(towards);
+        if cos_angle.abs() > std::f32::EPSILON {
+            let distance = self.target.distance(self.position);
             let minimum_distance = minimum_distance.max(std::f32::EPSILON);
             let maximum_distance = maximum_distance.max(minimum_distance);
             let delta_clamped =
                 distance - (distance - delta).clamp(minimum_distance, maximum_distance);
-            let v = (point - self.position) * delta_clamped / distance;
-            self.set_view(
-                self.position + v,
-                self.target + v - v.project_on(self.view_direction()),
-                self.up,
-            );
+            let a = view * delta_clamped;
+            let b = towards * delta_clamped / cos_angle;
+            self.set_view(self.position + b, self.target + b - a, self.up);
         }
     }
 
@@ -707,7 +707,7 @@ impl Camera {
     ///
     pub fn set_zoom_factor(&mut self, zoom_factor: f32) {
         let zoom_factor = zoom_factor.max(std::f32::EPSILON);
-        let position = self.target + (self.position - self.target).normalize() / zoom_factor;
+        let position = self.target + self.view_direction() / zoom_factor;
         self.set_view(position, self.target, self.up);
     }
 
