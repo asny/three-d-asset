@@ -159,11 +159,6 @@ pub enum ProjectionType {
         /// The field of view angle in the vertical direction.
         field_of_view_y: Radians,
     },
-    /// General planar projection
-    Planar {
-        /// The field of view angle in the vertical direction.
-        field_of_view_y: Radians,
-    },
 }
 
 ///
@@ -223,24 +218,6 @@ impl Camera {
     }
 
     ///
-    /// New camera which projects the world with a general planar projection.
-    ///
-    pub fn new_planar(
-        viewport: Viewport,
-        position: Vec3,
-        target: Vec3,
-        up: Vec3,
-        field_of_view_y: impl Into<Radians>,
-        z_near: f32,
-        z_far: f32,
-    ) -> Self {
-        let mut camera = Camera::new(viewport);
-        camera.set_view(position, target, up);
-        camera.set_planar_projection(field_of_view_y, z_near, z_far);
-        camera
-    }
-
-    ///
     /// Specify the camera to use perspective projection with the given field of view in the y-direction and near and far plane.
     ///
     pub fn set_perspective_projection(
@@ -249,10 +226,6 @@ impl Camera {
         z_near: f32,
         z_far: f32,
     ) {
-        assert!(
-            z_near >= 0.0 || z_near < z_far,
-            "Wrong perspective camera parameters"
-        );
         self.z_near = z_near;
         self.z_far = z_far;
         let field_of_view_y = field_of_view_y.into();
@@ -264,46 +237,27 @@ impl Camera {
     }
 
     ///
-    /// Specify the camera to use orthographic projection with the given height and depth.
+    /// Specify the camera to use orthographic projection with the given dimensions.
     /// The view frustum height is `+/- height/2`.
     /// The view frustum width is calculated as `height * viewport.width / viewport.height`.
     /// The view frustum depth is `z_near` to `z_far`.
+    /// All of the above values are scaled by the zoom factor which is one over the distance between the camera position and target.
     ///
     pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
-        assert!(z_near < z_far, "Wrong orthographic camera parameters");
+        self.projection_type = ProjectionType::Orthographic { height };
         self.z_near = z_near;
         self.z_far = z_far;
+        let zoom = self.position.distance(self.target);
+        let height = zoom * height;
         let width = height * self.viewport.aspect();
-        self.projection_type = ProjectionType::Orthographic { height };
         self.projection = cgmath::ortho(
             -0.5 * width,
             0.5 * width,
             -0.5 * height,
             0.5 * height,
-            z_near,
-            z_far,
+            zoom * z_near,
+            zoom * z_far,
         );
-        self.update_screen2ray();
-        self.update_frustrum();
-    }
-
-    ///
-    /// Specify the camera to use planar projection with the given field of view in the y-direction and near and far plane.
-    /// This can be either a planar or perspective projection depending on the field of view provided, which is permitted to be zero or negative.
-    ///
-    pub fn set_planar_projection(
-        &mut self,
-        field_of_view_y: impl Into<Radians>,
-        z_near: f32,
-        z_far: f32,
-    ) {
-        assert!(z_near < z_far, "Wrong perspective camera parameters");
-        self.z_near = z_near;
-        self.z_far = z_far;
-        let field_of_view_y = field_of_view_y.into();
-        self.projection_type = ProjectionType::Planar { field_of_view_y };
-        self.projection = planar(field_of_view_y, self.viewport.aspect(), 2.0, z_near, z_far)
-            * Mat4::from_translation(vec3(0.0, 0.0, 1.0));
         self.update_screen2ray();
         self.update_frustrum();
     }
@@ -321,9 +275,6 @@ impl Camera {
                 }
                 ProjectionType::Perspective { field_of_view_y } => {
                     self.set_perspective_projection(field_of_view_y, self.z_near, self.z_far);
-                }
-                ProjectionType::Planar { field_of_view_y } => {
-                    self.set_planar_projection(field_of_view_y, self.z_near, self.z_far);
                 }
             }
             true
@@ -345,7 +296,9 @@ impl Camera {
             Point3::from_vec(self.target),
             self.up,
         );
-        self.view[3][3] *= position.distance(target);
+        if let ProjectionType::Orthographic { height } = self.projection_type {
+            self.set_orthographic_projection(height, self.z_near, self.z_far);
+        }
         self.update_screen2ray();
         self.update_frustrum();
     }
@@ -410,7 +363,7 @@ impl Camera {
     ///
     pub fn position_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
         match self.projection_type() {
-            ProjectionType::Orthographic { .. } | ProjectionType::Planar { .. } => {
+            ProjectionType::Orthographic { .. } => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.position_at_uv_coordinates(coords)
             }
@@ -423,10 +376,10 @@ impl Camera {
     ///
     pub fn position_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
-            ProjectionType::Orthographic { .. } | ProjectionType::Planar { .. } => {
+            ProjectionType::Orthographic { .. } => {
                 let coords = coords.into();
-                let screen_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0);
-                self.screen2ray.transform_point(screen_pos).to_vec()
+                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
+                (self.screen2ray * screen_pos).truncate()
             }
             ProjectionType::Perspective { .. } => self.position,
         }
@@ -438,7 +391,7 @@ impl Camera {
     pub fn view_direction_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => self.view_direction(),
-            ProjectionType::Perspective { .. } | ProjectionType::Planar { .. } => {
+            ProjectionType::Perspective { .. } => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.view_direction_at_uv_coordinates(coords)
             }
@@ -455,14 +408,6 @@ impl Camera {
                 let coords = coords.into();
                 let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
                 (self.screen2ray * screen_pos).truncate().normalize()
-            }
-            ProjectionType::Planar { .. } => {
-                let coords = coords.into();
-                let start_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -0.5);
-                let end_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, 0.5);
-                (self.screen2ray.transform_point(end_pos)
-                    - self.screen2ray.transform_point(start_pos))
-                .normalize()
             }
         }
     }
@@ -613,7 +558,6 @@ impl Camera {
 
     fn update_screen2ray(&mut self) {
         let mut v = self.view;
-        v /= v[3][3];
         if let ProjectionType::Perspective { .. } = self.projection_type {
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
@@ -751,14 +695,10 @@ impl Camera {
         minimum_distance: f32,
         maximum_distance: f32,
     ) {
-        let minimum_distance = minimum_distance.max(0.0);
-        assert!(
-            minimum_distance < maximum_distance,
-            "minimum_distance larger than maximum_distance"
-        );
-
         let distance = point.distance(self.position);
         if distance > f32::EPSILON {
+            let minimum_distance = minimum_distance.max(std::f32::EPSILON);
+            let maximum_distance = maximum_distance.max(minimum_distance);
             let delta_clamped =
                 distance - (distance - delta).clamp(minimum_distance, maximum_distance);
             let v = (point - self.position) * delta_clamped / distance;
@@ -767,6 +707,27 @@ impl Camera {
                 self.target + v - v.project_on(self.view_direction()),
                 self.up,
             );
+        }
+    }
+
+    ///
+    /// Sets the zoom factor of this camera, ie. the distance to the camera will be `1/zoom_factor`.
+    ///
+    pub fn set_zoom_factor(&mut self, zoom_factor: f32) {
+        let zoom_factor = zoom_factor.max(std::f32::EPSILON);
+        let position = self.target + (self.position - self.target).normalize() / zoom_factor;
+        self.set_view(position, self.target, self.up);
+    }
+
+    ///
+    /// The zoom factor for this camera, which is the same as one over the distance between the camera position and target.
+    ///
+    pub fn zoom_factor(&self) -> f32 {
+        let distance = self.target.distance(self.position);
+        if distance > f32::EPSILON {
+            1.0 / distance
+        } else {
+            0.0
         }
     }
 }
