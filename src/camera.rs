@@ -296,6 +296,9 @@ impl Camera {
             Point3::from_vec(self.target),
             self.up,
         );
+        if let ProjectionType::Orthographic { height } = self.projection_type {
+            self.set_orthographic_projection(height, self.z_near, self.z_far);
+        }
         self.update_screen2ray();
         self.update_frustrum();
     }
@@ -704,9 +707,6 @@ impl Camera {
                 self.target + v - v.project_on(self.view_direction()),
                 self.up,
             );
-            if let ProjectionType::Orthographic { height } = self.projection_type {
-                self.set_orthographic_projection(height, self.z_near, self.z_far);
-            }
         }
     }
 
@@ -717,10 +717,6 @@ impl Camera {
         let zoom_factor = zoom_factor.max(std::f32::EPSILON);
         let position = self.target + (self.position - self.target).normalize() / zoom_factor;
         self.set_view(position, self.target, self.up);
-
-        if let ProjectionType::Orthographic { height } = self.projection_type {
-            self.set_orthographic_projection(height, self.z_near, self.z_far);
-        }
     }
 
     ///
