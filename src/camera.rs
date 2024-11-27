@@ -708,4 +708,29 @@ impl Camera {
             }
         }
     }
+
+    ///
+    /// Sets the zoom factor of this camera, ie. the distance to the camera will be `1/zoom_factor`.
+    ///
+    pub fn set_zoom_factor(&mut self, zoom_factor: f32) {
+        let zoom_factor = zoom_factor.max(std::f32::EPSILON);
+        let position = self.target + (self.position - self.target).normalize() / zoom_factor;
+        self.set_view(position, self.target, self.up);
+
+        if let ProjectionType::Orthographic { height } = self.projection_type {
+            self.set_orthographic_projection(height, self.z_near, self.z_far);
+        }
+    }
+
+    ///
+    /// The zoom factor for this camera, which is the same as one over the distance between the camera position and target.
+    ///
+    pub fn zoom_factor(&self) -> f32 {
+        let distance = self.target.distance(self.position);
+        if distance > f32::EPSILON {
+            1.0 / distance
+        } else {
+            0.0
+        }
+    }
 }
