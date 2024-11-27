@@ -243,17 +243,19 @@ impl Camera {
     /// The view frustum depth is `z_near` to `z_far`.
     ///
     pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
+        self.projection_type = ProjectionType::Orthographic { height };
         self.z_near = z_near;
         self.z_far = z_far;
+        let zoom = self.position.distance(self.target);
+        let height = zoom * height;
         let width = height * self.viewport.aspect();
-        self.projection_type = ProjectionType::Orthographic { height };
         self.projection = cgmath::ortho(
             -0.5 * width,
             0.5 * width,
             -0.5 * height,
             0.5 * height,
-            z_near,
-            z_far,
+            zoom * z_near,
+            zoom * z_far,
         );
         self.update_screen2ray();
         self.update_frustrum();
@@ -701,6 +703,9 @@ impl Camera {
                 self.target + v - v.project_on(self.view_direction()),
                 self.up,
             );
+            if let ProjectionType::Orthographic { height } = self.projection_type {
+                self.set_orthographic_projection(height, self.z_near, self.z_far);
+            }
         }
     }
 }
