@@ -241,7 +241,6 @@ pub struct Camera {
     view: Mat4,
     projection: Mat4,
     screen2ray: Mat4,
-    frustrum: [Vec4; 6],
 }
 
 impl Camera {
@@ -297,7 +296,6 @@ impl Camera {
         self.projection =
             cgmath::perspective(field_of_view_y, self.viewport.aspect(), z_near, z_far);
         self.update_screen2ray();
-        self.update_frustrum();
     }
 
     ///
@@ -323,7 +321,6 @@ impl Camera {
             zoom * z_far,
         );
         self.update_screen2ray();
-        self.update_frustrum();
     }
 
     ///
@@ -364,7 +361,6 @@ impl Camera {
             self.set_orthographic_projection(height, self.z_near, self.z_far);
         }
         self.update_screen2ray();
-        self.update_frustrum();
     }
 
     ///
@@ -375,7 +371,6 @@ impl Camera {
         self.view[1][1] = -self.view[1][1];
         self.view[1][2] = -self.view[1][2];
         self.update_screen2ray();
-        self.update_frustrum();
     }
 
     /// Returns the [Frustum] for this camera.
@@ -571,7 +566,6 @@ impl Camera {
             projection_type: ProjectionType::Orthographic { height: 1.0 },
             z_near: 0.0,
             z_far: 0.0,
-            frustrum: [vec4(0.0, 0.0, 0.0, 0.0); 6],
             position: vec3(0.0, 0.0, 5.0),
             target: vec3(0.0, 0.0, 0.0),
             up: vec3(0.0, 1.0, 0.0),
@@ -589,18 +583,6 @@ impl Camera {
         self.screen2ray = (self.projection * v)
             .invert()
             .unwrap_or_else(|| Mat4::identity());
-    }
-
-    fn update_frustrum(&mut self) {
-        let m = self.projection * self.view;
-        self.frustrum = [
-            vec4(m.x.w + m.x.x, m.y.w + m.y.x, m.z.w + m.z.x, m.w.w + m.w.x),
-            vec4(m.x.w - m.x.x, m.y.w - m.y.x, m.z.w - m.z.x, m.w.w - m.w.x),
-            vec4(m.x.w + m.x.y, m.y.w + m.y.y, m.z.w + m.z.y, m.w.w + m.w.y),
-            vec4(m.x.w - m.x.y, m.y.w - m.y.y, m.z.w - m.z.y, m.w.w - m.w.y),
-            vec4(m.x.w + m.x.z, m.y.w + m.y.z, m.z.w + m.z.z, m.w.w + m.w.z),
-            vec4(m.x.w - m.x.z, m.y.w - m.y.z, m.z.w - m.z.z, m.w.w - m.w.z),
-        ];
     }
 
     ///
