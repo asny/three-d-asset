@@ -363,16 +363,6 @@ impl Camera {
         self.update_screen2ray();
     }
 
-    ///
-    /// Change the camera view such that it is mirrored in the xz-plane.
-    ///
-    pub fn mirror_in_xz_plane(&mut self) {
-        self.view[1][0] = -self.view[1][0];
-        self.view[1][1] = -self.view[1][1];
-        self.view[1][2] = -self.view[1][2];
-        self.update_screen2ray();
-    }
-
     /// Returns the [Frustum] for this camera.
     pub fn frustum(&self) -> Frustum {
         Frustum::new(self.projection() * self.view())
