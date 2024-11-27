@@ -144,6 +144,70 @@ impl Viewport {
 }
 
 ///
+/// The view frustum which can be used for frustum culling.
+///
+pub struct Frustum([Vec4; 6]);
+
+impl Frustum {
+    /// Computes the frustum for the given view-projection matrix.
+    pub fn new(view_projection: Mat4) -> Self {
+        let m = view_projection;
+        Self([
+            vec4(m.x.w + m.x.x, m.y.w + m.y.x, m.z.w + m.z.x, m.w.w + m.w.x),
+            vec4(m.x.w - m.x.x, m.y.w - m.y.x, m.z.w - m.z.x, m.w.w - m.w.x),
+            vec4(m.x.w + m.x.y, m.y.w + m.y.y, m.z.w + m.z.y, m.w.w + m.w.y),
+            vec4(m.x.w - m.x.y, m.y.w - m.y.y, m.z.w - m.z.y, m.w.w - m.w.y),
+            vec4(m.x.w + m.x.z, m.y.w + m.y.z, m.z.w + m.z.z, m.w.w + m.w.z),
+            vec4(m.x.w - m.x.z, m.y.w - m.y.z, m.z.w - m.z.z, m.w.w - m.w.z),
+        ])
+    }
+
+    /// Used for frustum culling. Returns false if the entire bounding box is outside of the frustum.
+    pub fn contains(&self, aabb: AxisAlignedBoundingBox) -> bool {
+        if aabb.is_infinite() {
+            return true;
+        }
+        if aabb.is_empty() {
+            return false;
+        }
+        // check box outside/inside of frustum
+        for i in 0..6 {
+            let mut out = 0;
+            if self.0[i].dot(vec4(aabb.min().x, aabb.min().y, aabb.min().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.max().x, aabb.min().y, aabb.min().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.min().x, aabb.max().y, aabb.min().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.max().x, aabb.max().y, aabb.min().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.min().x, aabb.min().y, aabb.max().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.max().x, aabb.min().y, aabb.max().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.min().x, aabb.max().y, aabb.max().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if self.0[i].dot(vec4(aabb.max().x, aabb.max().y, aabb.max().z, 1.0)) < 0.0 {
+                out += 1
+            };
+            if out == 8 {
+                return false;
+            }
+        }
+        // TODO: Test the frustum corners against the box planes (http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm)
+
+        true
+    }
+}
+
+///
 /// The type of projection used by a camera (orthographic or perspective) including parameters.
 ///
 #[derive(Clone, Debug)]
@@ -314,48 +378,9 @@ impl Camera {
         self.update_frustrum();
     }
 
-    ///
-    /// Returns whether or not the given bounding box is within the camera frustum.
-    /// It returns false if it is fully outside and true if it is inside or intersects.
-    ///
-    pub fn in_frustum(&self, aabb: AxisAlignedBoundingBox) -> bool {
-        if aabb.is_infinite() {
-            return true;
-        }
-        // check box outside/inside of frustum
-        for i in 0..6 {
-            let mut out = 0;
-            if self.frustrum[i].dot(vec4(aabb.min().x, aabb.min().y, aabb.min().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.max().x, aabb.min().y, aabb.min().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.min().x, aabb.max().y, aabb.min().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.max().x, aabb.max().y, aabb.min().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.min().x, aabb.min().y, aabb.max().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.max().x, aabb.min().y, aabb.max().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.min().x, aabb.max().y, aabb.max().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if self.frustrum[i].dot(vec4(aabb.max().x, aabb.max().y, aabb.max().z, 1.0)) < 0.0 {
-                out += 1
-            };
-            if out == 8 {
-                return false;
-            }
-        }
-        // TODO: Test the frustum corners against the box planes (http://www.iquilezles.org/www/articles/frustumcorrect/frustumcorrect.htm)
-
-        true
+    /// Returns the [Frustum] for this camera.
+    pub fn frustum(&self) -> Frustum {
+        Frustum::new(self.projection() * self.view())
     }
 
     ///
