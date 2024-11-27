@@ -226,10 +226,6 @@ impl Camera {
         z_near: f32,
         z_far: f32,
     ) {
-        assert!(
-            z_near >= 0.0 || z_near < z_far,
-            "Wrong perspective camera parameters"
-        );
         self.z_near = z_near;
         self.z_far = z_far;
         let field_of_view_y = field_of_view_y.into();
@@ -247,7 +243,6 @@ impl Camera {
     /// The view frustum depth is `z_near` to `z_far`.
     ///
     pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
-        assert!(z_near < z_far, "Wrong orthographic camera parameters");
         self.z_near = z_near;
         self.z_far = z_far;
         let width = height * self.viewport.aspect();
@@ -694,14 +689,10 @@ impl Camera {
         minimum_distance: f32,
         maximum_distance: f32,
     ) {
-        let minimum_distance = minimum_distance.max(0.0);
-        assert!(
-            minimum_distance < maximum_distance,
-            "minimum_distance larger than maximum_distance"
-        );
-
         let distance = point.distance(self.position);
         if distance > f32::EPSILON {
+            let minimum_distance = minimum_distance.max(std::f32::EPSILON);
+            let maximum_distance = maximum_distance.max(minimum_distance);
             let delta_clamped =
                 distance - (distance - delta).clamp(minimum_distance, maximum_distance);
             let v = (point - self.position) * delta_clamped / distance;
