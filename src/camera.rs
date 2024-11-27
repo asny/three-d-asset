@@ -240,7 +240,6 @@ pub struct Camera {
     up: Vec3,
     view: Mat4,
     projection: Mat4,
-    screen2ray: Mat4,
 }
 
 impl Camera {
@@ -295,7 +294,6 @@ impl Camera {
         self.projection_type = ProjectionType::Perspective { field_of_view_y };
         self.projection =
             cgmath::perspective(field_of_view_y, self.viewport.aspect(), z_near, z_far);
-        self.update_screen2ray();
     }
 
     ///
@@ -320,7 +318,6 @@ impl Camera {
             zoom * z_near,
             zoom * z_far,
         );
-        self.update_screen2ray();
     }
 
     ///
@@ -360,7 +357,6 @@ impl Camera {
         if let ProjectionType::Orthographic { height } = self.projection_type {
             self.set_orthographic_projection(height, self.z_near, self.z_far);
         }
-        self.update_screen2ray();
     }
 
     /// Returns the [Frustum] for this camera.
@@ -389,7 +385,7 @@ impl Camera {
             ProjectionType::Orthographic { .. } => {
                 let coords = coords.into();
                 let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
-                (self.screen2ray * screen_pos).truncate()
+                (self.screen2ray() * screen_pos).truncate()
             }
             ProjectionType::Perspective { .. } => self.position,
         }
@@ -417,7 +413,7 @@ impl Camera {
             ProjectionType::Perspective { .. } => {
                 let coords = coords.into();
                 let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
-                (self.screen2ray * screen_pos).truncate().normalize()
+                (self.screen2ray() * screen_pos).truncate().normalize()
             }
         }
     }
@@ -561,18 +557,17 @@ impl Camera {
             up: vec3(0.0, 1.0, 0.0),
             view: Mat4::identity(),
             projection: Mat4::identity(),
-            screen2ray: Mat4::identity(),
         }
     }
 
-    fn update_screen2ray(&mut self) {
+    fn screen2ray(&self) -> Mat4 {
         let mut v = self.view;
         if let ProjectionType::Perspective { .. } = self.projection_type {
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
-        self.screen2ray = (self.projection * v)
+        (self.projection * v)
             .invert()
-            .unwrap_or_else(|| Mat4::identity());
+            .unwrap_or_else(|| Mat4::identity())
     }
 
     ///
