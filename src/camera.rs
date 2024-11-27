@@ -298,7 +298,6 @@ impl Camera {
             Point3::from_vec(self.target),
             self.up,
         );
-        self.view[3][3] *= position.distance(target);
         self.update_screen2ray();
         self.update_frustrum();
     }
@@ -558,7 +557,6 @@ impl Camera {
 
     fn update_screen2ray(&mut self) {
         let mut v = self.view;
-        v /= v[3][3];
         if let ProjectionType::Perspective { .. } = self.projection_type {
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
