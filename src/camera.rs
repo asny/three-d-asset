@@ -315,8 +315,8 @@ impl Camera {
             0.5 * width,
             -0.5 * height,
             0.5 * height,
-            zoom * z_near,
-            zoom * z_far,
+            z_near,
+            z_far,
         );
     }
 
