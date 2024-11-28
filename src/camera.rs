@@ -369,7 +369,7 @@ impl Camera {
         } else if focal > 0.0 && z_far > focal {
             z_far = focal - 0.001;
         }
-        self.projection = cgmath::planar(
+        self.projection = planar(
             field_of_view_y,
             self.viewport.aspect(),
             height,
