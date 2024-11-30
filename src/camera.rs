@@ -353,7 +353,6 @@ impl Camera {
         mut z_near: f32,
         mut z_far: f32,
     ) {
-        assert!(z_near < z_far, "Wrong perspective camera parameters");
         self.z_near = z_near;
         self.z_far = z_far;
         let field_of_view_y = field_of_view_y.into();
