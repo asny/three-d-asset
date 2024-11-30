@@ -356,9 +356,9 @@ impl Camera {
         self.z_near = z_near;
         self.z_far = z_far;
         let field_of_view_y = field_of_view_y.into();
+        self.projection_type = ProjectionType::Planar { field_of_view_y };
         let depth = self.position.distance(self.target);
         let height = 2.0 * depth;
-        self.projection_type = ProjectionType::Planar { field_of_view_y };
         let focal = -Rad::cot(field_of_view_y / 2.0) * depth;
         z_near -= depth;
         z_far -= depth;
