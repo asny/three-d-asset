@@ -212,6 +212,7 @@ impl Frustum {
 ///
 /// A general 3D to 2D projection, as used by [`Camera`](Camera::set_custom_projection). Custom projections should implement this trait.
 ///
+#[cfg_attr(feature = "serde", typetag::serde)]
 pub trait Projection: DynClone + Any + Debug {
     ///
     /// Generates a projection matrix from the provided zoom factor (if required), aspect ratio, and near/far plane distances
@@ -275,6 +276,7 @@ pub enum ProjectionType {
     },
 }
 
+#[cfg_attr(feature = "serde", typetag::serde)]
 impl Projection for ProjectionType {
     fn generate(&self, zoom: Option<f32>, aspect: f32, z_near: f32, z_far: f32) -> Mat4 {
         match self {
