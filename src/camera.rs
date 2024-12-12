@@ -1,4 +1,6 @@
 pub use crate::prelude::*;
+use dyn_clone::DynClone;
+use std::{any::Any, fmt::Debug};
 
 /// UV coordinates which must be between `(0, 0)` indicating the bottom left corner
 /// and `(1, 1)` indicating the top right corner.
@@ -208,6 +210,49 @@ impl Frustum {
 }
 
 ///
+/// A general 3D to 2D projection, as used by [`Camera`](Camera::set_custom_projection). Custom projections should implement this trait.
+///
+pub trait Projection: DynClone + Any + Debug {
+    ///
+    /// Generates a projection matrix from the provided zoom factor (if required), aspect ratio, and near/far plane distances
+    ///
+    fn generate(&self, zoom: Option<f32>, aspect: f32, z_near: f32, z_far: f32) -> Mat4;
+
+    ///
+    /// Specifies if this projection depends on the zoom factor.
+    /// This controls if the zoom factor is provided to [`generate`](Projection::generate) and how frequently the projection is recomputed.
+    ///
+    fn requires_zoom(&self) -> bool;
+
+    ///
+    /// Gets the necessary information to compute the view position from a UvCoordinate. See [`ProjectionViewResult`] for more info.
+    ///
+    fn view_pos(&self, _camera: &Camera) -> ProjectionViewResult {
+        ProjectionViewResult::Default
+    }
+
+    ///
+    /// Gets the necessary information to compute the view direction from a UvCoordinate. See [`ProjectionViewResult`] for more info
+    ///
+    fn view_dir(&self, _camera: &Camera) -> ProjectionViewResult {
+        ProjectionViewResult::Default
+    }
+}
+
+// This is effectively `impl Clone for dyn Projection`
+dyn_clone::clone_trait_object!(Projection);
+
+/// Specifies how to compute a [`Projection`] view result (position or direction) from a [`UvCoordinate`]
+pub enum ProjectionViewResult {
+    /// Use the default algorithm, which should work for any projection but may be inefficient
+    Default,
+    /// Use a constant value (can still be based camera parameters, but does not depend on the `UvCoordinate`)
+    Const(Vec3),
+    /// Use a custom function
+    Custom(fn(&Camera, UvCoordinate) -> Vec3),
+}
+
+///
 /// The type of projection used by a camera (orthographic or perspective) including parameters.
 ///
 #[derive(Clone, Debug)]
@@ -223,6 +268,72 @@ pub enum ProjectionType {
         /// The field of view angle in the vertical direction.
         field_of_view_y: Radians,
     },
+    /// Custom projection
+    Custom {
+        /// The underlying projection implementation.
+        projection: Box<dyn Projection>,
+    },
+}
+
+impl Projection for ProjectionType {
+    fn generate(&self, zoom: Option<f32>, aspect: f32, z_near: f32, z_far: f32) -> Mat4 {
+        match self {
+            ProjectionType::Orthographic { height } => {
+                let zoom = zoom.unwrap();
+                let height = zoom * height;
+                let width = height * aspect;
+                cgmath::ortho(
+                    -0.5 * width,
+                    0.5 * width,
+                    -0.5 * height,
+                    0.5 * height,
+                    z_near,
+                    z_far,
+                )
+            }
+            ProjectionType::Perspective { field_of_view_y } => {
+                cgmath::perspective(*field_of_view_y, aspect, z_near, z_far)
+            }
+            ProjectionType::Custom { projection } => {
+                projection.generate(zoom, aspect, z_near, z_far)
+            }
+        }
+    }
+
+    fn requires_zoom(&self) -> bool {
+        match self {
+            ProjectionType::Orthographic { .. } => true,
+            ProjectionType::Perspective { .. } => false,
+            ProjectionType::Custom { projection } => projection.requires_zoom(),
+        }
+    }
+
+    fn view_dir(&self, camera: &Camera) -> ProjectionViewResult {
+        match self {
+            ProjectionType::Orthographic { .. } => {
+                ProjectionViewResult::Const(camera.view_direction())
+            }
+            ProjectionType::Perspective { .. } => ProjectionViewResult::Custom(|camera, coords| {
+                let mut v = camera.view;
+                v[3] = vec4(0.0, 0.0, 0.0, 1.0);
+                let screen2ray = (camera.projection * v)
+                    .invert()
+                    .unwrap_or_else(|| Mat4::identity());
+
+                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
+                (screen2ray * screen_pos).truncate().normalize()
+            }),
+            ProjectionType::Custom { projection } => projection.view_dir(camera),
+        }
+    }
+
+    fn view_pos(&self, camera: &Camera) -> ProjectionViewResult {
+        match self {
+            ProjectionType::Orthographic { .. } => ProjectionViewResult::Default,
+            ProjectionType::Perspective { .. } => ProjectionViewResult::Const(camera.position()),
+            ProjectionType::Custom { projection } => projection.view_pos(camera),
+        }
+    }
 }
 
 ///
@@ -280,6 +391,24 @@ impl Camera {
     }
 
     ///
+    /// New camera which projects the world with a custom projection.
+    ///
+    pub fn new_custom(
+        viewport: Viewport,
+        position: Vec3,
+        target: Vec3,
+        up: Vec3,
+        projection: impl Projection + 'static,
+        z_near: f32,
+        z_far: f32,
+    ) -> Self {
+        let mut camera = Camera::new(viewport);
+        camera.set_view(position, target, up);
+        camera.set_custom_projection(projection, z_near, z_far);
+        camera
+    }
+
+    ///
     /// Specify the camera to use perspective projection with the given field of view in the y-direction and near and far plane.
     ///
     pub fn set_perspective_projection(
@@ -293,7 +422,8 @@ impl Camera {
         let field_of_view_y = field_of_view_y.into();
         self.projection_type = ProjectionType::Perspective { field_of_view_y };
         self.projection =
-            cgmath::perspective(field_of_view_y, self.viewport.aspect(), z_near, z_far);
+            self.projection_type
+                .generate(None, self.viewport().aspect(), z_near, z_far);
     }
 
     ///
@@ -304,20 +434,40 @@ impl Camera {
     /// All of the above values are scaled by the zoom factor which is one over the distance between the camera position and target.
     ///
     pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
-        self.projection_type = ProjectionType::Orthographic { height };
         self.z_near = z_near;
         self.z_far = z_far;
-        let zoom = self.position.distance(self.target);
-        let height = zoom * height;
-        let width = height * self.viewport.aspect();
-        self.projection = cgmath::ortho(
-            -0.5 * width,
-            0.5 * width,
-            -0.5 * height,
-            0.5 * height,
+        self.projection_type = ProjectionType::Orthographic { height };
+        self.projection = self.projection_type.generate(
+            Some(self.position.distance(self.target)),
+            self.viewport.aspect(),
             z_near,
             z_far,
         );
+    }
+
+    ///
+    /// Specify the camera to use a custom projection.
+    /// The projection is wrapped as a custom ProjectionType.
+    ///
+    pub fn set_custom_projection(
+        &mut self,
+        projection: impl Projection + 'static,
+        z_near: f32,
+        z_far: f32,
+    ) {
+        self.z_near = z_near;
+        self.z_far = z_far;
+        self.projection_type = ProjectionType::Custom {
+            projection: Box::new(projection),
+        };
+        self.projection = self.projection_type.generate(
+            self.projection_type
+                .requires_zoom()
+                .then(|| self.position.distance(self.target)),
+            self.viewport.aspect(),
+            z_near,
+            z_far,
+        )
     }
 
     ///
@@ -327,14 +477,14 @@ impl Camera {
     pub fn set_viewport(&mut self, viewport: Viewport) -> bool {
         if self.viewport != viewport {
             self.viewport = viewport;
-            match self.projection_type {
-                ProjectionType::Orthographic { height } => {
-                    self.set_orthographic_projection(height, self.z_near, self.z_far);
-                }
-                ProjectionType::Perspective { field_of_view_y } => {
-                    self.set_perspective_projection(field_of_view_y, self.z_near, self.z_far);
-                }
-            }
+            self.projection = self.projection_type.generate(
+                self.projection_type
+                    .requires_zoom()
+                    .then(|| self.position.distance(self.target)),
+                self.viewport.aspect(),
+                self.z_near,
+                self.z_far,
+            );
             true
         } else {
             false
@@ -354,8 +504,13 @@ impl Camera {
             Point3::from_vec(self.target),
             self.up,
         );
-        if let ProjectionType::Orthographic { height } = self.projection_type {
-            self.set_orthographic_projection(height, self.z_near, self.z_far);
+        if self.projection_type.requires_zoom() {
+            self.projection = self.projection_type.generate(
+                Some(self.position.distance(self.target)),
+                self.viewport.aspect(),
+                self.z_near,
+                self.z_far,
+            );
         }
     }
 
@@ -368,12 +523,12 @@ impl Camera {
     /// Returns the 3D position at the given pixel coordinate.
     ///
     pub fn position_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
-        match self.projection_type() {
-            ProjectionType::Orthographic { .. } => {
+        match self.projection_type.view_pos(self) {
+            ProjectionViewResult::Const(pos) => pos,
+            ProjectionViewResult::Default | ProjectionViewResult::Custom(..) => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.position_at_uv_coordinates(coords)
             }
-            ProjectionType::Perspective { .. } => self.position,
         }
     }
 
@@ -381,13 +536,14 @@ impl Camera {
     /// Returns the 3D position at the given uv coordinate of the viewport.
     ///
     pub fn position_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
-        match self.projection_type() {
-            ProjectionType::Orthographic { .. } => {
+        match self.projection_type.view_pos(self) {
+            ProjectionViewResult::Const(pos) => pos,
+            ProjectionViewResult::Default => {
                 let coords = coords.into();
-                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
-                (self.screen2ray() * screen_pos).truncate()
+                let screen_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0);
+                self.screen2ray().transform_point(screen_pos).to_vec()
             }
-            ProjectionType::Perspective { .. } => self.position,
+            ProjectionViewResult::Custom(generator) => generator(self, coords.into()),
         }
     }
 
@@ -395,9 +551,9 @@ impl Camera {
     /// Returns the 3D view direction at the given pixel coordinate.
     ///
     pub fn view_direction_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
-        match self.projection_type() {
-            ProjectionType::Orthographic { .. } => self.view_direction(),
-            ProjectionType::Perspective { .. } => {
+        match self.projection_type.view_dir(self) {
+            ProjectionViewResult::Const(dir) => dir,
+            ProjectionViewResult::Default | ProjectionViewResult::Custom(..) => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.view_direction_at_uv_coordinates(coords)
             }
@@ -408,13 +564,17 @@ impl Camera {
     /// Returns the 3D view direction at the given uv coordinate of the viewport.
     ///
     pub fn view_direction_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
-        match self.projection_type() {
-            ProjectionType::Orthographic { .. } => self.view_direction(),
-            ProjectionType::Perspective { .. } => {
+        match self.projection_type.view_dir(self) {
+            ProjectionViewResult::Const(pos) => pos,
+            ProjectionViewResult::Default => {
                 let coords = coords.into();
-                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
-                (self.screen2ray() * screen_pos).truncate().normalize()
+                let screen2ray = self.screen2ray();
+                let start_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -0.5);
+                let end_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, 0.5);
+                (screen2ray.transform_point(end_pos) - screen2ray.transform_point(start_pos))
+                    .normalize()
             }
+            ProjectionViewResult::Custom(generator) => generator(self, coords.into()),
         }
     }
 
@@ -462,10 +622,11 @@ impl Camera {
     }
 
     ///
-    /// Returns the type of projection (orthographic or perspective) including parameters.
+    /// Returns the type of projection (orthographic, perspective, or a custom type), including parameters.
+    /// Use [Any] to safely downcast a custom type to a specific projection type.
     ///
-    pub fn projection_type(&self) -> &ProjectionType {
-        &self.projection_type
+    pub fn projection_type(&self) -> ProjectionType {
+        self.projection_type.clone()
     }
 
     ///
@@ -561,11 +722,7 @@ impl Camera {
     }
 
     fn screen2ray(&self) -> Mat4 {
-        let mut v = self.view;
-        if let ProjectionType::Perspective { .. } = self.projection_type {
-            v[3] = vec4(0.0, 0.0, 0.0, 1.0);
-        }
-        (self.projection * v)
+        (self.projection * self.view)
             .invert()
             .unwrap_or_else(|| Mat4::identity())
     }
