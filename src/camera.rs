@@ -223,6 +223,11 @@ pub enum ProjectionType {
         /// The field of view angle in the vertical direction.
         field_of_view_y: Radians,
     },
+    /// General planar projection
+    Planar {
+        /// The field of view angle in the vertical direction.
+        field_of_view_y: Radians,
+    },
 }
 
 ///
@@ -280,6 +285,24 @@ impl Camera {
     }
 
     ///
+    /// New camera which projects the world with a general planar projection.
+    ///
+    pub fn new_planar(
+        viewport: Viewport,
+        position: Vec3,
+        target: Vec3,
+        up: Vec3,
+        field_of_view_y: impl Into<Radians>,
+        z_near: f32,
+        z_far: f32,
+    ) -> Self {
+        let mut camera = Camera::new(viewport);
+        camera.set_view(position, target, up);
+        camera.set_planar_projection(field_of_view_y, z_near, z_far);
+        camera
+    }
+
+    ///
     /// Specify the camera to use perspective projection with the given field of view in the y-direction and near and far plane.
     ///
     pub fn set_perspective_projection(
@@ -321,6 +344,40 @@ impl Camera {
     }
 
     ///
+    /// Specify the camera to use planar projection with the given field of view in the y-direction and near and far plane.
+    /// This can be either a planar or perspective projection depending on the field of view provided, which is permitted to be zero or negative.
+    ///
+    pub fn set_planar_projection(
+        &mut self,
+        field_of_view_y: impl Into<Radians>,
+        mut z_near: f32,
+        mut z_far: f32,
+    ) {
+        self.z_near = z_near;
+        self.z_far = z_far;
+        let field_of_view_y = field_of_view_y.into();
+        self.projection_type = ProjectionType::Planar { field_of_view_y };
+        let depth = self.position.distance(self.target);
+        let height = 2.0 * depth;
+        let focal = -Rad::cot(field_of_view_y / 2.0) * depth;
+        z_near -= depth;
+        z_far -= depth;
+        // Required to ensure near/far plane does not cross focal point when at close zoom levels
+        if focal < 0.0 && z_near < focal {
+            z_near = focal + 0.001;
+        } else if focal > 0.0 && z_far > focal {
+            z_far = focal - 0.001;
+        }
+        self.projection = planar(
+            field_of_view_y,
+            self.viewport.aspect(),
+            height,
+            z_near,
+            z_far,
+        ) * Mat4::from_translation(vec3(0.0, 0.0, depth));
+    }
+
+    ///
     /// Set the current viewport.
     /// Returns whether or not the viewport actually changed.
     ///
@@ -333,6 +390,9 @@ impl Camera {
                 }
                 ProjectionType::Perspective { field_of_view_y } => {
                     self.set_perspective_projection(field_of_view_y, self.z_near, self.z_far);
+                }
+                ProjectionType::Planar { field_of_view_y } => {
+                    self.set_planar_projection(field_of_view_y, self.z_near, self.z_far);
                 }
             }
             true
@@ -354,9 +414,15 @@ impl Camera {
             Point3::from_vec(self.target),
             self.up,
         );
-        if let ProjectionType::Orthographic { height } = self.projection_type {
-            self.set_orthographic_projection(height, self.z_near, self.z_far);
-        }
+        match self.projection_type {
+            ProjectionType::Orthographic { height } => {
+                self.set_orthographic_projection(height, self.z_near, self.z_far)
+            }
+            ProjectionType::Planar { field_of_view_y } => {
+                self.set_planar_projection(field_of_view_y, self.z_near, self.z_far)
+            }
+            _ => {}
+        };
     }
 
     /// Returns the [Frustum] for this camera.
@@ -369,7 +435,7 @@ impl Camera {
     ///
     pub fn position_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
         match self.projection_type() {
-            ProjectionType::Orthographic { .. } => {
+            ProjectionType::Orthographic { .. } | ProjectionType::Planar { .. } => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.position_at_uv_coordinates(coords)
             }
@@ -382,10 +448,10 @@ impl Camera {
     ///
     pub fn position_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
-            ProjectionType::Orthographic { .. } => {
+            ProjectionType::Orthographic { .. } | ProjectionType::Planar { .. } => {
                 let coords = coords.into();
-                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
-                (self.screen2ray() * screen_pos).truncate()
+                let screen_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0);
+                self.screen2ray().transform_point(screen_pos).to_vec()
             }
             ProjectionType::Perspective { .. } => self.position,
         }
@@ -397,7 +463,7 @@ impl Camera {
     pub fn view_direction_at_pixel(&self, pixel: impl Into<PixelPoint>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => self.view_direction(),
-            ProjectionType::Perspective { .. } => {
+            ProjectionType::Perspective { .. } | ProjectionType::Planar { .. } => {
                 let coords = self.uv_coordinates_at_pixel(pixel);
                 self.view_direction_at_uv_coordinates(coords)
             }
@@ -414,6 +480,14 @@ impl Camera {
                 let coords = coords.into();
                 let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
                 (self.screen2ray() * screen_pos).truncate().normalize()
+            }
+            ProjectionType::Planar { .. } => {
+                let coords = coords.into();
+                let start_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -0.5);
+                let end_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, 0.5);
+                (self.screen2ray().transform_point(end_pos)
+                    - self.screen2ray().transform_point(start_pos))
+                .normalize()
             }
         }
     }
