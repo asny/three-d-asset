@@ -384,8 +384,9 @@ impl Camera {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => {
                 let coords = coords.into();
-                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, -1.0, 1.);
-                (self.screen2ray() * screen_pos).truncate()
+                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0.0, 1.);
+                let p = (self.screen2ray() * screen_pos).truncate();
+                p + (self.position - p).project_on(self.view_direction()) // Project onto the image plane
             }
             ProjectionType::Perspective { .. } => self.position,
         }
