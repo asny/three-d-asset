@@ -708,7 +708,7 @@ impl Camera {
     ///
     pub fn set_zoom_factor(&mut self, zoom_factor: f32) {
         let zoom_factor = zoom_factor.max(std::f32::EPSILON);
-        let position = self.target + self.view_direction() / zoom_factor;
+        let position = self.target - self.view_direction() / zoom_factor;
         self.set_view(position, self.target, self.up);
     }
 
