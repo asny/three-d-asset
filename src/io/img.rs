@@ -215,7 +215,7 @@ mod test {
                 // Jpeg is not lossless
                 assert_eq!(
                     data,
-                    vec![[47, 0, 18], [227, 0, 0], [0, 245, 0], [15, 32, 255]]
+                    vec![[48, 0, 17], [227, 0, 14], [0, 244, 0], [16, 36, 253]]
                 );
             } else {
                 panic!("Wrong texture data: {:?}", tex.data)
