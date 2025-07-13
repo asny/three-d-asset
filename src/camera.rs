@@ -240,6 +240,7 @@ pub struct Camera {
     projection_type: ProjectionType,
     z_near: f32,
     z_far: f32,
+    zoom_relative_depth: bool,
     position: Vec3,
     target: Vec3,
     up: Vec3,
@@ -259,10 +260,11 @@ impl Camera {
         height: f32,
         z_near: f32,
         z_far: f32,
+        zoom_relative_depth: bool,
     ) -> Self {
         let mut camera = Camera::new(viewport);
         camera.set_view(position, target, up);
-        camera.set_orthographic_projection(height, z_near, z_far);
+        camera.set_orthographic_projection(height, z_near, z_far, zoom_relative_depth);
         camera
     }
 
@@ -277,15 +279,17 @@ impl Camera {
         field_of_view_y: impl Into<Radians>,
         z_near: f32,
         z_far: f32,
+        zoom_relative_depth: bool,
     ) -> Self {
         let mut camera = Camera::new(viewport);
         camera.set_view(position, target, up);
-        camera.set_perspective_projection(field_of_view_y, z_near, z_far);
+        camera.set_perspective_projection(field_of_view_y, z_near, z_far, zoom_relative_depth);
         camera
     }
 
     ///
     /// New camera which projects the world with a general planar projection.
+    /// This is best used with the relative depth unit if zooming is allowed.
     ///
     pub fn new_planar(
         viewport: Viewport,
@@ -295,10 +299,11 @@ impl Camera {
         field_of_view_y: impl Into<Radians>,
         z_near: f32,
         z_far: f32,
+        zoom_relative_depth: bool,
     ) -> Self {
         let mut camera = Camera::new(viewport);
         camera.set_view(position, target, up);
-        camera.set_planar_projection(field_of_view_y, z_near, z_far);
+        camera.set_planar_projection(field_of_view_y, z_near, z_far, zoom_relative_depth);
         camera
     }
 
@@ -308,13 +313,20 @@ impl Camera {
     pub fn set_perspective_projection(
         &mut self,
         field_of_view_y: impl Into<Radians>,
-        z_near: f32,
-        z_far: f32,
+        mut z_near: f32,
+        mut z_far: f32,
+        zoom_relative_depth: bool,
     ) {
         self.z_near = z_near;
         self.z_far = z_far;
+        self.zoom_relative_depth = zoom_relative_depth;
         let field_of_view_y = field_of_view_y.into();
         self.projection_type = ProjectionType::Perspective { field_of_view_y };
+        if zoom_relative_depth {
+            let zoom = self.position.distance(self.target);
+            z_near *= zoom;
+            z_far *= zoom;
+        }
         self.projection =
             cgmath::perspective(field_of_view_y, self.viewport.aspect(), z_near, z_far);
     }
@@ -326,13 +338,24 @@ impl Camera {
     /// The view frustum depth is `z_near` to `z_far`.
     /// All of the above values are scaled by the zoom factor which is one over the distance between the camera position and target.
     ///
-    pub fn set_orthographic_projection(&mut self, height: f32, z_near: f32, z_far: f32) {
+    pub fn set_orthographic_projection(
+        &mut self,
+        height: f32,
+        mut z_near: f32,
+        mut z_far: f32,
+        zoom_relative_depth: bool,
+    ) {
         self.projection_type = ProjectionType::Orthographic { height };
         self.z_near = z_near;
         self.z_far = z_far;
+        self.zoom_relative_depth = zoom_relative_depth;
         let zoom = self.position.distance(self.target);
         let height = zoom * height;
         let width = height * self.viewport.aspect();
+        if zoom_relative_depth {
+            z_near *= zoom;
+            z_far *= zoom;
+        }
         self.projection = cgmath::ortho(
             -0.5 * width,
             0.5 * width,
@@ -345,35 +368,33 @@ impl Camera {
 
     ///
     /// Specify the camera to use planar projection with the given field of view in the y-direction and near and far plane.
-    /// This can be either a planar or perspective projection depending on the field of view provided, which is permitted to be zero or negative.
+    /// This can be either an orthographic or perspective projection depending on the field of view provided, which is permitted to be zero or negative.
+    /// This is best used with the relative depth unit if zooming is allowed.
     ///
     pub fn set_planar_projection(
         &mut self,
         field_of_view_y: impl Into<Radians>,
         mut z_near: f32,
         mut z_far: f32,
+        zoom_relative_depth: bool,
     ) {
         self.z_near = z_near;
         self.z_far = z_far;
+        self.zoom_relative_depth = zoom_relative_depth;
         let field_of_view_y = field_of_view_y.into();
         self.projection_type = ProjectionType::Planar { field_of_view_y };
         let depth = self.position.distance(self.target);
         let height = 2.0 * depth;
-        let focal = -Rad::cot(field_of_view_y / 2.0) * depth;
-        z_near -= depth;
-        z_far -= depth;
-        // Required to ensure near/far plane does not cross focal point when at close zoom levels
-        if focal < 0.0 && z_near < focal {
-            z_near = focal + 0.001;
-        } else if focal > 0.0 && z_far > focal {
-            z_far = focal - 0.001;
+        if zoom_relative_depth {
+            z_near *= depth;
+            z_far *= depth;
         }
         self.projection = planar(
             field_of_view_y,
             self.viewport.aspect(),
             height,
-            z_near,
-            z_far,
+            z_near - depth,
+            z_far - depth,
         ) * Mat4::from_translation(vec3(0.0, 0.0, depth));
     }
 
@@ -386,13 +407,28 @@ impl Camera {
             self.viewport = viewport;
             match self.projection_type {
                 ProjectionType::Orthographic { height } => {
-                    self.set_orthographic_projection(height, self.z_near, self.z_far);
+                    self.set_orthographic_projection(
+                        height,
+                        self.z_near,
+                        self.z_far,
+                        self.zoom_relative_depth,
+                    );
                 }
                 ProjectionType::Perspective { field_of_view_y } => {
-                    self.set_perspective_projection(field_of_view_y, self.z_near, self.z_far);
+                    self.set_perspective_projection(
+                        field_of_view_y,
+                        self.z_near,
+                        self.z_far,
+                        self.zoom_relative_depth,
+                    );
                 }
                 ProjectionType::Planar { field_of_view_y } => {
-                    self.set_planar_projection(field_of_view_y, self.z_near, self.z_far);
+                    self.set_planar_projection(
+                        field_of_view_y,
+                        self.z_near,
+                        self.z_far,
+                        self.zoom_relative_depth,
+                    );
                 }
             }
             true
@@ -415,13 +451,28 @@ impl Camera {
             self.up,
         );
         match self.projection_type {
-            ProjectionType::Orthographic { height } => {
-                self.set_orthographic_projection(height, self.z_near, self.z_far)
+            ProjectionType::Perspective { field_of_view_y } => {
+                if self.zoom_relative_depth {
+                    self.set_perspective_projection(
+                        field_of_view_y,
+                        self.z_near,
+                        self.z_far,
+                        self.zoom_relative_depth,
+                    );
+                }
             }
-            ProjectionType::Planar { field_of_view_y } => {
-                self.set_planar_projection(field_of_view_y, self.z_near, self.z_far)
-            }
-            _ => {}
+            ProjectionType::Orthographic { height } => self.set_orthographic_projection(
+                height,
+                self.z_near,
+                self.z_far,
+                self.zoom_relative_depth,
+            ),
+            ProjectionType::Planar { field_of_view_y } => self.set_planar_projection(
+                field_of_view_y,
+                self.z_near,
+                self.z_far,
+                self.zoom_relative_depth,
+            ),
         };
     }
 
@@ -579,6 +630,13 @@ impl Camera {
     }
 
     ///
+    /// Returns if the near and far planes are calculated relative to the current zoom level.
+    ///
+    pub fn zoom_relative_depth(&self) -> bool {
+        self.zoom_relative_depth
+    }
+
+    ///
     /// Returns the position of this camera.
     ///
     pub fn position(&self) -> Vec3 {
@@ -627,6 +685,7 @@ impl Camera {
             projection_type: ProjectionType::Orthographic { height: 1.0 },
             z_near: 0.0,
             z_far: 0.0,
+            zoom_relative_depth: false,
             position: vec3(0.0, 0.0, 5.0),
             target: vec3(0.0, 0.0, 0.0),
             up: vec3(0.0, 1.0, 0.0),
