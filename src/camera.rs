@@ -1,3 +1,5 @@
+use std::ops::Mul;
+
 pub use crate::prelude::*;
 
 /// UV coordinates which must be between `(0, 0)` indicating the bottom left corner
@@ -450,9 +452,14 @@ impl Camera {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } | ProjectionType::Planar { .. } => {
                 let coords = coords.into();
-                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0.0, 1.);
-                let p = (self.screen2ray() * screen_pos).truncate();
-                p + (self.position - p).project_on(self.view_direction()) // Project onto the image plane
+                let screen_pos = vec2(coords.u - 0.5, coords.v - 0.5);
+                let local_pos = screen_pos.zip(self.screen2pos(), Mul::mul).extend(0.0);
+                (self
+                    .view()
+                    .inverse_transform()
+                    .unwrap_or_else(|| Mat4::identity())
+                    * local_pos.extend(1.0))
+                .truncate()
             }
             ProjectionType::Perspective { .. } => self.position,
         }
@@ -477,18 +484,14 @@ impl Camera {
     pub fn view_direction_at_uv_coordinates(&self, coords: impl Into<UvCoordinate>) -> Vec3 {
         match self.projection_type() {
             ProjectionType::Orthographic { .. } => self.view_direction(),
-            ProjectionType::Perspective { .. } => {
+            ProjectionType::Perspective { .. } | ProjectionType::Planar { .. } => {
                 let coords = coords.into();
-                let screen_pos = vec4(2. * coords.u - 1., 2. * coords.v - 1.0, 0., 1.);
-                (self.screen2ray() * screen_pos).truncate().normalize()
-            }
-            ProjectionType::Planar { .. } => {
-                let coords = coords.into();
-                let start_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, -0.5);
-                let end_pos = Point3::new(2. * coords.u - 1., 2. * coords.v - 1.0, 0.5);
-                (self.screen2ray().transform_point(end_pos)
-                    - self.screen2ray().transform_point(start_pos))
-                .normalize()
+                let screen_pos = vec2(coords.u - 0.5, coords.v - 0.5);
+                let local_dir = screen_pos.zip(self.screen2dir(), Mul::mul).extend(-1.0);
+                self.view()
+                    .inverse_transform_vector(local_dir)
+                    .unwrap_or(local_dir)
+                    .normalize()
             }
         }
     }
@@ -635,14 +638,32 @@ impl Camera {
         }
     }
 
-    fn screen2ray(&self) -> Mat4 {
-        let mut v = self.view;
-        if let ProjectionType::Perspective { .. } = self.projection_type {
-            v[3] = vec4(0.0, 0.0, 0.0, 1.0);
-        }
-        (self.projection * v)
-            .invert()
-            .unwrap_or_else(|| Mat4::identity())
+    ///
+    /// Returns the width/height of the projection at zero depth, for calculating a projection ray position
+    ///
+    fn screen2pos(&self) -> Vec2 {
+        let height = match self.projection_type() {
+            ProjectionType::Orthographic { height } => *height,
+            ProjectionType::Perspective { .. } => 0.0,
+            ProjectionType::Planar { field_of_view_y } => {
+                2.0 * (1.0 - (field_of_view_y / 2.0).tan())
+            }
+        };
+        let view_height = height / self.zoom_factor();
+        vec2(view_height * self.viewport().aspect(), view_height)
+    }
+
+    ///
+    /// Returns the additional width/height of the projection at one unit of depth, for calculating a projection ray direction
+    ///
+    fn screen2dir(&self) -> Vec2 {
+        let fov = match self.projection_type() {
+            ProjectionType::Orthographic { .. } => radians(0.0),
+            ProjectionType::Perspective { field_of_view_y }
+            | ProjectionType::Planar { field_of_view_y } => *field_of_view_y,
+        };
+        let fov_height = 2.0 * (fov / 2.0).tan();
+        vec2(fov_height * self.viewport().aspect(), fov_height)
     }
 
     ///
