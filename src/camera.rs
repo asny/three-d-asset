@@ -454,12 +454,7 @@ impl Camera {
                 let coords = coords.into();
                 let screen_pos = vec2(coords.u - 0.5, coords.v - 0.5);
                 let local_pos = screen_pos.zip(self.screen2pos(), Mul::mul).extend(0.0);
-                (self
-                    .view()
-                    .inverse_transform()
-                    .unwrap_or_else(|| Mat4::identity())
-                    * local_pos.extend(1.0))
-                .truncate()
+                (self.inverse_view() * local_pos.extend(1.0)).truncate()
             }
             ProjectionType::Perspective { .. } => self.position,
         }
@@ -488,10 +483,7 @@ impl Camera {
                 let coords = coords.into();
                 let screen_pos = vec2(coords.u - 0.5, coords.v - 0.5);
                 let local_dir = screen_pos.zip(self.screen2dir(), Mul::mul).extend(-1.0);
-                self.view()
-                    .inverse_transform_vector(local_dir)
-                    .unwrap_or(local_dir)
-                    .normalize()
+                self.inverse_view().transform_vector(local_dir).normalize()
             }
         }
     }
@@ -551,6 +543,13 @@ impl Camera {
     ///
     pub fn view(&self) -> Mat4 {
         self.view
+    }
+
+    ///
+    /// Returns the inverse view matrix, ie. the matrix that transforms objects from view space to world space. Closely related to [view](Camera::view).
+    ///
+    pub fn inverse_view(&self) -> Mat4 {
+        self.view.inverse_transform().expect("Non-invertible view transform")
     }
 
     ///
