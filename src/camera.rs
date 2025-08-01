@@ -1,6 +1,5 @@
-use std::ops::Mul;
-
 pub use crate::prelude::*;
+use std::ops::Mul;
 
 /// UV coordinates which must be between `(0, 0)` indicating the bottom left corner
 /// and `(1, 1)` indicating the top right corner.
@@ -549,7 +548,9 @@ impl Camera {
     /// Returns the inverse view matrix, ie. the matrix that transforms objects from view space to world space. Closely related to [view](Camera::view).
     ///
     pub fn inverse_view(&self) -> Mat4 {
-        self.view.inverse_transform().expect("Non-invertible view transform")
+        self.view
+            .inverse_transform()
+            .expect("Non-invertible view transform")
     }
 
     ///
