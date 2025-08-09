@@ -21,6 +21,13 @@ impl RawAssets {
     }
 
     ///
+    /// Constructs a new empty set of raw assets with at least capacity.
+    ///
+    pub fn with_capacity(capacity: usize) -> Self {
+        RawAssets(HashMap::with_capacity(capacity))
+    }
+
+    ///
     /// Remove and returns the raw byte array for the resource at the given path.
     ///
     /// ```
@@ -100,16 +107,6 @@ impl RawAssets {
     }
 
     ///
-    /// Inserts all of the given raw assets into this set of raw assets.
-    ///
-    pub fn extend(&mut self, mut raw_assets: Self) -> &mut Self {
-        for (k, v) in raw_assets.0.drain() {
-            self.insert(k, v);
-        }
-        self
-    }
-
-    ///
     /// Deserialize the asset with the given path into a type that implements the [Deserialize] trait.
     ///
     /// ```
@@ -156,5 +153,24 @@ impl std::fmt::Debug for RawAssets {
             d.field("byte length", &value.len());
         }
         d.finish()
+    }
+}
+
+impl Extend<(PathBuf, Vec<u8>)> for RawAssets {
+    ///
+    /// Inserts all of the given raw assets into this set of raw assets.
+    ///
+    fn extend<I: IntoIterator<Item = (PathBuf, Vec<u8>)>>(&mut self, iter: I) {
+        self.0.extend(iter)
+    }
+}
+
+impl IntoIterator for RawAssets {
+    type Item = (PathBuf, Vec<u8>);
+
+    type IntoIter = <HashMap<PathBuf, Vec<u8>> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
