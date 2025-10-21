@@ -10,7 +10,7 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> 
         for buffer in document.buffers() {
             if let ::gltf::buffer::Source::Uri(uri) = buffer.source() {
                 if uri.starts_with("data:") {
-                    dependencies.insert(PathBuf::from(uri));
+                    // data urls does not need to be loaded, will be deserialized from the data in the url instead
                 } else {
                     dependencies.insert(base_path.join(uri));
                 }
@@ -39,7 +39,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         let mut data = match buffer.source() {
             ::gltf::buffer::Source::Uri(uri) => {
                 if uri.starts_with("data:") {
-                    raw_assets.remove(uri)?
+                    super::parse_data_url(uri)?
                 } else {
                     raw_assets.remove(base_path.join(uri))?
                 }
