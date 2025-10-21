@@ -134,7 +134,7 @@ fn load_from_disk(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Result
 #[allow(unused_variables)]
 async fn load_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     #[cfg(feature = "reqwest")]
-    if paths.len() > 0 {
+    if !paths.is_empty() {
         let mut handles = Vec::new();
         let client = reqwest::Client::new();
         for path in paths {

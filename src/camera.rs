@@ -640,9 +640,7 @@ impl Camera {
         if let ProjectionType::Perspective { .. } = self.projection_type {
             v[3] = vec4(0.0, 0.0, 0.0, 1.0);
         }
-        (self.projection * v)
-            .invert()
-            .unwrap_or_else(|| Mat4::identity())
+        (self.projection * v).invert().unwrap_or(Mat4::identity())
     }
 
     ///
@@ -765,9 +763,9 @@ impl Camera {
         let view = self.view_direction();
         let towards = (point - self.position).normalize();
         let cos_angle = view.dot(towards);
-        if cos_angle.abs() > std::f32::EPSILON {
+        if cos_angle.abs() > f32::EPSILON {
             let distance = self.target.distance(self.position);
-            let minimum_distance = minimum_distance.max(std::f32::EPSILON);
+            let minimum_distance = minimum_distance.max(f32::EPSILON);
             let maximum_distance = maximum_distance.max(minimum_distance);
             let delta_clamped =
                 distance - (distance - delta).clamp(minimum_distance, maximum_distance);
@@ -781,7 +779,7 @@ impl Camera {
     /// Sets the zoom factor of this camera, ie. the distance to the camera will be `1/zoom_factor`.
     ///
     pub fn set_zoom_factor(&mut self, zoom_factor: f32) {
-        let zoom_factor = zoom_factor.max(std::f32::EPSILON);
+        let zoom_factor = zoom_factor.max(f32::EPSILON);
         let position = self.target - self.view_direction() / zoom_factor;
         self.set_view(position, self.target, self.up);
     }

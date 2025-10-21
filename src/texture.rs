@@ -164,12 +164,8 @@ impl TextureData {
     /// Does nothing if the data is any other data type.
     ///
     pub fn to_color(&mut self) {
-        match self {
-            TextureData::RU8(data) => {
-                *self =
-                    TextureData::RgbU8(data.iter().map(|color| [*color, *color, *color]).collect())
-            }
-            _ => {}
+        if let TextureData::RU8(data) = self {
+            *self = TextureData::RgbU8(data.iter().map(|color| [*color, *color, *color]).collect())
         };
     }
 }

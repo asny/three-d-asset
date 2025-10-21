@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
     if let Ok(Ok(obj)) =
-        std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::obj::parse(s))
+        std::str::from_utf8(raw_assets.get(path).unwrap()).map(wavefront_obj::obj::parse)
     {
         let base_path = path.parent().unwrap_or(Path::new(""));
         if let Some(material_library) = obj.material_library {
@@ -18,7 +18,7 @@ pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathB
 pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
     if let Ok(Ok(materials)) =
-        std::str::from_utf8(raw_assets.get(path).unwrap()).map(|s| wavefront_obj::mtl::parse(s))
+        std::str::from_utf8(raw_assets.get(path).unwrap()).map(wavefront_obj::mtl::parse)
     {
         let base_path = path.parent().unwrap_or(Path::new(""));
         for material in materials.materials {
@@ -128,23 +128,23 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             let mut map: HashMap<usize, usize> = HashMap::new();
 
             let mut process = |i: wavefront_obj::obj::VTNIndex| {
-                let mut index = map.get(&i.0).map(|v| *v);
+                let mut index = map.get(&i.0).copied();
 
                 let uvw = i.1.map(|tex_index| object.tex_vertices[tex_index]);
                 let normal = i.2.map(|normal_index| object.normals[normal_index]);
 
                 if let Some(ind) = index {
                     if let Some(tex) = uvw {
-                        if ((uvs[ind].x - tex.u as f32) as f32).abs() > std::f32::EPSILON
-                            || ((uvs[ind].y - tex.v as f32) as f32).abs() > std::f32::EPSILON
+                        if (uvs[ind].x - tex.u as f32).abs() > f32::EPSILON
+                            || (uvs[ind].y - tex.v as f32).abs() > f32::EPSILON
                         {
                             index = None;
                         }
                     }
                     if let Some(n) = normal {
-                        if ((normals[ind].x - n.x as f32) as f32).abs() > std::f32::EPSILON
-                            || ((normals[ind].y - n.y as f32) as f32).abs() > std::f32::EPSILON
-                            || ((normals[ind].z - n.z as f32) as f32).abs() > std::f32::EPSILON
+                        if (normals[ind].x - n.x as f32).abs() > f32::EPSILON
+                            || (normals[ind].y - n.y as f32).abs() > f32::EPSILON
+                            || (normals[ind].z - n.z as f32).abs() > f32::EPSILON
                         {
                             index = None;
                         }
@@ -169,13 +169,10 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             };
             for shape in mesh.shapes.iter() {
                 // All triangles with same material
-                match shape.primitive {
-                    wavefront_obj::obj::Primitive::Triangle(i0, i1, i2) => {
-                        process(i0);
-                        process(i1);
-                        process(i2);
-                    }
-                    _ => {}
+                if let wavefront_obj::obj::Primitive::Triangle(i0, i1, i2) = shape.primitive {
+                    process(i0);
+                    process(i1);
+                    process(i2);
                 }
             }
 
@@ -202,8 +199,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 material_index: mesh
                     .material_name
                     .as_ref()
-                    .map(|n| materials.iter().position(|m| &m.name == n))
-                    .flatten(),
+                    .and_then(|n| materials.iter().position(|m| &m.name == n)),
                 ..Default::default()
             });
         }

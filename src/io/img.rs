@@ -220,20 +220,18 @@ mod test {
             } else {
                 panic!("Wrong texture data: {:?}", tex.data)
             }
+        } else if let crate::TextureData::RgbaU8(data) = tex.data {
+            assert_eq!(
+                data,
+                vec![
+                    [0, 0, 0, 255],
+                    [255, 0, 0, 255],
+                    [0, 255, 0, 255],
+                    [0, 0, 255, 255],
+                ]
+            );
         } else {
-            if let crate::TextureData::RgbaU8(data) = tex.data {
-                assert_eq!(
-                    data,
-                    vec![
-                        [0, 0, 0, 255],
-                        [255, 0, 0, 255],
-                        [0, 255, 0, 255],
-                        [0, 0, 255, 255],
-                    ]
-                );
-            } else {
-                panic!("Wrong texture data: {:?}", tex.data)
-            }
+            panic!("Wrong texture data: {:?}", tex.data)
         }
         assert_eq!(tex.width, 2);
         assert_eq!(tex.height, 2);

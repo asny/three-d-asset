@@ -8,28 +8,22 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> 
     if let Ok(Gltf { document, .. }) = Gltf::from_slice(raw_assets.get(path).unwrap()) {
         let base_path = path.parent().unwrap_or(Path::new(""));
         for buffer in document.buffers() {
-            match buffer.source() {
-                ::gltf::buffer::Source::Uri(uri) => {
-                    if uri.starts_with("data:") {
-                        dependencies.insert(PathBuf::from(uri));
-                    } else {
-                        dependencies.insert(base_path.join(uri));
-                    }
+            if let ::gltf::buffer::Source::Uri(uri) = buffer.source() {
+                if uri.starts_with("data:") {
+                    dependencies.insert(PathBuf::from(uri));
+                } else {
+                    dependencies.insert(base_path.join(uri));
                 }
-                _ => {}
             };
         }
 
         for texture in document.textures() {
-            match texture.source().source() {
-                ::gltf::image::Source::Uri { uri, .. } => {
-                    if uri.starts_with("data:") {
-                        // data urls does not need to be loaded, will be deserialized from the data in the url instead
-                    } else {
-                        dependencies.insert(base_path.join(uri));
-                    }
+            if let ::gltf::image::Source::Uri { uri, .. } = texture.source().source() {
+                if uri.starts_with("data:") {
+                    // data urls does not need to be loaded, will be deserialized from the data in the url instead
+                } else {
+                    dependencies.insert(base_path.join(uri));
                 }
-                _ => {}
             };
         }
     }
@@ -63,13 +57,8 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
 
     let mut materials = Vec::new();
     for material in document.materials() {
-        if let Some(_) = material.index() {
-            materials.push(parse_material(
-                raw_assets,
-                &base_path,
-                &mut buffers,
-                &material,
-            )?);
+        if material.index().is_some() {
+            materials.push(parse_material(raw_assets, base_path, &buffers, &material)?);
         }
     }
 
@@ -141,7 +130,6 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                     kf.rotations = Some(
                         rotations
                             .into_f32()
-                            .into_iter()
                             .map(|r| Quat::from_sv(r[3], vec3(r[0], r[1], r[2])))
                             .collect(),
                     );
@@ -160,12 +148,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 ::gltf::animation::util::ReadOutputs::MorphTargetWeights(weights) => {
                     let weights = weights.into_f32().collect::<Vec<_>>();
                     let count = weights.len() / kf.times.len();
-                    kf.weights = Some(
-                        weights
-                            .chunks(count)
-                            .map(|c| c.into_iter().map(|v| *v).collect::<Vec<_>>())
-                            .collect(),
-                    );
+                    kf.weights = Some(weights.chunks(count).map(|c| c.to_vec()).collect());
                 }
             }
         }
@@ -177,7 +160,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
     }
 
-    let gltf_scene = document.scenes().nth(0).unwrap();
+    let gltf_scene = document.scenes().next().unwrap();
     let mut scene = Scene {
         name: gltf_scene
             .name()
@@ -344,9 +327,9 @@ fn parse_material(
     })
 }
 
-impl Into<Wrapping> for ::gltf::texture::WrappingMode {
-    fn into(self) -> Wrapping {
-        match self {
+impl From<::gltf::texture::WrappingMode> for Wrapping {
+    fn from(val: ::gltf::texture::WrappingMode) -> Self {
+        match val {
             ::gltf::texture::WrappingMode::ClampToEdge => Wrapping::ClampToEdge,
             ::gltf::texture::WrappingMode::MirroredRepeat => Wrapping::MirroredRepeat,
             ::gltf::texture::WrappingMode::Repeat => Wrapping::Repeat,
@@ -371,7 +354,7 @@ fn parse_texture(
             }
         }
         ::gltf::image::Source::View { view, .. } => {
-            if view.stride() != None {
+            if view.stride().is_some() {
                 unimplemented!();
             }
             #[allow(unused_variables)]

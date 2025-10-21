@@ -12,22 +12,14 @@ pub struct AxisAlignedBoundingBox {
 impl AxisAlignedBoundingBox {
     /// An empty bounding box.
     pub const EMPTY: Self = Self {
-        min: Vec3::new(std::f32::INFINITY, std::f32::INFINITY, std::f32::INFINITY),
-        max: Vec3::new(
-            std::f32::NEG_INFINITY,
-            std::f32::NEG_INFINITY,
-            std::f32::NEG_INFINITY,
-        ),
+        min: Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
+        max: Vec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY),
     };
 
     /// An infinitely large bounding box.
     pub const INFINITE: Self = Self {
-        min: Vec3::new(
-            std::f32::NEG_INFINITY,
-            std::f32::NEG_INFINITY,
-            std::f32::NEG_INFINITY,
-        ),
-        max: Vec3::new(std::f32::INFINITY, std::f32::INFINITY, std::f32::INFINITY),
+        min: Vec3::new(f32::NEG_INFINITY, f32::NEG_INFINITY, f32::NEG_INFINITY),
+        max: Vec3::new(f32::INFINITY, f32::INFINITY, f32::INFINITY),
     };
 
     ///
