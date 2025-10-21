@@ -178,25 +178,10 @@ async fn load_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Resul
 
 fn parse_data_urls(paths: HashSet<PathBuf>, raw_assets: &mut RawAssets) -> Result<()> {
     for path in paths {
-        let bytes = parse_data_url(path.to_str().unwrap())?;
+        let bytes = super::parse_data_url(path.to_str().unwrap())?;
         raw_assets.insert(path, bytes);
     }
     Ok(())
-}
-
-#[allow(unused_variables)]
-fn parse_data_url(path: &str) -> Result<Vec<u8>> {
-    #[cfg(feature = "data-url")]
-    {
-        let url = data_url::DataUrl::process(path)
-            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
-        let (body, _) = url
-            .decode_to_vec()
-            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
-        Ok(body)
-    }
-    #[cfg(not(feature = "data-url"))]
-    Err(Error::FeatureMissing("data-url".to_string()))
 }
 
 fn is_absolute_url(path: &Path) -> bool {

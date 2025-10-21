@@ -138,8 +138,18 @@ impl Deserialize for crate::Texture2D {
             .map(|e| e.to_str().unwrap())
             .unwrap_or("image")
             .to_string();
+        let data_url_bytes = if is_data_url(&path) {
+            Some(parse_data_url(path.to_str().unwrap())?)
+        } else {
+            None
+        };
+
         #[allow(unused_variables)]
-        let bytes = raw_assets.get(&path)?;
+        let bytes = if let Some(bytes) = data_url_bytes.as_ref() {
+            bytes
+        } else {
+            raw_assets.get(&path)?
+        };
 
         if "svg" == extension {
             // to satisfy the compiler during wasm compile
@@ -319,4 +329,19 @@ fn is_data_url(path: &Path) -> bool {
     path.to_str()
         .map(|s| s.starts_with("data:"))
         .unwrap_or(false)
+}
+
+#[allow(unused_variables)]
+fn parse_data_url(path: &str) -> Result<Vec<u8>> {
+    #[cfg(feature = "data-url")]
+    {
+        let url = data_url::DataUrl::process(path)
+            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
+        let (body, _) = url
+            .decode_to_vec()
+            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
+        Ok(body)
+    }
+    #[cfg(not(feature = "data-url"))]
+    Err(Error::FeatureMissing("data-url".to_string()))
 }

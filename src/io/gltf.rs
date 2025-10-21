@@ -24,8 +24,7 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> 
             match texture.source().source() {
                 ::gltf::image::Source::Uri { uri, .. } => {
                     if uri.starts_with("data:") {
-                        use std::str::FromStr;
-                        dependencies.insert(PathBuf::from_str(uri).unwrap());
+                        // data urls does not need to be loaded, will be deserialized from the data in the url instead
                     } else {
                         dependencies.insert(base_path.join(uri));
                     }
@@ -355,7 +354,7 @@ impl Into<Wrapping> for ::gltf::texture::WrappingMode {
     }
 }
 
-fn parse_texture<'a>(
+fn parse_texture(
     raw_assets: &mut RawAssets,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
