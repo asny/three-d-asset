@@ -64,14 +64,14 @@ mod vol;
 mod pcd;
 
 ///
-/// Deserialize a single file from raw bytes.
+/// Deserialize a single file from raw bytes. The key is used to determine the type of file.
 ///
 /// If the file depends on other files, use [RawAssets::insert] to insert the bytes for each of them in [RawAssets] before deserializing.
 ///
-pub fn deserialize<T: Deserialize>(bytes: Vec<u8>) -> crate::Result<T> {
+pub fn deserialize<T: Deserialize>(key: &str, bytes: Vec<u8>) -> crate::Result<T> {
     let mut assets = RawAssets::new();
-    assets.insert("", bytes);
-    assets.deserialize("")
+    assets.insert(key, bytes);
+    assets.deserialize(key)
 }
 
 ///
