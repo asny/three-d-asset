@@ -314,3 +314,9 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
         .filter(|d| !raw_assets.contains_key(d))
         .collect()
 }
+
+fn is_data_url(path: &Path) -> bool {
+    path.to_str()
+        .map(|s| s.starts_with("data:"))
+        .unwrap_or(false)
+}

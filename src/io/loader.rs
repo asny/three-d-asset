@@ -2,7 +2,10 @@
 //! Functionality for loading any type of asset runtime on both desktop and web.
 //!
 
-use crate::{io::RawAssets, Error, Result};
+use crate::{
+    io::{is_data_url, RawAssets},
+    Error, Result,
+};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -202,12 +205,6 @@ fn is_absolute_url(path: &Path) -> bool {
             s.find("://").map(|i| i > 0).unwrap_or(false)
                 || s.find("//").map(|i| i == 0).unwrap_or(false)
         })
-        .unwrap_or(false)
-}
-
-fn is_data_url(path: &Path) -> bool {
-    path.to_str()
-        .map(|s| s.starts_with("data:"))
         .unwrap_or(false)
 }
 
