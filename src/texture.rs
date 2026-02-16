@@ -15,18 +15,13 @@ use crate::Srgba;
 /// Possible modes of interpolation which determines the texture output between texture pixels.
 ///
 #[allow(missing_docs)]
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Interpolation {
     Nearest,
+    #[default]
     Linear,
     CubicSpline,
-}
-
-impl Default for Interpolation {
-    fn default() -> Self {
-        Self::Linear
-    }
 }
 
 /// Mipmap settings for a texture.
