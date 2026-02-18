@@ -46,7 +46,7 @@ cgmath = "0.18"
 half = {version="2", features=["std", "num-traits", "zerocopy"]}
 thiserror = "1"
 reqwest = {version = "0.11", optional = true, default-features = false }
-gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
+gltf = { git="https://github.com/gltf-rs/gltf", rev="a29fb756fd91913e3b6452036cdbe65a0932ac20", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
 wavefront_obj = { version = "10", optional = true }
 image = { version = "0.24", optional = true, default-features = false}
 pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
