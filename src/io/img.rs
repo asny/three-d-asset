@@ -140,7 +140,7 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
             #[cfg(not(feature = "webp"))]
             return Err(Error::FeatureMissing("webp".to_string()));
             #[cfg(feature = "webp")]
-            image::ImageOutputFormat::WebP
+            ImageFormat::WebP
         }
         _ => return Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
     };
