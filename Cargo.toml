@@ -30,7 +30,7 @@ tiff = ["image/tiff"]
 tga = ["image/tga"]
 gif = ["image/gif"]
 bmp = ["image/bmp"]
-webp = ["image/webp", "gltf/EXT_texture_webp"]
+webp = ["image/webp", "gltf?/EXT_texture_webp"]
 
 svg = ["dep:resvg"]
 
