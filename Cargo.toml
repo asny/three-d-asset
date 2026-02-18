@@ -1,6 +1,6 @@
 [package]
 name = "three-d-asset"
-version = "0.7.0"
+version = "0.10.0"
 authors = ["Asger Nyman Christiansen <asgernyman@gmail.com>"]
 edition = "2021"
 description = "Load/save functionality for 3d applications."
@@ -32,8 +32,11 @@ gif = ["image/gif"]
 bmp = ["image/bmp"]
 webp = ["image/webp", "gltf/EXT_texture_webp"]
 
+svg = ["dep:resvg"]
+
 obj = ["wavefront_obj"]
 gltf = ["dep:gltf"]
+stl = ["dep:stl_io"]
 
 pcd = ["pcd-rs"]
 
@@ -44,12 +47,14 @@ serde = ["dep:serde", "half/serde", "cgmath/serde"]
 [dependencies]
 cgmath = "0.18"
 half = {version="2", features=["std", "num-traits", "zerocopy"]}
-thiserror = "1"
-reqwest = {version = "0.11", optional = true, default-features = false }
+thiserror = "2"
+reqwest = {version = "0.12", optional = true, default-features = false }
 gltf = { git="https://github.com/gltf-rs/gltf", rev="a29fb756fd91913e3b6452036cdbe65a0932ac20", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
-wavefront_obj = { version = "10", optional = true }
-image = { version = "0.24", optional = true, default-features = false}
-pcd-rs = { version = "0.10", optional = true, features = ["derive"] }
+wavefront_obj = { version = "11.0", optional = true }
+stl_io = { version = "0.8", optional = true }
+image = { version = "0.25", optional = true, default-features = false}
+resvg = { version = "0.44", optional = true }
+pcd-rs = { version = "0.12", optional = true, features = ["derive"] }
 data-url = {version = "0.3", optional = true }
 serde = {version= "1", optional = true, features = ["derive", "rc"] }
 

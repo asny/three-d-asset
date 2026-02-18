@@ -44,7 +44,7 @@ impl Geometry {
     ///
     /// Computes the [AxisAlignedBoundingBox] for this geometry.
     ///
-    pub fn compute_aabb(&mut self) -> AxisAlignedBoundingBox {
+    pub fn compute_aabb(&self) -> AxisAlignedBoundingBox {
         match self {
             Self::Triangles(mesh) => mesh.compute_aabb(),
             Self::Points(point_cloud) => point_cloud.compute_aabb(),

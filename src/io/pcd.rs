@@ -13,7 +13,7 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
     let z_index = schema.iter().position(|f| f.name == "z").unwrap();
     let rgb_index = schema.iter().position(|f| f.name == "rgb");
 
-    let points = reader.collect::<pcd_rs::anyhow::Result<Vec<_>>>()?;
+    let points = reader.collect::<pcd_rs::Result<Vec<_>>>()?;
     let positions = points
         .iter()
         .map(|p| {

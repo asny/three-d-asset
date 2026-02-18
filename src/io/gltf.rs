@@ -8,29 +8,22 @@ pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> 
     if let Ok(Gltf { document, .. }) = Gltf::from_slice(raw_assets.get(path).unwrap()) {
         let base_path = path.parent().unwrap_or(Path::new(""));
         for buffer in document.buffers() {
-            match buffer.source() {
-                ::gltf::buffer::Source::Uri(uri) => {
-                    if uri.starts_with("data:") {
-                        dependencies.insert(PathBuf::from(uri));
-                    } else {
-                        dependencies.insert(base_path.join(uri));
-                    }
+            if let ::gltf::buffer::Source::Uri(uri) = buffer.source() {
+                if uri.starts_with("data:") {
+                    // data urls does not need to be loaded, will be deserialized from the data in the url instead
+                } else {
+                    dependencies.insert(base_path.join(uri));
                 }
-                _ => {}
             };
         }
 
         for texture in document.textures() {
-            match texture.source().source() {
-                ::gltf::image::Source::Uri { uri, .. } => {
-                    if uri.starts_with("data:") {
-                        use std::str::FromStr;
-                        dependencies.insert(PathBuf::from_str(uri).unwrap());
-                    } else {
-                        dependencies.insert(base_path.join(uri));
-                    }
+            if let ::gltf::image::Source::Uri { uri, .. } = texture.source().source() {
+                if uri.starts_with("data:") {
+                    // data urls does not need to be loaded, will be deserialized from the data in the url instead
+                } else {
+                    dependencies.insert(base_path.join(uri));
                 }
-                _ => {}
             };
         }
     }
@@ -46,7 +39,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         let mut data = match buffer.source() {
             ::gltf::buffer::Source::Uri(uri) => {
                 if uri.starts_with("data:") {
-                    raw_assets.remove(uri)?
+                    super::parse_data_url(uri)?
                 } else {
                     raw_assets.remove(base_path.join(uri))?
                 }
@@ -64,13 +57,8 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
 
     let mut materials = Vec::new();
     for material in document.materials() {
-        if let Some(_) = material.index() {
-            materials.push(parse_material(
-                raw_assets,
-                &base_path,
-                &mut buffers,
-                &material,
-            )?);
+        if material.index().is_some() {
+            materials.push(parse_material(raw_assets, base_path, &buffers, &material)?);
         }
     }
 
@@ -142,7 +130,6 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                     kf.rotations = Some(
                         rotations
                             .into_f32()
-                            .into_iter()
                             .map(|r| Quat::from_sv(r[3], vec3(r[0], r[1], r[2])))
                             .collect(),
                     );
@@ -161,12 +148,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
                 ::gltf::animation::util::ReadOutputs::MorphTargetWeights(weights) => {
                     let weights = weights.into_f32().collect::<Vec<_>>();
                     let count = weights.len() / kf.times.len();
-                    kf.weights = Some(
-                        weights
-                            .chunks(count)
-                            .map(|c| c.into_iter().map(|v| *v).collect::<Vec<_>>())
-                            .collect(),
-                    );
+                    kf.weights = Some(weights.chunks(count).map(|c| c.to_vec()).collect());
                 }
             }
         }
@@ -178,7 +160,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
         }
     }
 
-    let gltf_scene = document.scenes().nth(0).unwrap();
+    let gltf_scene = document.scenes().next().unwrap();
     let mut scene = Scene {
         name: gltf_scene
             .name()
@@ -345,9 +327,9 @@ fn parse_material(
     })
 }
 
-impl Into<Wrapping> for ::gltf::texture::WrappingMode {
-    fn into(self) -> Wrapping {
-        match self {
+impl From<::gltf::texture::WrappingMode> for Wrapping {
+    fn from(val: ::gltf::texture::WrappingMode) -> Self {
+        match val {
             ::gltf::texture::WrappingMode::ClampToEdge => Wrapping::ClampToEdge,
             ::gltf::texture::WrappingMode::MirroredRepeat => Wrapping::MirroredRepeat,
             ::gltf::texture::WrappingMode::Repeat => Wrapping::Repeat,
@@ -355,7 +337,7 @@ impl Into<Wrapping> for ::gltf::texture::WrappingMode {
     }
 }
 
-fn parse_texture<'a>(
+fn parse_texture(
     raw_assets: &mut RawAssets,
     path: &Path,
     buffers: &[::gltf::buffer::Data],
@@ -372,7 +354,7 @@ fn parse_texture<'a>(
             }
         }
         ::gltf::image::Source::View { view, .. } => {
-            if view.stride() != None {
+            if view.stride().is_some() {
                 unimplemented!();
             }
             #[allow(unused_variables)]
@@ -390,22 +372,38 @@ fn parse_texture<'a>(
         Some(::gltf::texture::MagFilter::Linear) => Interpolation::Linear,
         None => tex.mag_filter,
     };
-    (tex.min_filter, tex.mip_map_filter) = match sampler.min_filter() {
+    (tex.min_filter, tex.mipmap) = match sampler.min_filter() {
         Some(::gltf::texture::MinFilter::Nearest) => (Interpolation::Nearest, None),
         Some(::gltf::texture::MinFilter::Linear) => (Interpolation::Linear, None),
-        Some(::gltf::texture::MinFilter::NearestMipmapNearest) => {
-            (Interpolation::Nearest, Some(Interpolation::Nearest))
-        }
-        Some(::gltf::texture::MinFilter::LinearMipmapNearest) => {
-            (Interpolation::Linear, Some(Interpolation::Nearest))
-        }
-        Some(::gltf::texture::MinFilter::NearestMipmapLinear) => {
-            (Interpolation::Nearest, Some(Interpolation::Linear))
-        }
-        Some(::gltf::texture::MinFilter::LinearMipmapLinear) => {
-            (Interpolation::Linear, Some(Interpolation::Linear))
-        }
-        None => (tex.min_filter, tex.mip_map_filter),
+        Some(::gltf::texture::MinFilter::NearestMipmapNearest) => (
+            Interpolation::Nearest,
+            Some(Mipmap {
+                filter: Interpolation::Nearest,
+                ..Default::default()
+            }),
+        ),
+        Some(::gltf::texture::MinFilter::LinearMipmapNearest) => (
+            Interpolation::Linear,
+            Some(Mipmap {
+                filter: Interpolation::Nearest,
+                ..Default::default()
+            }),
+        ),
+        Some(::gltf::texture::MinFilter::NearestMipmapLinear) => (
+            Interpolation::Nearest,
+            Some(Mipmap {
+                filter: Interpolation::Linear,
+                ..Default::default()
+            }),
+        ),
+        Some(::gltf::texture::MinFilter::LinearMipmapLinear) => (
+            Interpolation::Linear,
+            Some(Mipmap {
+                filter: Interpolation::Linear,
+                ..Default::default()
+            }),
+        ),
+        None => (tex.min_filter, tex.mipmap),
     };
     tex.wrap_s = sampler.wrap_s().into();
     tex.wrap_t = sampler.wrap_t().into();

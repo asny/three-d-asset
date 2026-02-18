@@ -48,6 +48,9 @@ pub use saver::*;
 #[cfg(feature = "obj")]
 mod obj;
 
+#[cfg(feature = "stl")]
+mod stl;
+
 #[cfg(feature = "gltf")]
 mod gltf;
 
@@ -61,14 +64,14 @@ mod vol;
 mod pcd;
 
 ///
-/// Deserialize a single file from raw bytes.
+/// Deserialize a single file from raw bytes. The key is used to determine the type of file.
 ///
 /// If the file depends on other files, use [RawAssets::insert] to insert the bytes for each of them in [RawAssets] before deserializing.
 ///
-pub fn deserialize<T: Deserialize>(bytes: Vec<u8>) -> crate::Result<T> {
+pub fn deserialize<T: Deserialize>(key: &str, bytes: Vec<u8>) -> crate::Result<T> {
     let mut assets = RawAssets::new();
-    assets.insert("", bytes);
-    assets.deserialize("")
+    assets.insert(key, bytes);
+    assets.deserialize(key)
 }
 
 ///
@@ -130,19 +133,38 @@ use std::path::{Path, PathBuf};
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
+        let extension = path
+            .extension()
+            .map(|e| e.to_str().unwrap())
+            .unwrap_or("image")
+            .to_string();
+        let data_url_bytes = if is_data_url(&path) {
+            Some(parse_data_url(path.to_str().unwrap())?)
+        } else {
+            None
+        };
+
         #[allow(unused_variables)]
-        let bytes = raw_assets.get(&path)?;
+        let bytes = if let Some(bytes) = data_url_bytes.as_ref() {
+            bytes
+        } else {
+            raw_assets.get(&path)?
+        };
 
-        #[cfg(not(feature = "image"))]
-        return Err(Error::FeatureMissing(
-            path.extension()
-                .map(|e| e.to_str().unwrap())
-                .unwrap_or("image")
-                .to_string(),
-        ));
+        if "svg" == extension {
+            // to satisfy the compiler during wasm compile
+            #[cfg(not(feature = "svg"))]
+            return Err(Error::FeatureMissing("svg".to_string()));
 
-        #[cfg(feature = "image")]
-        img::deserialize_img(path, bytes)
+            #[cfg(feature = "svg")]
+            img::deserialize_svg(path, bytes)
+        } else {
+            #[cfg(not(feature = "image"))]
+            return Err(Error::FeatureMissing(extension));
+
+            #[cfg(feature = "image")]
+            img::deserialize_img(path, bytes)
+        }
     }
 }
 
@@ -180,6 +202,13 @@ impl Deserialize for crate::Scene {
 
                 #[cfg(feature = "obj")]
                 obj::deserialize_obj(raw_assets, &path)
+            }
+            "stl" => {
+                #[cfg(not(feature = "stl"))]
+                return Err(Error::FeatureMissing("stl".to_string()));
+
+                #[cfg(feature = "stl")]
+                stl::deserialize_stl(raw_assets, &path)
             }
             "pcd" => {
                 #[cfg(not(feature = "pcd"))]
@@ -294,4 +323,25 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
         .into_iter()
         .filter(|d| !raw_assets.contains_key(d))
         .collect()
+}
+
+fn is_data_url(path: &Path) -> bool {
+    path.to_str()
+        .map(|s| s.starts_with("data:"))
+        .unwrap_or(false)
+}
+
+#[allow(unused_variables)]
+fn parse_data_url(path: &str) -> Result<Vec<u8>> {
+    #[cfg(feature = "data-url")]
+    {
+        let url = data_url::DataUrl::process(path)
+            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
+        let (body, _) = url
+            .decode_to_vec()
+            .map_err(|e| Error::FailedParsingDataUrl(path.to_string(), format!("{:?}", e)))?;
+        Ok(body)
+    }
+    #[cfg(not(feature = "data-url"))]
+    Err(Error::FeatureMissing("data-url".to_string()))
 }

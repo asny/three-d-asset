@@ -1,4 +1,7 @@
-use crate::{io::Deserialize, Error, Result};
+use crate::{
+    io::{is_data_url, Deserialize},
+    Error, Result,
+};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
@@ -61,7 +64,7 @@ impl RawAssets {
     }
 
     pub(crate) fn match_path(&self, path: &Path) -> Result<PathBuf> {
-        if self.0.contains_key(path) {
+        if is_data_url(path) || self.0.contains_key(path) {
             Ok(path.into())
         } else {
             let p = path.to_str().unwrap().replace('\\', "/");
