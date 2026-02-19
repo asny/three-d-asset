@@ -30,6 +30,7 @@ tiff = ["image/tiff"]
 tga = ["image/tga"]
 gif = ["image/gif"]
 bmp = ["image/bmp"]
+webp = ["image/webp", "gltf?/EXT_texture_webp"]
 
 svg = ["dep:resvg"]
 
@@ -51,13 +52,16 @@ thiserror = "2"
 reqwest = {version = "0.12", optional = true, default-features = false }
 gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
 wavefront_obj = { version = "11.0", optional = true }
-stl_io = { version = "0.8", optional = true }
+stl_io = { version = "0.10", optional = true }
 lib3mf = { version = "0.1", optional = true, default-features = false }
 image = { version = "0.25", optional = true, default-features = false}
-resvg = { version = "0.44", optional = true }
+resvg = { version = "0.47", optional = true }
 pcd-rs = { version = "0.12", optional = true, features = ["derive"] }
 data-url = {version = "0.3", optional = true }
 serde = {version= "1", optional = true, features = ["derive", "rc"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3", features = ['Document', 'Window'] }
+
+[patch.crates-io]
+gltf = {  git="https://github.com/gltf-rs/gltf", rev="a29fb756fd91913e3b6452036cdbe65a0932ac20" }

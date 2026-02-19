@@ -136,6 +136,12 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
             #[cfg(feature = "gif")]
             ImageFormat::Gif
         }
+        "webp" => {
+            #[cfg(not(feature = "webp"))]
+            return Err(Error::FeatureMissing("webp".to_string()));
+            #[cfg(feature = "webp")]
+            ImageFormat::WebP
+        }
         _ => return Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
     };
     let img = match &tex.data {
@@ -192,6 +198,8 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
 
 #[cfg(test)]
 mod test {
+    use cgmath::AbsDiffEq;
+
     fn tex() -> crate::Texture2D {
         crate::Texture2D {
             data: crate::TextureData::RgbaU8(vec![
@@ -213,10 +221,10 @@ mod test {
         if format == "jpeg" || format == "jpg" {
             if let crate::TextureData::RgbU8(data) = tex.data {
                 // Jpeg is not lossless
-                assert_eq!(
-                    data,
-                    vec![[48, 0, 17], [227, 0, 14], [0, 244, 0], [16, 36, 253]]
-                );
+                assert!(data
+                    .iter()
+                    .zip(vec![[48, 0, 17], [227, 0, 14], [0, 244, 0], [16, 36, 253]].iter())
+                    .all(|(data_pixel, test_pixel)| data_pixel.abs_diff_eq(test_pixel, 2)));
             } else {
                 panic!("Wrong texture data: {:?}", tex.data)
             }
@@ -306,6 +314,13 @@ mod test {
         }
         assert_eq!(tex.width, 1024);
         assert_eq!(tex.height, 512);
+    }
+
+    #[cfg(feature = "webp")]
+    #[test]
+    pub fn webp() {
+        test_serialize("webp");
+        test_deserialize("webp");
     }
 
     #[cfg(feature = "svg")]
