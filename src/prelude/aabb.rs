@@ -110,14 +110,14 @@ impl AxisAlignedBoundingBox {
     }
 
     /// Returns the intersection between this and the other given bounding box.
-    pub fn intersection(self, other: Self) -> Self {
+    pub fn intersection(self, other: Self) -> Option<Self> {
         let min_a = self.min();
         let max_a = self.max();
         let min_b = other.min();
         let max_b = other.max();
 
         if min_a.x >= max_b.x || min_a.y >= max_b.y || min_b.x >= max_a.x || min_b.y >= max_a.y {
-            return Self::EMPTY;
+            return None;
         }
 
         let min = vec3(
@@ -131,7 +131,7 @@ impl AxisAlignedBoundingBox {
             max_a.z.min(max_b.z),
         );
 
-        Self::new_with_positions(&[min, max])
+        Some(Self::new_with_positions(&[min, max]))
     }
 
     ///
