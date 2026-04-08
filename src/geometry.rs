@@ -114,8 +114,6 @@ impl Indices {
     }
 }
 
-
-
 ///
 /// An array of positions. Supports f32 and f64 data types.
 ///
