@@ -50,7 +50,18 @@ cgmath = "0.18"
 half = {version="2", features=["std", "num-traits", "zerocopy"]}
 thiserror = "2"
 reqwest = {version = "0.12", optional = true, default-features = false }
-gltf = { version = "1", optional = true, features=["KHR_materials_ior", "KHR_materials_transmission"] }
+gltf = { version = "1", optional = true, features=[
+    "KHR_lights_punctual",
+    "KHR_materials_pbrSpecularGlossiness",
+    "KHR_materials_unlit",
+    "KHR_texture_transform",
+    "KHR_materials_variants",
+    "KHR_materials_volume",
+    "KHR_materials_specular",
+    "KHR_materials_transmission",
+    "KHR_materials_ior",
+    "KHR_materials_emissive_strength",
+    ] }
 wavefront_obj = { version = "11.0", optional = true }
 stl_io = { version = "0.11", optional = true }
 lib3mf = { version = "0.1", optional = true, default-features = false }
