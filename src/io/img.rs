@@ -239,7 +239,12 @@ pub fn serialize_img(tex: &Texture2D, path: &Path) -> Result<RawAssets> {
                 )
             }
         }
-        _ => unimplemented!(),
+        other => {
+            return Err(Error::FailedSerialize(format!(
+                "Unsupported texture data for image serialization: {:?}",
+                other
+            )))
+        }
     };
     let mut bytes: Vec<u8> = Vec::new();
     img.write_to(&mut Cursor::new(&mut bytes), format)?;
