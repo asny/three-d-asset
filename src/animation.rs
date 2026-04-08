@@ -112,8 +112,8 @@ impl KeyFrames {
                 if self.times[i] <= time && time < self.times[i + 1] {
                     let t = (time - self.times[i]) / (self.times[i + 1] - self.times[i]);
                     let mut result = Vec::new();
-                    for j in 0..values[i].len() {
-                        result.push(values[i][j] * (1.0 - t) + values[i + 1][j] * t);
+                    for (a, b) in values[i].iter().zip(values[i + 1].iter()) {
+                        result.push(*a * (1.0 - t) + *b * t);
                     }
                     return result;
                 }

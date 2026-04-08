@@ -21,6 +21,7 @@ When in memory, the assets can be for example be
 | OBJ/MTL  | ✅          | ❌        | `obj`   |
 | GLTF/GLB | ✅          | ❌        | `gltf`  |
 | STL      | ✅          | ❌        | `stl`   |
+| 3MF      | ✅          | ✅        | `3mf`   |
 
 ### Texture2D
 

@@ -227,6 +227,10 @@ pub enum Error {
     #[error("error while parsing an .obj file")]
     Obj(#[from] wavefront_obj::ParseError),
 
+    #[cfg(feature = "3mf")]
+    #[error("error while parsing a .3mf file")]
+    ThreeMf(#[from] lib3mf::Error),
+
     #[cfg(feature = "pcd")]
     #[error("error while parsing an .pcd file")]
     Pcd(#[from] pcd_rs::Error),

@@ -55,10 +55,11 @@ impl Geometry {
 ///
 /// An array of indices. Supports different data types.
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum Indices {
     /// Do not use indices, ie. the faces are all unconnected.
+    #[default]
     None,
     /// Uses unsigned 8 bit integer for each index.
     U8(Vec<u8>),
@@ -113,11 +114,7 @@ impl Indices {
     }
 }
 
-impl std::default::Default for Indices {
-    fn default() -> Self {
-        Self::None
-    }
-}
+
 
 ///
 /// An array of positions. Supports f32 and f64 data types.

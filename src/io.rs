@@ -63,6 +63,10 @@ mod vol;
 #[cfg(feature = "pcd")]
 mod pcd;
 
+#[cfg(feature = "3mf")]
+#[path = "io/3mf.rs"]
+mod three_mf;
+
 ///
 /// Deserialize a single file from raw bytes. The key is used to determine the type of file.
 ///
@@ -217,6 +221,13 @@ impl Deserialize for crate::Scene {
                 #[cfg(feature = "pcd")]
                 pcd::deserialize_pcd(raw_assets, &path)
             }
+            "3mf" => {
+                #[cfg(not(feature = "3mf"))]
+                return Err(Error::FeatureMissing("3mf".to_string()));
+
+                #[cfg(feature = "3mf")]
+                three_mf::deserialize_3mf(raw_assets, &path)
+            }
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
@@ -226,6 +237,27 @@ impl Deserialize for crate::Model {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let scene = crate::Scene::deserialize(path, raw_assets)?;
         Ok(scene.into())
+    }
+}
+
+impl Serialize for crate::Scene {
+    fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
+        let path = path.as_ref();
+        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+            "3mf" => {
+                #[cfg(not(feature = "3mf"))]
+                return Err(Error::FeatureMissing("3mf".to_string()));
+
+                #[cfg(feature = "3mf")]
+                {
+                    let bytes = three_mf::serialize_3mf(self)?;
+                    let mut raw_assets = RawAssets::new();
+                    raw_assets.insert(path, bytes);
+                    Ok(raw_assets)
+                }
+            }
+            _ => Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
+        }
     }
 }
 
