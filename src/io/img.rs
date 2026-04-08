@@ -40,13 +40,65 @@ pub fn deserialize_img(path: impl AsRef<Path>, bytes: &[u8]) -> Result<Texture2D
                 .map(|c| [c[0], c[1], c[2], c[3]])
                 .collect::<Vec<_>>(),
         ),
+        DynamicImage::ImageLuma16(img) => TextureData::RF16(
+            img.into_raw()
+                .into_iter()
+                .map(|v| crate::prelude::f16::from_f32(v as f32 / u16::MAX as f32))
+                .collect::<Vec<_>>(),
+        ),
+        DynamicImage::ImageLumaA16(img) => TextureData::RgF16(
+            img.into_raw()
+                .chunks(2)
+                .map(|c| {
+                    [
+                        crate::prelude::f16::from_f32(c[0] as f32 / u16::MAX as f32),
+                        crate::prelude::f16::from_f32(c[1] as f32 / u16::MAX as f32),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+        ),
+        DynamicImage::ImageRgb16(img) => TextureData::RgbF16(
+            img.into_raw()
+                .chunks(3)
+                .map(|c| {
+                    [
+                        crate::prelude::f16::from_f32(c[0] as f32 / u16::MAX as f32),
+                        crate::prelude::f16::from_f32(c[1] as f32 / u16::MAX as f32),
+                        crate::prelude::f16::from_f32(c[2] as f32 / u16::MAX as f32),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+        ),
+        DynamicImage::ImageRgba16(img) => TextureData::RgbaF16(
+            img.into_raw()
+                .chunks(4)
+                .map(|c| {
+                    [
+                        crate::prelude::f16::from_f32(c[0] as f32 / u16::MAX as f32),
+                        crate::prelude::f16::from_f32(c[1] as f32 / u16::MAX as f32),
+                        crate::prelude::f16::from_f32(c[2] as f32 / u16::MAX as f32),
+                        crate::prelude::f16::from_f32(c[3] as f32 / u16::MAX as f32),
+                    ]
+                })
+                .collect::<Vec<_>>(),
+        ),
         DynamicImage::ImageRgb32F(img) => TextureData::RgbF32(
             img.into_raw()
                 .chunks(3)
                 .map(|c| [c[0], c[1], c[2]])
                 .collect::<Vec<_>>(),
         ),
-        _ => unimplemented!(),
+        DynamicImage::ImageRgba32F(img) => TextureData::RgbaF32(
+            img.into_raw()
+                .chunks(4)
+                .map(|c| [c[0], c[1], c[2], c[3]])
+                .collect::<Vec<_>>(),
+        ),
+        other => {
+            return Err(Error::FailedDeserialize(format!(
+                "Unsupported image variant: {other:?}"
+            )))
+        }
     };
     Ok(Texture2D {
         name,
