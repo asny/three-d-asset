@@ -118,6 +118,7 @@ impl AxisAlignedBoundingBox {
     }
 
     /// Returns the intersection between this and the other given bounding box.
+    /// Returns None if the bounding boxes doesn't overlap.
     pub fn intersection(self, other: Self) -> Option<Self> {
         let min_a = self.min();
         let max_a = self.max();
