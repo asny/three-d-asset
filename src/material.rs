@@ -7,7 +7,7 @@ pub use crate::{prelude::Srgba, texture::texture2d::*};
 
 /// Lighting models which specify how the lighting is computed when rendering a material.
 /// This is a trade-off between how fast the computations are versus how physically correct they look.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum LightingModel {
     /// Phong lighting model.
@@ -22,7 +22,7 @@ pub enum LightingModel {
 }
 
 /// The geometry function used in a Cook-Torrance lighting model.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum GeometryFunction {
@@ -30,7 +30,7 @@ pub enum GeometryFunction {
 }
 
 /// The normal distribution function used in a Cook-Torrance lighting model.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[allow(missing_docs)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum NormalDistributionFunction {
