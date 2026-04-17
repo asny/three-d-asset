@@ -17,7 +17,7 @@ When in memory, the assets can be for example be
 ### Model
 
 | Format   | Deserialize | Serialize | Feature |
-|----------|-------------|-----------|---------|
+| -------- | ----------- | --------- | ------- |
 | OBJ/MTL  | ✅          | ❌        | `obj`   |
 | GLTF/GLB | ✅          | ❌        | `gltf`  |
 | STL      | ✅          | ❌        | `stl`   |
@@ -26,7 +26,7 @@ When in memory, the assets can be for example be
 ### Texture2D
 
 | Format | Deserialize | Serialize | Feature |
-|--------|-------------|-----------|---------|
+| ------ | ----------- | --------- | ------- |
 | PNG    | ✅          | ✅        | `png`   |
 | JPEG   | ✅          | ✅        | `jpeg`  |
 | HDR    | ✅          | ❌        | `hdr`   |
@@ -35,6 +35,7 @@ When in memory, the assets can be for example be
 | TIFF   | ✅          | ✅        | `tiff`  |
 | BMP    | ✅          | ✅        | `bmp`   |
 | SVG    | ✅          | ❌        | `svg`   |
+| WebP   | ✅          | ❌        | `webp`  |
 
 ### PointCloud
 
