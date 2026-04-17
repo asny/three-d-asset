@@ -35,7 +35,7 @@ When in memory, the assets can be for example be
 | TIFF   | ✅          | ✅        | `tiff`  |
 | BMP    | ✅          | ✅        | `bmp`   |
 | SVG    | ✅          | ❌        | `svg`   |
-| WebP   | ✅          | ❌        | `webp`  |
+| WebP   | ✅          | ✅        | `webp`  |
 
 ### PointCloud
 
