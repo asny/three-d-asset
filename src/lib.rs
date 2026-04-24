@@ -235,6 +235,14 @@ pub enum Error {
     #[error("error while parsing an .pcd file")]
     Pcd(#[from] pcd_rs::Error),
 
+    #[cfg(feature = "fbx")]
+    #[error("error while parsing an .fbx file")]
+    Fbx(#[from] fbxcel::tree::any::Error),
+
+    #[cfg(feature = "fbx")]
+    #[error("error while parsing an .fbx file - version is not supported")]
+    FbxVersion(fbxcel::low::FbxVersion),
+
     #[cfg(any(not(target_arch = "wasm32"), feature = "stl"))]
     #[error("io error")]
     IO(#[from] std::io::Error),

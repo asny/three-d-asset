@@ -54,6 +54,9 @@ mod stl;
 #[cfg(feature = "gltf")]
 mod gltf;
 
+#[cfg(feature = "fbx")]
+mod fbx;
+
 #[cfg(feature = "image")]
 mod img;
 
@@ -213,6 +216,13 @@ impl Deserialize for crate::Scene {
 
                 #[cfg(feature = "stl")]
                 stl::deserialize_stl(raw_assets, &path)
+            }
+            "fbx" => {
+                #[cfg(not(feature = "fbx"))]
+                return Err(Error::FeatureMissing("fbx".to_string()));
+
+                #[cfg(feature = "fbx")]
+                fbx::deserialize_fbx(raw_assets, &path)
             }
             "pcd" => {
                 #[cfg(not(feature = "pcd"))]
