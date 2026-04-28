@@ -20,6 +20,32 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         return Ok(Scene::default());
     };
 
+    // --- Parse axis system from GlobalSettings ---
+    let axis_conversion = {
+        let (mut up_axis, mut up_sign) = (1i32, 1i32);
+        let (mut front_axis, mut front_sign) = (2i32, 1i32);
+        let (mut coord_sign,) = (1i32,);
+        if let Some(gs) = root.first_child_by_name("GlobalSettings") {
+            if let Some(props) = gs.first_child_by_name("Properties70") {
+                for p in props.children_by_name("P") {
+                    let a = p.attributes();
+                    if a.len() > 4 {
+                        let val = a[4..].iter().find_map(|v| v.get_i32()).unwrap_or(0);
+                        match a[0].get_string() {
+                            Some("UpAxis") => up_axis = val,
+                            Some("UpAxisSign") => up_sign = val,
+                            Some("FrontAxis") => front_axis = val,
+                            Some("FrontAxisSign") => front_sign = val,
+                            Some("CoordAxisSign") => coord_sign = val,
+                            _ => {}
+                        }
+                    }
+                }
+            }
+        }
+        fbx_axis_conversion(up_axis, up_sign, front_axis, front_sign, coord_sign)
+    };
+
     // --- Build connection graph ---
     let mut children_of: HashMap<i64, Vec<i64>> = HashMap::new();
     let mut parent_of: HashMap<i64, i64> = HashMap::new();
@@ -330,7 +356,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         name: String,
         translation: [f64; 3],
         rotation: [f64; 3],
+        pre_rotation: [f64; 3],
         scaling: [f64; 3],
+        rotation_order: u8,
     }
     let mut model_map: HashMap<i64, ModelInfo> = HashMap::new();
     for obj in objects.children() {
@@ -345,7 +373,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             name: fbx_name(attrs),
             translation: [0.0; 3],
             rotation: [0.0; 3],
+            pre_rotation: [0.0; 3],
             scaling: [1.0, 1.0, 1.0],
+            rotation_order: 0,
         };
         if let Some(v) = fbx_props_f64(&obj, "Lcl Translation") {
             if v.len() >= 3 {
@@ -357,10 +387,18 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 info.rotation = [v[0], v[1], v[2]];
             }
         }
+        if let Some(v) = fbx_props_f64(&obj, "PreRotation") {
+            if v.len() >= 3 {
+                info.pre_rotation = [v[0], v[1], v[2]];
+            }
+        }
         if let Some(v) = fbx_props_f64(&obj, "Lcl Scaling") {
             if v.len() >= 3 {
                 info.scaling = [v[0], v[1], v[2]];
             }
+        }
+        if let Some(v) = fbx_props_f64(&obj, "RotationOrder") {
+            info.rotation_order = v[0] as u8;
         }
         model_map.insert(id, info);
     }
@@ -371,9 +409,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             m.translation[1] as f32,
             m.translation[2] as f32,
         ));
-        let r = Mat4::from_angle_z(Rad((m.rotation[2] as f32).to_radians()))
-            * Mat4::from_angle_y(Rad((m.rotation[1] as f32).to_radians()))
-            * Mat4::from_angle_x(Rad((m.rotation[0] as f32).to_radians()));
+        let r_pre = fbx_euler_to_matrix(&m.pre_rotation, 0);
+        let r_local = fbx_euler_to_matrix(&m.rotation, m.rotation_order);
+        let r = r_pre * r_local;
         let s = Mat4::from_nonuniform_scale(
             m.scaling[0] as f32,
             m.scaling[1] as f32,
@@ -440,7 +478,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
     let scene_children: Vec<Node> = root_ids
         .iter()
         .map(|&id| {
-            build_node(
+            let mut node = build_node(
                 id,
                 &model_map,
                 &geom_map,
@@ -448,7 +486,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 &children_of,
                 &model_transform,
                 &triangulate,
-            )
+            );
+            node.transformation = axis_conversion * node.transformation;
+            node
         })
         .collect();
 
@@ -466,6 +506,59 @@ fn fbx_attr_to_f64(attr: &fbxcel::low::v7400::AttributeValue) -> Option<f64> {
         .or_else(|| attr.get_f32().map(|v| v as f64))
         .or_else(|| attr.get_i64().map(|v| v as f64))
         .or_else(|| attr.get_i32().map(|v| v as f64))
+}
+
+/// Compose an Euler rotation matrix respecting the FBX rotation order enum.
+/// PreRotation always uses order 0 (XYZ) per the FBX spec.
+fn fbx_euler_to_matrix(degrees: &[f64; 3], rotation_order: u8) -> Mat4 {
+    let rx = Mat4::from_angle_x(Rad((degrees[0] as f32).to_radians()));
+    let ry = Mat4::from_angle_y(Rad((degrees[1] as f32).to_radians()));
+    let rz = Mat4::from_angle_z(Rad((degrees[2] as f32).to_radians()));
+    match rotation_order {
+        0 => rz * ry * rx, // eEulerXYZ  (intrinsic X→Y→Z = extrinsic Z·Y·X)
+        1 => ry * rz * rx, // eEulerXZY
+        2 => rx * rz * ry, // eEulerYZX
+        3 => rz * rx * ry, // eEulerYXZ
+        4 => ry * rx * rz, // eEulerZXY
+        5 => rx * ry * rz, // eEulerZYX
+        _ => rz * ry * rx, // fallback to XYZ
+    }
+}
+
+/// Build a conversion matrix from the FBX file's axis system to OpenGL (Y-up, right-handed).
+/// Axis indices: 0 = X, 1 = Y, 2 = Z.
+fn fbx_axis_conversion(
+    up_axis: i32,
+    up_sign: i32,
+    front_axis: i32,
+    front_sign: i32,
+    coord_sign: i32,
+) -> Mat4 {
+    let up = unit_axis(up_axis, up_sign);
+    let front = unit_axis(front_axis, front_sign);
+    let right = [
+        (up[1] * front[2] - up[2] * front[1]) * coord_sign as f32,
+        (up[2] * front[0] - up[0] * front[2]) * coord_sign as f32,
+        (up[0] * front[1] - up[1] * front[0]) * coord_sign as f32,
+    ];
+    #[rustfmt::skip]
+    let m = Mat4::new(
+        right[0], up[0], -front[0], 0.0,
+        right[1], up[1], -front[1], 0.0,
+        right[2], up[2], -front[2], 0.0,
+        0.0,      0.0,    0.0,      1.0,
+    );
+    m
+}
+
+fn unit_axis(axis: i32, sign: i32) -> [f32; 3] {
+    let s = sign as f32;
+    match axis {
+        0 => [s, 0.0, 0.0],
+        1 => [0.0, s, 0.0],
+        2 => [0.0, 0.0, s],
+        _ => [0.0, 0.0, 0.0],
+    }
 }
 
 fn fbx_get_layer_index(
