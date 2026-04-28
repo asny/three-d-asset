@@ -1,5 +1,5 @@
 use crate::{geometry::*, io::*, material::*, Error, Node, Result, Scene};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
 pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Scene> {
@@ -48,7 +48,6 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
 
     // --- Build connection graph ---
     let mut children_of: HashMap<i64, Vec<i64>> = HashMap::new();
-    let mut parent_of: HashMap<i64, i64> = HashMap::new();
     for conn in connections.children_by_name("C") {
         let attrs = conn.attributes();
         if attrs.len() >= 3 {
@@ -58,7 +57,6 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 attrs[2].get_i64(),
             ) {
                 children_of.entry(parent_id).or_default().push(child_id);
-                parent_of.insert(child_id, parent_id);
             }
         }
     }
@@ -420,7 +418,6 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         t * r * s
     };
 
-    // Recursive node builder
     fn build_node(
         model_id: i64,
         model_map: &HashMap<i64, ModelInfo>,
@@ -429,7 +426,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         children_of: &HashMap<i64, Vec<i64>>,
         model_transform: &dyn Fn(&ModelInfo) -> Mat4,
         triangulate: &dyn Fn(&GeomData) -> TriMesh,
+        visited: &mut HashSet<i64>,
     ) -> Node {
+        visited.insert(model_id);
         let model = &model_map[&model_id];
         let transformation = model_transform(model);
 
@@ -442,7 +441,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 geometry = Some(Geometry::Triangles(triangulate(gd)));
             } else if let Some(&mi) = mat_id_to_index.get(&child_id) {
                 material_index = Some(mi);
-            } else if model_map.contains_key(&child_id) {
+            } else if model_map.contains_key(&child_id) && !visited.contains(&child_id) {
                 child_nodes.push(build_node(
                     child_id,
                     model_map,
@@ -451,6 +450,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                     children_of,
                     model_transform,
                     triangulate,
+                    visited,
                 ));
             }
         }
@@ -465,19 +465,12 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         }
     }
 
-    // Root models: parent is 0 (scene root) or not another model
-    let root_ids: Vec<i64> = model_map
-        .keys()
-        .filter(|&&id| match parent_of.get(&id) {
-            Some(&pid) => pid == 0 || !model_map.contains_key(&pid),
-            None => true,
-        })
-        .copied()
-        .collect();
+    // Walk from scene root (id 0) through the connection graph
+    let mut visited: HashSet<i64> = HashSet::new();
+    let mut scene_children: Vec<Node> = Vec::new();
 
-    let scene_children: Vec<Node> = root_ids
-        .iter()
-        .map(|&id| {
+    for &id in children_of.get(&0).unwrap_or(&Vec::new()) {
+        if model_map.contains_key(&id) && !visited.contains(&id) {
             let mut node = build_node(
                 id,
                 &model_map,
@@ -486,11 +479,33 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 &children_of,
                 &model_transform,
                 &triangulate,
+                &mut visited,
             );
             node.transformation = axis_conversion * node.transformation;
-            node
-        })
+            scene_children.push(node);
+        }
+    }
+
+    // Include orphaned models not reachable from the scene root
+    let orphans: Vec<i64> = model_map
+        .keys()
+        .copied()
+        .filter(|id| !visited.contains(id))
         .collect();
+    for id in orphans {
+        let mut node = build_node(
+            id,
+            &model_map,
+            &geom_map,
+            &mat_id_to_index,
+            &children_of,
+            &model_transform,
+            &triangulate,
+            &mut visited,
+        );
+        node.transformation = axis_conversion * node.transformation;
+        scene_children.push(node);
+    }
 
     let materials: Vec<PbrMaterial> = mat_list.into_iter().map(|(_, m)| m).collect();
 
@@ -548,12 +563,10 @@ fn fbx_axis_conversion(
     cols[front_axis][2] = front_sign as f32;
     cols[3][3] = 1.0;
 
-    #[rustfmt::skip]
     Mat4::new(
-        cols[0][0], cols[0][1], cols[0][2], cols[0][3],
-        cols[1][0], cols[1][1], cols[1][2], cols[1][3],
-        cols[2][0], cols[2][1], cols[2][2], cols[2][3],
-        cols[3][0], cols[3][1], cols[3][2], cols[3][3],
+        cols[0][0], cols[0][1], cols[0][2], cols[0][3], cols[1][0], cols[1][1], cols[1][2],
+        cols[1][3], cols[2][0], cols[2][1], cols[2][2], cols[2][3], cols[3][0], cols[3][1],
+        cols[3][2], cols[3][3],
     )
 }
 
