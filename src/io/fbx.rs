@@ -526,7 +526,11 @@ fn fbx_euler_to_matrix(degrees: &[f64; 3], rotation_order: u8) -> Mat4 {
 }
 
 /// Build a conversion matrix from the FBX file's axis system to OpenGL (Y-up, right-handed).
-/// Axis indices: 0 = X, 1 = Y, 2 = Z.
+///
+/// Each FBX axis maps to exactly one OpenGL axis:
+///   FBX coord_axis → OpenGL X (right)
+///   FBX up_axis    → OpenGL Y (up)
+///   FBX front_axis → OpenGL Z (toward viewer)
 fn fbx_axis_conversion(
     up_axis: i32,
     up_sign: i32,
@@ -534,31 +538,23 @@ fn fbx_axis_conversion(
     front_sign: i32,
     coord_sign: i32,
 ) -> Mat4 {
-    let up = unit_axis(up_axis, up_sign);
-    let front = unit_axis(front_axis, front_sign);
-    let right = [
-        (up[1] * front[2] - up[2] * front[1]) * coord_sign as f32,
-        (up[2] * front[0] - up[0] * front[2]) * coord_sign as f32,
-        (up[0] * front[1] - up[1] * front[0]) * coord_sign as f32,
-    ];
-    #[rustfmt::skip]
-    let m = Mat4::new(
-        right[0], up[0], -front[0], 0.0,
-        right[1], up[1], -front[1], 0.0,
-        right[2], up[2], -front[2], 0.0,
-        0.0,      0.0,    0.0,      1.0,
-    );
-    m
-}
+    let coord_axis = (3 - up_axis - front_axis) as usize;
+    let up_axis = up_axis as usize;
+    let front_axis = front_axis as usize;
 
-fn unit_axis(axis: i32, sign: i32) -> [f32; 3] {
-    let s = sign as f32;
-    match axis {
-        0 => [s, 0.0, 0.0],
-        1 => [0.0, s, 0.0],
-        2 => [0.0, 0.0, s],
-        _ => [0.0, 0.0, 0.0],
-    }
+    let mut cols = [[0.0f32; 4]; 4];
+    cols[coord_axis][0] = coord_sign as f32;
+    cols[up_axis][1] = up_sign as f32;
+    cols[front_axis][2] = front_sign as f32;
+    cols[3][3] = 1.0;
+
+    #[rustfmt::skip]
+    Mat4::new(
+        cols[0][0], cols[0][1], cols[0][2], cols[0][3],
+        cols[1][0], cols[1][1], cols[1][2], cols[1][3],
+        cols[2][0], cols[2][1], cols[2][2], cols[2][3],
+        cols[3][0], cols[3][1], cols[3][2], cols[3][3],
+    )
 }
 
 fn fbx_get_layer_index(
