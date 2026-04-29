@@ -26,7 +26,7 @@ impl KeyFrameAnimation {
 ///
 /// Contains a set of key frames for rotations, translations, scales and morph weights.
 ///
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct KeyFrames {
     /// Optional time where the animation repeats itself.
@@ -139,5 +139,42 @@ impl KeyFrames {
             }
             *values.last().unwrap()
         }
+    }
+}
+
+impl std::fmt::Debug for KeyFrames {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut d = f.debug_struct("KeyFrames");
+        d.field("loop_time", &self.loop_time);
+        d.field("interpolation", &self.interpolation);
+        d.field(
+            "times",
+            &format!("[{:?}..{:?}]", self.times.first(), self.times.last()),
+        );
+        if let Some(rotations) = &self.rotations {
+            d.field(
+                "rotations",
+                &format!("[{:?}..{:?}]", rotations.first(), rotations.last()),
+            );
+        }
+        if let Some(translations) = &self.translations {
+            d.field(
+                "translations",
+                &format!("[{:?}..{:?}]", translations.first(), translations.last()),
+            );
+        }
+        if let Some(scales) = &self.scales {
+            d.field(
+                "scales",
+                &format!("[{:?}..{:?}]", scales.first(), scales.last()),
+            );
+        }
+        if let Some(weights) = &self.weights {
+            d.field(
+                "weights",
+                &format!("[{:?}..{:?}]", weights.first(), weights.last()),
+            );
+        }
+        d.finish()
     }
 }
