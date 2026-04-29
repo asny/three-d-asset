@@ -30,7 +30,15 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 for p in props.children_by_name("P") {
                     let a = p.attributes();
                     if a.len() > 4 {
-                        let val = a[4..].iter().find_map(|v| v.get_i32()).unwrap_or(0);
+                        let val = a[4..]
+                            .iter()
+                            .find_map(|v| {
+                                v.get_i32()
+                                    .or_else(|| v.get_i64().map(|v| v as i32))
+                                    .or_else(|| v.get_f64().map(|v| v as i32))
+                                    .or_else(|| v.get_f32().map(|v| v as i32))
+                            })
+                            .unwrap_or(0);
                         match a[0].get_string() {
                             Some("UpAxis") => up_axis = val,
                             Some("UpAxisSign") => up_sign = val,
