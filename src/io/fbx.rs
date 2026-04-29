@@ -661,12 +661,10 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             .first_child_by_name("KeyValueFloat")
             .and_then(|n| {
                 let attr = n.attributes().first()?;
-                attr.get_arr_f32()
-                    .map(|v| v.to_vec())
-                    .or_else(|| {
-                        attr.get_arr_f64()
-                            .map(|v| v.iter().map(|&x| x as f32).collect())
-                    })
+                attr.get_arr_f32().map(|v| v.to_vec()).or_else(|| {
+                    attr.get_arr_f64()
+                        .map(|v| v.iter().map(|&x| x as f32).collect())
+                })
             })
             .unwrap_or_default();
         if times.is_empty() || values.is_empty() {
@@ -831,112 +829,111 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
     }
 
     // Helper: merge time arrays and sample curves at unified times
-    let build_keyframes =
-        |anim_data: ModelAnimData, model: &ModelInfo| -> KeyFrames {
-            // Collect all unique times
-            let mut all_times: Vec<f32> = Vec::new();
-            let collect_times = |channels: &Option<CurveNodeChannels>, times: &mut Vec<f32>| {
-                if let Some(ch) = channels {
-                    for curve_id in [ch.x, ch.y, ch.z].into_iter().flatten() {
-                        if let Some(curve) = anim_curves.get(&curve_id) {
-                            times.extend_from_slice(&curve.times);
-                        }
+    let build_keyframes = |anim_data: ModelAnimData, model: &ModelInfo| -> KeyFrames {
+        // Collect all unique times
+        let mut all_times: Vec<f32> = Vec::new();
+        let collect_times = |channels: &Option<CurveNodeChannels>, times: &mut Vec<f32>| {
+            if let Some(ch) = channels {
+                for curve_id in [ch.x, ch.y, ch.z].into_iter().flatten() {
+                    if let Some(curve) = anim_curves.get(&curve_id) {
+                        times.extend_from_slice(&curve.times);
                     }
                 }
-            };
-            collect_times(&anim_data.t_channels, &mut all_times);
-            collect_times(&anim_data.r_channels, &mut all_times);
-            collect_times(&anim_data.s_channels, &mut all_times);
-            all_times.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
-            all_times.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
-
-            if all_times.is_empty() {
-                return KeyFrames::default();
-            }
-
-            let sample_at = |curve_id: Option<i64>, time: f32, default: f32| -> f32 {
-                let Some(id) = curve_id else {
-                    return default;
-                };
-                let Some(curve) = anim_curves.get(&id) else {
-                    return default;
-                };
-                if curve.times.is_empty() {
-                    return default;
-                }
-                if time <= curve.times[0] {
-                    return *curve.values.first().unwrap_or(&default);
-                }
-                if time >= *curve.times.last().unwrap() {
-                    return *curve.values.last().unwrap_or(&default);
-                }
-                // Linear interpolation
-                let pos = curve
-                    .times
-                    .partition_point(|&t| t < time)
-                    .min(curve.times.len() - 1);
-                let i = pos.saturating_sub(1);
-                let t0 = curve.times[i];
-                let t1 = curve.times[pos];
-                let v0 = curve.values.get(i).copied().unwrap_or(default);
-                let v1 = curve.values.get(pos).copied().unwrap_or(default);
-                if (t1 - t0).abs() < 1e-10 {
-                    v0
-                } else {
-                    let alpha = (time - t0) / (t1 - t0);
-                    v0 + alpha * (v1 - v0)
-                }
-            };
-
-            let translations = anim_data.t_channels.as_ref().map(|ch| {
-                all_times
-                    .iter()
-                    .map(|&t| {
-                        vec3(
-                            sample_at(ch.x, t, model.translation[0] as f32),
-                            sample_at(ch.y, t, model.translation[1] as f32),
-                            sample_at(ch.z, t, model.translation[2] as f32),
-                        )
-                    })
-                    .collect()
-            });
-
-            let rotations = anim_data.r_channels.as_ref().map(|ch| {
-                all_times
-                    .iter()
-                    .map(|&t| {
-                        let rx = sample_at(ch.x, t, model.rotation[0] as f32);
-                        let ry = sample_at(ch.y, t, model.rotation[1] as f32);
-                        let rz = sample_at(ch.z, t, model.rotation[2] as f32);
-                        let euler = [rx as f64, ry as f64, rz as f64];
-                        fbx_euler_to_quat(&euler, model.rotation_order)
-                    })
-                    .collect()
-            });
-
-            let scales = anim_data.s_channels.as_ref().map(|ch| {
-                all_times
-                    .iter()
-                    .map(|&t| {
-                        vec3(
-                            sample_at(ch.x, t, model.scaling[0] as f32),
-                            sample_at(ch.y, t, model.scaling[1] as f32),
-                            sample_at(ch.z, t, model.scaling[2] as f32),
-                        )
-                    })
-                    .collect()
-            });
-
-            KeyFrames {
-                interpolation: Interpolation::Linear,
-                loop_time: None,
-                times: all_times,
-                translations,
-                rotations,
-                scales,
-                weights: None,
             }
         };
+        collect_times(&anim_data.t_channels, &mut all_times);
+        collect_times(&anim_data.r_channels, &mut all_times);
+        collect_times(&anim_data.s_channels, &mut all_times);
+        all_times.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        all_times.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
+
+        if all_times.is_empty() {
+            return KeyFrames::default();
+        }
+
+        let sample_at = |curve_id: Option<i64>, time: f32, default: f32| -> f32 {
+            let Some(id) = curve_id else {
+                return default;
+            };
+            let Some(curve) = anim_curves.get(&id) else {
+                return default;
+            };
+            if curve.times.is_empty() {
+                return default;
+            }
+            if time <= curve.times[0] {
+                return *curve.values.first().unwrap_or(&default);
+            }
+            if time >= *curve.times.last().unwrap() {
+                return *curve.values.last().unwrap_or(&default);
+            }
+            // Linear interpolation
+            let pos = curve
+                .times
+                .partition_point(|&t| t < time)
+                .min(curve.times.len() - 1);
+            let i = pos.saturating_sub(1);
+            let t0 = curve.times[i];
+            let t1 = curve.times[pos];
+            let v0 = curve.values.get(i).copied().unwrap_or(default);
+            let v1 = curve.values.get(pos).copied().unwrap_or(default);
+            if (t1 - t0).abs() < 1e-10 {
+                v0
+            } else {
+                let alpha = (time - t0) / (t1 - t0);
+                v0 + alpha * (v1 - v0)
+            }
+        };
+
+        let translations = anim_data.t_channels.as_ref().map(|ch| {
+            all_times
+                .iter()
+                .map(|&t| {
+                    vec3(
+                        sample_at(ch.x, t, model.translation[0] as f32),
+                        sample_at(ch.y, t, model.translation[1] as f32),
+                        sample_at(ch.z, t, model.translation[2] as f32),
+                    )
+                })
+                .collect()
+        });
+
+        let rotations = anim_data.r_channels.as_ref().map(|ch| {
+            all_times
+                .iter()
+                .map(|&t| {
+                    let rx = sample_at(ch.x, t, model.rotation[0] as f32);
+                    let ry = sample_at(ch.y, t, model.rotation[1] as f32);
+                    let rz = sample_at(ch.z, t, model.rotation[2] as f32);
+                    let euler = [rx as f64, ry as f64, rz as f64];
+                    fbx_euler_to_quat(&euler, model.rotation_order)
+                })
+                .collect()
+        });
+
+        let scales = anim_data.s_channels.as_ref().map(|ch| {
+            all_times
+                .iter()
+                .map(|&t| {
+                    vec3(
+                        sample_at(ch.x, t, model.scaling[0] as f32),
+                        sample_at(ch.y, t, model.scaling[1] as f32),
+                        sample_at(ch.z, t, model.scaling[2] as f32),
+                    )
+                })
+                .collect()
+        });
+
+        KeyFrames {
+            interpolation: Interpolation::Linear,
+            loop_time: None,
+            times: all_times,
+            translations,
+            rotations,
+            scales,
+            weights: None,
+        }
+    };
 
     // Build final animations map: model_id → Vec<(name, KeyFrames)>
     let mut node_animations: HashMap<i64, Vec<(Option<String>, KeyFrames)>> = HashMap::new();
@@ -1001,10 +998,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             }
         }
 
-        let animations = node_animations
-            .get(&model_id)
-            .cloned()
-            .unwrap_or_default();
+        let animations = node_animations.get(&model_id).cloned().unwrap_or_default();
 
         Node {
             name: model.name.clone(),
