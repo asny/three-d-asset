@@ -1,6 +1,40 @@
 use crate::{geometry::*, io::*, material::*, Error, Node, Result, Scene};
 use std::collections::{HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+pub fn dependencies(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
+    let mut deps = HashSet::new();
+    let base_path = path.parent().unwrap_or(Path::new(""));
+
+    let Ok(bytes) = raw_assets.get(path) else {
+        return deps;
+    };
+
+    use fbxcel::tree::any::AnyTree;
+    let cursor = std::io::Cursor::new(bytes);
+    let Ok(any_tree) = AnyTree::from_seekable_reader(cursor) else {
+        return deps;
+    };
+    let AnyTree::V7400(_, tree, _) = any_tree else {
+        return deps;
+    };
+    let root = tree.root();
+    let Some(objects) = root.first_child_by_name("Objects") else {
+        return deps;
+    };
+
+    for obj in objects.children() {
+        if obj.name() != "Texture" && obj.name() != "Video" {
+            continue;
+        }
+        if let Some(rel_path) = fbx_texture_filename(&obj) {
+            let resolved = base_path.join(&rel_path);
+            deps.insert(resolved);
+        }
+    }
+
+    deps
+}
 
 pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Scene> {
     let bytes = raw_assets.remove(path)?;
@@ -56,15 +90,32 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
 
     // --- Build connection graph ---
     let mut children_of: HashMap<i64, Vec<i64>> = HashMap::new();
+    // "OP" connections: (child_id, parent_id, property_name) — used for texture→material
+    let mut op_connections: Vec<(i64, i64, String)> = Vec::new();
     for conn in connections.children_by_name("C") {
         let attrs = conn.attributes();
         if attrs.len() >= 3 {
-            if let (Some("OO"), Some(child_id), Some(parent_id)) = (
-                attrs[0].get_string(),
-                attrs[1].get_i64(),
-                attrs[2].get_i64(),
-            ) {
-                children_of.entry(parent_id).or_default().push(child_id);
+            match attrs[0].get_string() {
+                Some("OO") => {
+                    if let (Some(child_id), Some(parent_id)) =
+                        (attrs[1].get_i64(), attrs[2].get_i64())
+                    {
+                        children_of.entry(parent_id).or_default().push(child_id);
+                    }
+                }
+                Some("OP") => {
+                    if let (Some(child_id), Some(parent_id)) =
+                        (attrs[1].get_i64(), attrs[2].get_i64())
+                    {
+                        let prop = attrs
+                            .get(3)
+                            .and_then(|a| a.get_string())
+                            .unwrap_or("")
+                            .to_string();
+                        op_connections.push((child_id, parent_id, prop));
+                    }
+                }
+                _ => {}
             }
         }
     }
@@ -189,6 +240,58 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         .enumerate()
         .map(|(i, (id, _))| (*id, i))
         .collect();
+
+    // --- Parse textures and assign to materials ---
+    let base_path = path.parent().unwrap_or(Path::new(""));
+    let mut texture_paths: HashMap<i64, String> = HashMap::new();
+    for obj in objects.children() {
+        if obj.name() != "Texture" {
+            continue;
+        }
+        let Some(id) = obj.attributes().first().and_then(|a| a.get_i64()) else {
+            continue;
+        };
+        if let Some(filename) = fbx_texture_filename(&obj) {
+            texture_paths.insert(id, filename);
+        }
+    }
+
+    // Resolve OP connections: texture → material with property name
+    for (texture_id, material_id, prop_name) in &op_connections {
+        let Some(&mat_idx) = mat_id_to_index.get(material_id) else {
+            continue;
+        };
+        let Some(filename) = texture_paths.get(texture_id) else {
+            continue;
+        };
+        let texture_path = base_path.join(filename);
+        let Ok(texture) = raw_assets.deserialize(&texture_path) else {
+            continue;
+        };
+        let mat = &mut mat_list[mat_idx].1;
+        match prop_name.as_str() {
+            "DiffuseColor" | "Maya|baseColor" | "BaseColor" => {
+                mat.albedo_texture = Some(texture);
+            }
+            "NormalMap" | "Bump" | "Maya|normalCamera" => {
+                mat.normal_texture = Some(texture);
+            }
+            "EmissiveColor" | "EmissiveFactor" | "Maya|emissionColor" => {
+                mat.emissive_texture = Some(texture);
+            }
+            "ShininessExponent" | "SpecularColor" | "ReflectionColor"
+            | "Maya|metalness" | "Maya|specularRoughness" | "Metalness" | "Roughness" => {
+                mat.metallic_roughness_texture = Some(texture);
+            }
+            "AmbientOcclusion" | "Maya|TEX_ao_map" => {
+                mat.occlusion_texture = Some(texture);
+            }
+            "TransparentColor" | "TransparencyFactor" | "Maya|opacity" => {
+                mat.albedo_texture.get_or_insert(texture);
+            }
+            _ => {}
+        }
+    }
 
     // --- Parse geometries ---
     struct GeomLayer {
@@ -617,6 +720,37 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         children: scene_children,
         materials,
     })
+}
+
+/// Extract the relative filename from a Texture or Video FBX object.
+/// Prefers "RelativeFilename" child, falls back to "FileName", strips directory prefix heuristics.
+fn fbx_texture_filename(node: &fbxcel::tree::v7400::NodeHandle) -> Option<String> {
+    let get_child_string = |name: &str| -> Option<String> {
+        node.first_child_by_name(name)?
+            .attributes()
+            .first()?
+            .get_string()
+            .map(|s| s.to_string())
+    };
+
+    let raw = get_child_string("RelativeFilename")
+        .or_else(|| get_child_string("FileName"))?;
+
+    if raw.is_empty() {
+        return None;
+    }
+
+    // Normalize backslashes to forward slashes
+    let normalized = raw.replace('\\', "/");
+    // Take just the filename portion if it's an absolute path
+    let path = Path::new(&normalized);
+    let filename = if path.is_absolute() {
+        path.file_name()?.to_str()?.to_string()
+    } else {
+        normalized
+    };
+
+    Some(filename)
 }
 
 fn fbx_attr_to_f64(attr: &fbxcel::low::v7400::AttributeValue) -> Option<f64> {
