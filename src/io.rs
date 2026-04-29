@@ -54,6 +54,9 @@ mod stl;
 #[cfg(feature = "gltf")]
 mod gltf;
 
+#[cfg(feature = "fbx")]
+mod fbx;
+
 #[cfg(feature = "image")]
 mod img;
 
@@ -192,7 +195,7 @@ impl Serialize for crate::Texture2D {
 impl Deserialize for crate::Scene {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+        match extension(&path).as_str() {
             "gltf" | "glb" => {
                 #[cfg(not(feature = "gltf"))]
                 return Err(Error::FeatureMissing("gltf".to_string()));
@@ -213,6 +216,13 @@ impl Deserialize for crate::Scene {
 
                 #[cfg(feature = "stl")]
                 stl::deserialize_stl(raw_assets, &path)
+            }
+            "fbx" => {
+                #[cfg(not(feature = "fbx"))]
+                return Err(Error::FeatureMissing("fbx".to_string()));
+
+                #[cfg(feature = "fbx")]
+                fbx::deserialize_fbx(raw_assets, &path)
             }
             "pcd" => {
                 #[cfg(not(feature = "pcd"))]
@@ -243,7 +253,7 @@ impl Deserialize for crate::Model {
 impl Serialize for crate::Scene {
     fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
         let path = path.as_ref();
-        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+        match extension(path).as_str() {
             "3mf" => {
                 #[cfg(not(feature = "3mf"))]
                 return Err(Error::FeatureMissing("3mf".to_string()));
@@ -264,7 +274,7 @@ impl Serialize for crate::Scene {
 impl Deserialize for crate::VoxelGrid {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+        match extension(&path).as_str() {
             "vol" => {
                 #[cfg(not(feature = "vol"))]
                 return Err(Error::FeatureMissing("vol".to_string()));
@@ -335,7 +345,7 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
-        match path.extension().map(|e| e.to_str().unwrap()).unwrap_or("") {
+        match extension(path).as_str() {
             "gltf" | "glb" => {
                 #[cfg(feature = "gltf")]
                 dependencies.extend(gltf::dependencies(raw_assets, path));
@@ -348,6 +358,10 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
                 #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
+            "fbx" => {
+                #[cfg(feature = "fbx")]
+                dependencies.extend(fbx::dependencies(raw_assets, path));
+            }
             _ => {}
         }
     }
@@ -355,6 +369,12 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
         .into_iter()
         .filter(|d| !raw_assets.contains_key(d))
         .collect()
+}
+
+fn extension(path: &Path) -> String {
+    path.extension()
+        .map(|e| e.to_str().unwrap().to_ascii_lowercase())
+        .unwrap_or("".to_string())
 }
 
 fn is_data_url(path: &Path) -> bool {
