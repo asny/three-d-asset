@@ -469,7 +469,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         ));
         let r_pre = fbx_euler_to_matrix(&m.pre_rotation, 0);
         let r_local = fbx_euler_to_matrix(&m.rotation, m.rotation_order);
-        let r_post = fbx_euler_to_matrix(&m.post_rotation, 0);
+        let r_post_inv = fbx_euler_to_matrix(&m.post_rotation, 0)
+            .invert()
+            .unwrap_or(Mat4::identity());
         let s_off = Mat4::from_translation(vec3(
             m.scaling_offset[0] as f32,
             m.scaling_offset[1] as f32,
@@ -491,8 +493,8 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             m.scaling[2] as f32,
         );
         // Full FBX local transform:
-        // T * Roff * Rp * Rpre * R * Rpost * Rp^-1 * Soff * Sp * S * Sp^-1
-        t * r_off * r_piv * r_pre * r_local * r_post * r_piv_inv * s_off * s_piv * s * s_piv_inv
+        // T * Roff * Rp * Rpre * R * Rpost^-1 * Rp^-1 * Soff * Sp * S * Sp^-1
+        t * r_off * r_piv * r_pre * r_local * r_post_inv * r_piv_inv * s_off * s_piv * s * s_piv_inv
     };
 
     let geometric_transform = |m: &ModelInfo| -> Mat4 {
