@@ -205,9 +205,20 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 255,
             );
         }
-        if let Some(v) = fbx_props_f64(&obj, "Opacity") {
-            mat.albedo.a = (v[0].clamp(0.0, 1.0) * 255.0) as u8;
+        // Transparency handling based on Blender/Three.js approach:
+        // 1. opacity = 1 - TransparencyFactor
+        // 2. If that gives exactly 0 or 1, fall back to Opacity property
+        // 3. If Opacity is also missing, default to fully opaque
+        let mut opacity = 1.0
+            - fbx_props_f64(&obj, "TransparencyFactor")
+                .and_then(|v| v.first().copied())
+                .unwrap_or(0.0);
+        if opacity == 1.0 || opacity == 0.0 {
+            opacity = fbx_props_f64(&obj, "Opacity")
+                .and_then(|v| v.first().copied())
+                .unwrap_or(1.0);
         }
+        mat.albedo.a = (opacity.clamp(0.0, 1.0) * 255.0) as u8;
         for name in [
             "Metallic",
             "Metalness",
