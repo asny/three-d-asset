@@ -435,7 +435,10 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                         let u = &geom.uvs;
                         let idx = fbx_get_layer_index(pv, vi, &u.mapping, &u.reference, &u.indices);
                         if idx * 2 + 1 < u.data.len() {
-                            uvs_out.push(vec2(u.data[idx * 2] as f32, u.data[idx * 2 + 1] as f32));
+                            uvs_out.push(vec2(
+                                u.data[idx * 2] as f32,
+                                1.0 - u.data[idx * 2 + 1] as f32,
+                            ));
                         }
                     }
                     if has_c {
