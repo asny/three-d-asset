@@ -1,4 +1,4 @@
-use crate::{geometry::*, io::*, material::*, Error, Node, Result, Scene};
+use crate::{geometry::*, io::*, material::*, Error, KeyFrames, Node, Result, Scene};
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -634,12 +634,334 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         gt * gr * gs
     };
 
+    // --- Parse animations ---
+    const FBX_TICKS_PER_SECOND: f64 = 46186158000.0;
+
+    struct AnimCurve {
+        times: Vec<f32>,
+        values: Vec<f32>,
+    }
+    // AnimationCurve objects: id → curve data
+    let mut anim_curves: HashMap<i64, AnimCurve> = HashMap::new();
+    for obj in objects.children() {
+        if obj.name() != "AnimationCurve" {
+            continue;
+        }
+        let Some(id) = obj.attributes().first().and_then(|a| a.get_i64()) else {
+            continue;
+        };
+        let times: Vec<f32> = obj
+            .first_child_by_name("KeyTime")
+            .and_then(|n| n.attributes().first()?.get_arr_i64().map(|v| v.to_vec()))
+            .unwrap_or_default()
+            .iter()
+            .map(|&t| (t as f64 / FBX_TICKS_PER_SECOND) as f32)
+            .collect();
+        let values: Vec<f32> = obj
+            .first_child_by_name("KeyValueFloat")
+            .and_then(|n| {
+                let attr = n.attributes().first()?;
+                attr.get_arr_f32()
+                    .map(|v| v.to_vec())
+                    .or_else(|| {
+                        attr.get_arr_f64()
+                            .map(|v| v.iter().map(|&x| x as f32).collect())
+                    })
+            })
+            .unwrap_or_default();
+        if times.is_empty() || values.is_empty() {
+            continue;
+        }
+        anim_curves.insert(id, AnimCurve { times, values });
+    }
+
+    // AnimationCurveNode objects: id → property type (T/R/S)
+    #[derive(Clone, Copy, PartialEq)]
+    enum AnimProp {
+        Translation,
+        Rotation,
+        Scaling,
+    }
+    let mut curve_node_props: HashMap<i64, AnimProp> = HashMap::new();
+    for obj in objects.children() {
+        if obj.name() != "AnimationCurveNode" {
+            continue;
+        }
+        let Some(id) = obj.attributes().first().and_then(|a| a.get_i64()) else {
+            continue;
+        };
+        let attr_name = obj
+            .attributes()
+            .get(1)
+            .and_then(|a| a.get_string())
+            .unwrap_or("");
+        let name_part = attr_name.split('\0').next().unwrap_or("");
+        let prop = match name_part {
+            "T" | "AnimCurveNode::T" => Some(AnimProp::Translation),
+            "R" | "AnimCurveNode::R" => Some(AnimProp::Rotation),
+            "S" | "AnimCurveNode::S" => Some(AnimProp::Scaling),
+            n if n.contains("Translation") || n.contains("Translate") => {
+                Some(AnimProp::Translation)
+            }
+            n if n.contains("Rotation") || n.contains("Rotate") => Some(AnimProp::Rotation),
+            n if n.contains("Scaling") || n.contains("Scale") => Some(AnimProp::Scaling),
+            _ => None,
+        };
+        if let Some(p) = prop {
+            curve_node_props.insert(id, p);
+        }
+    }
+
+    // Also infer AnimCurveNode type from OP connections to models
+    // (in case the attribute name didn't match)
+    for &(child_id, parent_id, ref prop) in &op_connections {
+        if model_map.contains_key(&parent_id) && !curve_node_props.contains_key(&child_id) {
+            let inferred = match prop.as_str() {
+                p if p.contains("Translation") || p.contains("Translate") => {
+                    Some(AnimProp::Translation)
+                }
+                p if p.contains("Rotation") || p.contains("Rotate") => Some(AnimProp::Rotation),
+                p if p.contains("Scaling") || p.contains("Scale") => Some(AnimProp::Scaling),
+                _ => None,
+            };
+            if let Some(p) = inferred {
+                curve_node_props.insert(child_id, p);
+            }
+        }
+    }
+
+    // AnimationStack objects: id → name
+    let mut anim_stack_names: HashMap<i64, String> = HashMap::new();
+    for obj in objects.children() {
+        if obj.name() != "AnimationStack" {
+            continue;
+        }
+        let attrs = obj.attributes();
+        let Some(id) = attrs.first().and_then(|a| a.get_i64()) else {
+            continue;
+        };
+        anim_stack_names.insert(id, fbx_name(attrs));
+    }
+
+    // Build: curve_node_id → { x_curve, y_curve, z_curve }
+    struct CurveNodeChannels {
+        x: Option<i64>,
+        y: Option<i64>,
+        z: Option<i64>,
+    }
+    let mut curve_node_channels: HashMap<i64, CurveNodeChannels> = HashMap::new();
+    // Build: curve_node_id → model_id (via OP connections with "Lcl ..." property)
+    let mut curve_node_to_model: HashMap<i64, i64> = HashMap::new();
+
+    for &(child_id, parent_id, ref prop) in &op_connections {
+        if curve_node_props.contains_key(&parent_id) && anim_curves.contains_key(&child_id) {
+            // AnimCurve → AnimCurveNode connection (channel d|X, d|Y, d|Z)
+            let channels = curve_node_channels
+                .entry(parent_id)
+                .or_insert(CurveNodeChannels {
+                    x: None,
+                    y: None,
+                    z: None,
+                });
+            if prop.contains('X') {
+                channels.x = Some(child_id);
+            } else if prop.contains('Y') {
+                channels.y = Some(child_id);
+            } else if prop.contains('Z') {
+                channels.z = Some(child_id);
+            }
+        }
+        if curve_node_props.contains_key(&child_id) && model_map.contains_key(&parent_id) {
+            // AnimCurveNode → Model connection
+            curve_node_to_model.insert(child_id, parent_id);
+        }
+    }
+
+    // Determine which AnimationStack each curve node belongs to (via AnimationLayer)
+    // AnimCurveNode → AnimLayer (OO, in children_of)
+    // AnimLayer → AnimStack (OO, in children_of)
+    let mut layer_to_stack: HashMap<i64, i64> = HashMap::new();
+    for (&stack_id, _) in &anim_stack_names {
+        if let Some(layer_ids) = children_of.get(&stack_id) {
+            for &layer_id in layer_ids {
+                layer_to_stack.insert(layer_id, stack_id);
+            }
+        }
+    }
+    let mut curve_node_to_stack: HashMap<i64, i64> = HashMap::new();
+    for (&layer_id, &stack_id) in &layer_to_stack {
+        if let Some(cn_ids) = children_of.get(&layer_id) {
+            for &cn_id in cn_ids {
+                if curve_node_props.contains_key(&cn_id) {
+                    curve_node_to_stack.insert(cn_id, stack_id);
+                }
+            }
+        }
+    }
+
+    // Assemble per-model animations: model_id → { stack_name → (T curves, R curves, S curves) }
+    struct ModelAnimData {
+        t_channels: Option<CurveNodeChannels>,
+        r_channels: Option<CurveNodeChannels>,
+        s_channels: Option<CurveNodeChannels>,
+    }
+    let mut model_anims: HashMap<i64, HashMap<i64, ModelAnimData>> = HashMap::new();
+    for (&cn_id, &prop) in &curve_node_props {
+        let Some(&model_id) = curve_node_to_model.get(&cn_id) else {
+            continue;
+        };
+        let stack_id = curve_node_to_stack.get(&cn_id).copied().unwrap_or(0);
+        let Some(channels) = curve_node_channels.remove(&cn_id) else {
+            continue;
+        };
+        let anim_data = model_anims
+            .entry(model_id)
+            .or_default()
+            .entry(stack_id)
+            .or_insert(ModelAnimData {
+                t_channels: None,
+                r_channels: None,
+                s_channels: None,
+            });
+        match prop {
+            AnimProp::Translation => anim_data.t_channels = Some(channels),
+            AnimProp::Rotation => anim_data.r_channels = Some(channels),
+            AnimProp::Scaling => anim_data.s_channels = Some(channels),
+        }
+    }
+
+    // Helper: merge time arrays and sample curves at unified times
+    let build_keyframes =
+        |anim_data: ModelAnimData, model: &ModelInfo| -> KeyFrames {
+            // Collect all unique times
+            let mut all_times: Vec<f32> = Vec::new();
+            let collect_times = |channels: &Option<CurveNodeChannels>, times: &mut Vec<f32>| {
+                if let Some(ch) = channels {
+                    for curve_id in [ch.x, ch.y, ch.z].into_iter().flatten() {
+                        if let Some(curve) = anim_curves.get(&curve_id) {
+                            times.extend_from_slice(&curve.times);
+                        }
+                    }
+                }
+            };
+            collect_times(&anim_data.t_channels, &mut all_times);
+            collect_times(&anim_data.r_channels, &mut all_times);
+            collect_times(&anim_data.s_channels, &mut all_times);
+            all_times.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            all_times.dedup_by(|a, b| (*a - *b).abs() < 1e-6);
+
+            if all_times.is_empty() {
+                return KeyFrames::default();
+            }
+
+            let sample_at = |curve_id: Option<i64>, time: f32, default: f32| -> f32 {
+                let Some(id) = curve_id else {
+                    return default;
+                };
+                let Some(curve) = anim_curves.get(&id) else {
+                    return default;
+                };
+                if curve.times.is_empty() {
+                    return default;
+                }
+                if time <= curve.times[0] {
+                    return *curve.values.first().unwrap_or(&default);
+                }
+                if time >= *curve.times.last().unwrap() {
+                    return *curve.values.last().unwrap_or(&default);
+                }
+                // Linear interpolation
+                let pos = curve
+                    .times
+                    .partition_point(|&t| t < time)
+                    .min(curve.times.len() - 1);
+                let i = pos.saturating_sub(1);
+                let t0 = curve.times[i];
+                let t1 = curve.times[pos];
+                let v0 = curve.values.get(i).copied().unwrap_or(default);
+                let v1 = curve.values.get(pos).copied().unwrap_or(default);
+                if (t1 - t0).abs() < 1e-10 {
+                    v0
+                } else {
+                    let alpha = (time - t0) / (t1 - t0);
+                    v0 + alpha * (v1 - v0)
+                }
+            };
+
+            let translations = anim_data.t_channels.as_ref().map(|ch| {
+                all_times
+                    .iter()
+                    .map(|&t| {
+                        vec3(
+                            sample_at(ch.x, t, model.translation[0] as f32),
+                            sample_at(ch.y, t, model.translation[1] as f32),
+                            sample_at(ch.z, t, model.translation[2] as f32),
+                        )
+                    })
+                    .collect()
+            });
+
+            let rotations = anim_data.r_channels.as_ref().map(|ch| {
+                all_times
+                    .iter()
+                    .map(|&t| {
+                        let rx = sample_at(ch.x, t, model.rotation[0] as f32);
+                        let ry = sample_at(ch.y, t, model.rotation[1] as f32);
+                        let rz = sample_at(ch.z, t, model.rotation[2] as f32);
+                        let euler = [rx as f64, ry as f64, rz as f64];
+                        fbx_euler_to_quat(&euler, model.rotation_order)
+                    })
+                    .collect()
+            });
+
+            let scales = anim_data.s_channels.as_ref().map(|ch| {
+                all_times
+                    .iter()
+                    .map(|&t| {
+                        vec3(
+                            sample_at(ch.x, t, model.scaling[0] as f32),
+                            sample_at(ch.y, t, model.scaling[1] as f32),
+                            sample_at(ch.z, t, model.scaling[2] as f32),
+                        )
+                    })
+                    .collect()
+            });
+
+            KeyFrames {
+                interpolation: Interpolation::Linear,
+                loop_time: None,
+                times: all_times,
+                translations,
+                rotations,
+                scales,
+                weights: None,
+            }
+        };
+
+    // Build final animations map: model_id → Vec<(name, KeyFrames)>
+    let mut node_animations: HashMap<i64, Vec<(Option<String>, KeyFrames)>> = HashMap::new();
+    for (model_id, stacks) in model_anims {
+        let model = match model_map.get(&model_id) {
+            Some(m) => m,
+            None => continue,
+        };
+        let anims = node_animations.entry(model_id).or_default();
+        for (stack_id, anim_data) in stacks {
+            let name = anim_stack_names.get(&stack_id).cloned();
+            let key_frames = build_keyframes(anim_data, model);
+            if !key_frames.times.is_empty() {
+                anims.push((name, key_frames));
+            }
+        }
+    }
+
     fn build_node(
         model_id: i64,
         model_map: &HashMap<i64, ModelInfo>,
         geom_map: &HashMap<i64, GeomData>,
         mat_id_to_index: &HashMap<i64, usize>,
         children_of: &HashMap<i64, Vec<i64>>,
+        node_animations: &HashMap<i64, Vec<(Option<String>, KeyFrames)>>,
         model_transform: &dyn Fn(&ModelInfo) -> Mat4,
         geometric_transform: &dyn Fn(&ModelInfo) -> Mat4,
         triangulate: &dyn Fn(&GeomData) -> TriMesh,
@@ -670,6 +992,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                     geom_map,
                     mat_id_to_index,
                     children_of,
+                    node_animations,
                     model_transform,
                     geometric_transform,
                     triangulate,
@@ -678,13 +1001,18 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             }
         }
 
+        let animations = node_animations
+            .get(&model_id)
+            .cloned()
+            .unwrap_or_default();
+
         Node {
             name: model.name.clone(),
             children: child_nodes,
             transformation,
+            animations,
             geometry,
             material_index,
-            ..Default::default()
         }
     }
 
@@ -700,6 +1028,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 &geom_map,
                 &mat_id_to_index,
                 &children_of,
+                &node_animations,
                 &model_transform,
                 &geometric_transform,
                 &triangulate,
@@ -723,6 +1052,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             &geom_map,
             &mat_id_to_index,
             &children_of,
+            &node_animations,
             &model_transform,
             &geometric_transform,
             &triangulate,
@@ -787,6 +1117,13 @@ fn fbx_euler_to_matrix(degrees: &[f64; 3], rotation_order: u8) -> Mat4 {
         5 => rx * ry * rz, // eEulerZYX
         _ => rz * ry * rx, // fallback to XYZ
     }
+}
+
+/// Convert Euler angles (degrees) to a quaternion, respecting FBX rotation order.
+fn fbx_euler_to_quat(degrees: &[f64; 3], rotation_order: u8) -> Quat {
+    let mat = fbx_euler_to_matrix(degrees, rotation_order);
+    let rot3 = Mat3::from_cols(mat.x.truncate(), mat.y.truncate(), mat.z.truncate());
+    Quat::from(rot3)
 }
 
 /// Build a conversion matrix from the FBX file's axis system to OpenGL (Y-up, right-handed).
