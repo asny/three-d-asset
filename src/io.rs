@@ -358,6 +358,10 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
                 #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
+            "fbx" => {
+                #[cfg(feature = "fbx")]
+                dependencies.extend(fbx::dependencies(raw_assets, path));
+            }
             _ => {}
         }
     }

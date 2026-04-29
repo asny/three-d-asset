@@ -290,8 +290,13 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             "EmissiveColor" | "EmissiveFactor" | "Maya|emissionColor" => {
                 mat.emissive_texture = Some(texture);
             }
-            "ShininessExponent" | "SpecularColor" | "ReflectionColor"
-            | "Maya|metalness" | "Maya|specularRoughness" | "Metalness" | "Roughness" => {
+            "ShininessExponent"
+            | "SpecularColor"
+            | "ReflectionColor"
+            | "Maya|metalness"
+            | "Maya|specularRoughness"
+            | "Metalness"
+            | "Roughness" => {
                 mat.metallic_roughness_texture = Some(texture);
             }
             "AmbientOcclusion" | "Maya|TEX_ao_map" => {
@@ -744,8 +749,7 @@ fn fbx_texture_filename(node: &fbxcel::tree::v7400::NodeHandle) -> Option<String
             .map(|s| s.to_string())
     };
 
-    let raw = get_child_string("RelativeFilename")
-        .or_else(|| get_child_string("FileName"))?;
+    let raw = get_child_string("RelativeFilename").or_else(|| get_child_string("FileName"))?;
 
     if raw.is_empty() {
         return None;
@@ -754,14 +758,8 @@ fn fbx_texture_filename(node: &fbxcel::tree::v7400::NodeHandle) -> Option<String
     // Normalize backslashes to forward slashes
     let normalized = raw.replace('\\', "/");
     // Take just the filename portion if it's an absolute path
-    let path = Path::new(&normalized);
-    let filename = if path.is_absolute() {
-        path.file_name()?.to_str()?.to_string()
-    } else {
-        normalized
-    };
-
-    Some(filename)
+    let path = Path::new("tex").join(Path::new(&normalized).file_name()?);
+    Some(path.to_str()?.to_string())
 }
 
 fn fbx_attr_to_f64(attr: &fbxcel::low::v7400::AttributeValue) -> Option<f64> {
