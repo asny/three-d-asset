@@ -369,6 +369,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         scaling: [f64; 3],
         scaling_offset: [f64; 3],
         scaling_pivot: [f64; 3],
+        geometric_translation: [f64; 3],
+        geometric_rotation: [f64; 3],
+        geometric_scaling: [f64; 3],
         rotation_order: u8,
     }
     let mut model_map: HashMap<i64, ModelInfo> = HashMap::new();
@@ -391,6 +394,9 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             scaling: [1.0, 1.0, 1.0],
             scaling_offset: [0.0; 3],
             scaling_pivot: [0.0; 3],
+            geometric_translation: [0.0; 3],
+            geometric_rotation: [0.0; 3],
+            geometric_scaling: [1.0, 1.0, 1.0],
             rotation_order: 0,
         };
         let set_vec3 = |dst: &mut [f64; 3], v: &[f64]| {
@@ -424,6 +430,15 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         }
         if let Some(v) = fbx_props_f64(&obj, "ScalingPivot") {
             set_vec3(&mut info.scaling_pivot, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "GeometricTranslation") {
+            set_vec3(&mut info.geometric_translation, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "GeometricRotation") {
+            set_vec3(&mut info.geometric_rotation, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "GeometricScaling") {
+            set_vec3(&mut info.geometric_scaling, &v);
         }
         if let Some(v) = fbx_props_f64(&obj, "RotationOrder") {
             info.rotation_order = v[0] as u8;
@@ -480,6 +495,21 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         t * r_off * r_piv * r_pre * r_local * r_post * r_piv_inv * s_off * s_piv * s * s_piv_inv
     };
 
+    let geometric_transform = |m: &ModelInfo| -> Mat4 {
+        let gt = Mat4::from_translation(vec3(
+            m.geometric_translation[0] as f32,
+            m.geometric_translation[1] as f32,
+            m.geometric_translation[2] as f32,
+        ));
+        let gr = fbx_euler_to_matrix(&m.geometric_rotation, 0);
+        let gs = Mat4::from_nonuniform_scale(
+            m.geometric_scaling[0] as f32,
+            m.geometric_scaling[1] as f32,
+            m.geometric_scaling[2] as f32,
+        );
+        gt * gr * gs
+    };
+
     fn build_node(
         model_id: i64,
         model_map: &HashMap<i64, ModelInfo>,
@@ -487,12 +517,14 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         mat_id_to_index: &HashMap<i64, usize>,
         children_of: &HashMap<i64, Vec<i64>>,
         model_transform: &dyn Fn(&ModelInfo) -> Mat4,
+        geometric_transform: &dyn Fn(&ModelInfo) -> Mat4,
         triangulate: &dyn Fn(&GeomData) -> TriMesh,
         visited: &mut HashSet<i64>,
     ) -> Node {
         visited.insert(model_id);
         let model = &model_map[&model_id];
         let transformation = model_transform(model);
+        let geo_transform = geometric_transform(model);
 
         let mut geometry = None;
         let mut material_index = None;
@@ -500,7 +532,11 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
 
         for &child_id in children_of.get(&model_id).unwrap_or(&Vec::new()) {
             if let Some(gd) = geom_map.get(&child_id) {
-                geometry = Some(Geometry::Triangles(triangulate(gd)));
+                let mut mesh = triangulate(gd);
+                if geo_transform != Mat4::identity() {
+                    apply_transform_to_mesh(&mut mesh, &geo_transform);
+                }
+                geometry = Some(Geometry::Triangles(mesh));
             } else if let Some(&mi) = mat_id_to_index.get(&child_id) {
                 material_index = Some(mi);
             } else if model_map.contains_key(&child_id) && !visited.contains(&child_id) {
@@ -511,6 +547,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                     mat_id_to_index,
                     children_of,
                     model_transform,
+                    geometric_transform,
                     triangulate,
                     visited,
                 ));
@@ -540,6 +577,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
                 &mat_id_to_index,
                 &children_of,
                 &model_transform,
+                &geometric_transform,
                 &triangulate,
                 &mut visited,
             );
@@ -562,6 +600,7 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             &mat_id_to_index,
             &children_of,
             &model_transform,
+            &geometric_transform,
             &triangulate,
             &mut visited,
         );
@@ -630,6 +669,35 @@ fn fbx_axis_conversion(
         cols[1][3], cols[2][0], cols[2][1], cols[2][2], cols[2][3], cols[3][0], cols[3][1],
         cols[3][2], cols[3][3],
     )
+}
+
+/// Apply a transformation matrix to all positions and normals in a mesh.
+/// Geometric transforms in FBX affect only the node's content, not its children.
+fn apply_transform_to_mesh(mesh: &mut TriMesh, transform: &Mat4) {
+    let normal_matrix = transform.invert().unwrap_or(Mat4::identity()).transpose();
+    match &mut mesh.positions {
+        Positions::F32(ref mut positions) => {
+            for p in positions.iter_mut() {
+                let v = *transform * vec4(p.x, p.y, p.z, 1.0);
+                *p = vec3(v.x, v.y, v.z);
+            }
+        }
+        Positions::F64(ref mut positions) => {
+            for p in positions.iter_mut() {
+                let v = *transform * vec4(p.x as f32, p.y as f32, p.z as f32, 1.0);
+                *p = vec3(v.x as f64, v.y as f64, v.z as f64);
+            }
+        }
+    }
+    if let Some(ref mut normals) = mesh.normals {
+        for n in normals.iter_mut() {
+            let v = normal_matrix * vec4(n.x, n.y, n.z, 0.0);
+            let len = (v.x * v.x + v.y * v.y + v.z * v.z).sqrt();
+            if len > 0.0 {
+                *n = vec3(v.x / len, v.y / len, v.z / len);
+            }
+        }
+    }
 }
 
 fn fbx_get_layer_index(
