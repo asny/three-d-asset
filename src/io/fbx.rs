@@ -363,7 +363,12 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         translation: [f64; 3],
         rotation: [f64; 3],
         pre_rotation: [f64; 3],
+        post_rotation: [f64; 3],
+        rotation_offset: [f64; 3],
+        rotation_pivot: [f64; 3],
         scaling: [f64; 3],
+        scaling_offset: [f64; 3],
+        scaling_pivot: [f64; 3],
         rotation_order: u8,
     }
     let mut model_map: HashMap<i64, ModelInfo> = HashMap::new();
@@ -380,28 +385,45 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             translation: [0.0; 3],
             rotation: [0.0; 3],
             pre_rotation: [0.0; 3],
+            post_rotation: [0.0; 3],
+            rotation_offset: [0.0; 3],
+            rotation_pivot: [0.0; 3],
             scaling: [1.0, 1.0, 1.0],
+            scaling_offset: [0.0; 3],
+            scaling_pivot: [0.0; 3],
             rotation_order: 0,
         };
-        if let Some(v) = fbx_props_f64(&obj, "Lcl Translation") {
+        let set_vec3 = |dst: &mut [f64; 3], v: &[f64]| {
             if v.len() >= 3 {
-                info.translation = [v[0], v[1], v[2]];
+                *dst = [v[0], v[1], v[2]];
             }
+        };
+        if let Some(v) = fbx_props_f64(&obj, "Lcl Translation") {
+            set_vec3(&mut info.translation, &v);
         }
         if let Some(v) = fbx_props_f64(&obj, "Lcl Rotation") {
-            if v.len() >= 3 {
-                info.rotation = [v[0], v[1], v[2]];
-            }
+            set_vec3(&mut info.rotation, &v);
         }
         if let Some(v) = fbx_props_f64(&obj, "PreRotation") {
-            if v.len() >= 3 {
-                info.pre_rotation = [v[0], v[1], v[2]];
-            }
+            set_vec3(&mut info.pre_rotation, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "PostRotation") {
+            set_vec3(&mut info.post_rotation, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "RotationOffset") {
+            set_vec3(&mut info.rotation_offset, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "RotationPivot") {
+            set_vec3(&mut info.rotation_pivot, &v);
         }
         if let Some(v) = fbx_props_f64(&obj, "Lcl Scaling") {
-            if v.len() >= 3 {
-                info.scaling = [v[0], v[1], v[2]];
-            }
+            set_vec3(&mut info.scaling, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "ScalingOffset") {
+            set_vec3(&mut info.scaling_offset, &v);
+        }
+        if let Some(v) = fbx_props_f64(&obj, "ScalingPivot") {
+            set_vec3(&mut info.scaling_pivot, &v);
         }
         if let Some(v) = fbx_props_f64(&obj, "RotationOrder") {
             info.rotation_order = v[0] as u8;
@@ -415,15 +437,47 @@ pub fn deserialize_fbx(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             m.translation[1] as f32,
             m.translation[2] as f32,
         ));
+        let r_off = Mat4::from_translation(vec3(
+            m.rotation_offset[0] as f32,
+            m.rotation_offset[1] as f32,
+            m.rotation_offset[2] as f32,
+        ));
+        let r_piv = Mat4::from_translation(vec3(
+            m.rotation_pivot[0] as f32,
+            m.rotation_pivot[1] as f32,
+            m.rotation_pivot[2] as f32,
+        ));
+        let r_piv_inv = Mat4::from_translation(vec3(
+            -m.rotation_pivot[0] as f32,
+            -m.rotation_pivot[1] as f32,
+            -m.rotation_pivot[2] as f32,
+        ));
         let r_pre = fbx_euler_to_matrix(&m.pre_rotation, 0);
         let r_local = fbx_euler_to_matrix(&m.rotation, m.rotation_order);
-        let r = r_pre * r_local;
+        let r_post = fbx_euler_to_matrix(&m.post_rotation, 0);
+        let s_off = Mat4::from_translation(vec3(
+            m.scaling_offset[0] as f32,
+            m.scaling_offset[1] as f32,
+            m.scaling_offset[2] as f32,
+        ));
+        let s_piv = Mat4::from_translation(vec3(
+            m.scaling_pivot[0] as f32,
+            m.scaling_pivot[1] as f32,
+            m.scaling_pivot[2] as f32,
+        ));
+        let s_piv_inv = Mat4::from_translation(vec3(
+            -m.scaling_pivot[0] as f32,
+            -m.scaling_pivot[1] as f32,
+            -m.scaling_pivot[2] as f32,
+        ));
         let s = Mat4::from_nonuniform_scale(
             m.scaling[0] as f32,
             m.scaling[1] as f32,
             m.scaling[2] as f32,
         );
-        t * r * s
+        // Full FBX local transform:
+        // T * Roff * Rp * Rpre * R * Rpost * Rp^-1 * Soff * Sp * S * Sp^-1
+        t * r_off * r_piv * r_pre * r_local * r_post * r_piv_inv * s_off * s_piv * s * s_piv_inv
     };
 
     fn build_node(
