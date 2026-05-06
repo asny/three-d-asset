@@ -1,0 +1,17 @@
+[package]
+name = "gltf-derive"
+version = "1.4.1"
+authors = ["David Harvey-Macaulay <alteous@outlook.com>"]
+description = "Internal macros for the gltf crate"
+repository = "https://github.com/gltf-rs/gltf"
+license = "MIT OR Apache-2.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+inflections = "1.1"
+proc-macro2 = "1"
+quote = "1"
+syn = "2"
