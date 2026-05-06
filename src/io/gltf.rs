@@ -175,6 +175,7 @@ pub fn deserialize_gltf(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sc
             scene.children.push(node);
         }
     }
+    scene.children.extend(nodes.into_iter().filter_map(|n| n));
     Ok(scene)
 }
 
@@ -487,6 +488,13 @@ mod test {
         let model: Model = crate::io::load_and_deserialize("test_data/data_url.gltf").unwrap();
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);
+    }
+
+    #[test]
+    pub fn deserialize_gltf_with_missing_nodes() {
+        let model: Model = crate::io::load_and_deserialize("test_data/missing_nodes.glb").unwrap();
+        assert_eq!(model.geometries.len(), 2);
+        assert_eq!(model.materials.len(), 2);
     }
 
     #[test]
