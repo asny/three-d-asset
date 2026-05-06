@@ -97,7 +97,7 @@ pub struct Scene {
     pub name: Option<String>,
 
     /// The indices of each root node.
-    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub nodes: Vec<Index<Node>>,
 }
 
