@@ -392,7 +392,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the accessors of the glTF asset.
-    pub fn accessors(&self) -> iter::Accessors {
+    pub fn accessors(&self) -> iter::Accessors<'_> {
         iter::Accessors {
             iter: self.0.accessors.iter().enumerate(),
             document: self,
@@ -400,7 +400,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the animations of the glTF asset.
-    pub fn animations(&self) -> iter::Animations {
+    pub fn animations(&self) -> iter::Animations<'_> {
         iter::Animations {
             iter: self.0.animations.iter().enumerate(),
             document: self,
@@ -408,7 +408,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the pre-loaded buffers of the glTF asset.
-    pub fn buffers(&self) -> iter::Buffers {
+    pub fn buffers(&self) -> iter::Buffers<'_> {
         iter::Buffers {
             iter: self.0.buffers.iter().enumerate(),
             document: self,
@@ -416,7 +416,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the cameras of the glTF asset.
-    pub fn cameras(&self) -> iter::Cameras {
+    pub fn cameras(&self) -> iter::Cameras<'_> {
         iter::Cameras {
             iter: self.0.cameras.iter().enumerate(),
             document: self,
@@ -424,7 +424,7 @@ impl Document {
     }
 
     /// Returns the default scene, if provided.
-    pub fn default_scene(&self) -> Option<Scene> {
+    pub fn default_scene(&self) -> Option<Scene<'_>> {
         self.0
             .scene
             .as_ref()
@@ -432,17 +432,17 @@ impl Document {
     }
 
     /// Returns the extensions referenced in this .document file.
-    pub fn extensions_used(&self) -> iter::ExtensionsUsed {
+    pub fn extensions_used(&self) -> iter::ExtensionsUsed<'_> {
         iter::ExtensionsUsed(self.0.extensions_used.iter())
     }
 
     /// Returns the extensions required to load and render this asset.
-    pub fn extensions_required(&self) -> iter::ExtensionsRequired {
+    pub fn extensions_required(&self) -> iter::ExtensionsRequired<'_> {
         iter::ExtensionsRequired(self.0.extensions_required.iter())
     }
 
     /// Returns an `Iterator` that visits the pre-loaded images of the glTF asset.
-    pub fn images(&self) -> iter::Images {
+    pub fn images(&self) -> iter::Images<'_> {
         iter::Images {
             iter: self.0.images.iter().enumerate(),
             document: self,
@@ -469,7 +469,7 @@ impl Document {
     /// `KHR_lights_punctual` extension.
     #[cfg(feature = "KHR_lights_punctual")]
     #[cfg_attr(docsrs, doc(cfg(feature = "KHR_lights_punctual")))]
-    pub fn lights(&self) -> Option<iter::Lights> {
+    pub fn lights(&self) -> Option<iter::Lights<'_>> {
         let iter = self
             .0
             .extensions
@@ -490,7 +490,7 @@ impl Document {
     /// `KHR_materials_variants` extension.
     #[cfg(feature = "KHR_materials_variants")]
     #[cfg_attr(docsrs, doc(cfg(feature = "KHR_materials_variants")))]
-    pub fn variants(&self) -> Option<iter::Variants> {
+    pub fn variants(&self) -> Option<iter::Variants<'_>> {
         let iter = self
             .0
             .extensions
@@ -508,7 +508,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the materials of the glTF asset.
-    pub fn materials(&self) -> iter::Materials {
+    pub fn materials(&self) -> iter::Materials<'_> {
         iter::Materials {
             iter: self.0.materials.iter().enumerate(),
             document: self,
@@ -516,7 +516,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the meshes of the glTF asset.
-    pub fn meshes(&self) -> iter::Meshes {
+    pub fn meshes(&self) -> iter::Meshes<'_> {
         iter::Meshes {
             iter: self.0.meshes.iter().enumerate(),
             document: self,
@@ -524,7 +524,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the nodes of the glTF asset.
-    pub fn nodes(&self) -> iter::Nodes {
+    pub fn nodes(&self) -> iter::Nodes<'_> {
         iter::Nodes {
             iter: self.0.nodes.iter().enumerate(),
             document: self,
@@ -532,7 +532,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the samplers of the glTF asset.
-    pub fn samplers(&self) -> iter::Samplers {
+    pub fn samplers(&self) -> iter::Samplers<'_> {
         iter::Samplers {
             iter: self.0.samplers.iter().enumerate(),
             document: self,
@@ -540,7 +540,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the scenes of the glTF asset.
-    pub fn scenes(&self) -> iter::Scenes {
+    pub fn scenes(&self) -> iter::Scenes<'_> {
         iter::Scenes {
             iter: self.0.scenes.iter().enumerate(),
             document: self,
@@ -548,7 +548,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the skins of the glTF asset.
-    pub fn skins(&self) -> iter::Skins {
+    pub fn skins(&self) -> iter::Skins<'_> {
         iter::Skins {
             iter: self.0.skins.iter().enumerate(),
             document: self,
@@ -556,7 +556,7 @@ impl Document {
     }
 
     /// Returns an `Iterator` that visits the textures of the glTF asset.
-    pub fn textures(&self) -> iter::Textures {
+    pub fn textures(&self) -> iter::Textures<'_> {
         iter::Textures {
             iter: self.0.textures.iter().enumerate(),
             document: self,
@@ -565,7 +565,7 @@ impl Document {
 
     /// Returns an `Iterator` that visits the pre-loaded buffer views of the glTF
     /// asset.
-    pub fn views(&self) -> iter::Views {
+    pub fn views(&self) -> iter::Views<'_> {
         iter::Views {
             iter: self.0.buffer_views.iter().enumerate(),
             document: self,
