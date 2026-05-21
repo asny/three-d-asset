@@ -18,10 +18,6 @@ pub(crate) enum FileExtension {
 impl FileExtension {
     fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
         match extension(path).as_str() {
-            "" => match raw_assets.get(path) {
-                Ok(bytes) => Self::detect_from_bytes(path, bytes),
-                Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
-            },
             "gltf" | "glb" => Ok(Self::Gltf),
             "obj" => Ok(Self::Obj),
             "stl" => Ok(Self::Stl),
@@ -29,7 +25,10 @@ impl FileExtension {
             "pcd" => Ok(Self::Pcd),
             "mtl" => Ok(Self::Mtl),
             "3mf" => Ok(Self::ThreeMf),
-            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+            _ => match raw_assets.get(path) {
+                Ok(bytes) => Self::detect_from_bytes(path, bytes),
+                Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+            },
         }
     }
 
