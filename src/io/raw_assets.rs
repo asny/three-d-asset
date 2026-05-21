@@ -17,17 +17,6 @@ pub(crate) enum FileExtension {
 
 impl FileExtension {
     fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
-        match extension(path).as_str() {
-            "gltf" | "glb" => return Ok(Self::Gltf),
-            "obj" => return Ok(Self::Obj),
-            "stl" => return Ok(Self::Stl),
-            "fbx" => return Ok(Self::Fbx),
-            "pcd" => return Ok(Self::Pcd),
-            "mtl" => return Ok(Self::Mtl),
-            "3mf" => return Ok(Self::ThreeMf),
-            _ => {}
-        }
-
         if let Ok(bytes) = raw_assets.get(path) {
             if bytes.starts_with(b"glTF") {
                 return Ok(Self::Gltf);
@@ -44,6 +33,17 @@ impl FileExtension {
             if bytes.starts_with(b"solid ") {
                 return Ok(Self::Stl);
             }
+        }
+
+        match extension(path).as_str() {
+            "gltf" | "glb" => return Ok(Self::Gltf),
+            "obj" => return Ok(Self::Obj),
+            "stl" => return Ok(Self::Stl),
+            "fbx" => return Ok(Self::Fbx),
+            "pcd" => return Ok(Self::Pcd),
+            "mtl" => return Ok(Self::Mtl),
+            "3mf" => return Ok(Self::ThreeMf),
+            _ => {}
         }
 
         Err(Error::FailedToGuessFileExtension(
