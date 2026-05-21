@@ -27,7 +27,7 @@ impl FileExtension {
             "3mf" => Ok(Self::ThreeMf),
             _ => match raw_assets.get(path) {
                 Ok(bytes) => Self::detect_from_bytes(path, bytes),
-                Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+                Err(_) => Err(Error::FailedToGuessFileExtension(path.to_str().unwrap().to_string())),
             },
         }
     }
@@ -48,7 +48,7 @@ impl FileExtension {
         if bytes.starts_with(b"solid ") {
             return Ok(Self::Stl);
         }
-        Err(Error::FailedDeserialize(path.to_str().unwrap().to_string()))
+        Err(Error::FailedToGuessFileExtension(path.to_str().unwrap().to_string()))
     }
 }
 

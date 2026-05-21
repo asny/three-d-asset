@@ -276,6 +276,8 @@ pub enum Error {
     NotLoaded(String),
     #[error("the feature {0} is needed")]
     FeatureMissing(String),
+    #[error("failed to guess file extension for {0}")]
+    FailedToGuessFileExtension(String),
     #[error("failed to deserialize the file {0}")]
     FailedDeserialize(String),
     #[error("failed to serialize the file {0}")]
