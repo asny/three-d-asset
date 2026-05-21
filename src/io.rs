@@ -330,15 +330,19 @@ impl Deserialize for crate::Model {
 impl Serialize for crate::Scene {
     fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
         let path = path.as_ref();
-        match FileExtension::guess(path, None) {
-            #[cfg(feature = "3mf")]
-            Ok(FileExtension::ThreeMf) => {
-                let bytes = three_mf::serialize_3mf(self)?;
-                let mut raw_assets = RawAssets::new();
-                raw_assets.insert(path, bytes);
-                Ok(raw_assets)
+        match extension(path).as_str() {
+            "3mf" => {
+                #[cfg(not(feature = "3mf"))]
+                return Err(Error::FeatureMissing("3mf".to_string()));
+
+                #[cfg(feature = "3mf")]
+                {
+                    let bytes = three_mf::serialize_3mf(self)?;
+                    let mut raw_assets = RawAssets::new();
+                    raw_assets.insert(path, bytes);
+                    Ok(raw_assets)
+                }
             }
-            Err(Error::FeatureMissing(f)) => Err(Error::FeatureMissing(f)),
             _ => Err(Error::FailedSerialize(path.to_str().unwrap().to_string())),
         }
     }
