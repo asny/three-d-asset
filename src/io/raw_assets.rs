@@ -23,6 +23,58 @@ pub(crate) enum FileExtension {
 }
 
 impl FileExtension {
+    fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
+        match extension(path).as_str() {
+            "" => match raw_assets.get(path) {
+                Ok(bytes) => FileExtension::detect_from_bytes(path, bytes),
+                Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+            },
+            "gltf" | "glb" => {
+                #[cfg(not(feature = "gltf"))]
+                return Err(Error::FeatureMissing("gltf".to_string()));
+                #[cfg(feature = "gltf")]
+                Ok(FileExtension::Gltf)
+            }
+            "obj" => {
+                #[cfg(not(feature = "obj"))]
+                return Err(Error::FeatureMissing("obj".to_string()));
+                #[cfg(feature = "obj")]
+                Ok(FileExtension::Obj)
+            }
+            "stl" => {
+                #[cfg(not(feature = "stl"))]
+                return Err(Error::FeatureMissing("stl".to_string()));
+                #[cfg(feature = "stl")]
+                Ok(FileExtension::Stl)
+            }
+            "fbx" => {
+                #[cfg(not(feature = "fbx"))]
+                return Err(Error::FeatureMissing("fbx".to_string()));
+                #[cfg(feature = "fbx")]
+                Ok(FileExtension::Fbx)
+            }
+            "pcd" => {
+                #[cfg(not(feature = "pcd"))]
+                return Err(Error::FeatureMissing("pcd".to_string()));
+                #[cfg(feature = "pcd")]
+                Ok(FileExtension::Pcd)
+            }
+            "mtl" => {
+                #[cfg(not(feature = "obj"))]
+                return Err(Error::FeatureMissing("obj".to_string()));
+                #[cfg(feature = "obj")]
+                Ok(FileExtension::Mtl)
+            }
+            "3mf" => {
+                #[cfg(not(feature = "3mf"))]
+                return Err(Error::FeatureMissing("3mf".to_string()));
+                #[cfg(feature = "3mf")]
+                Ok(FileExtension::ThreeMf)
+            }
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+        }
+    }
+
     fn detect_from_bytes(path: &Path, bytes: &[u8]) -> Result<Self> {
         if bytes.starts_with(b"glTF") {
             #[cfg(not(feature = "gltf"))]
@@ -123,55 +175,7 @@ impl RawAssets {
     }
 
     pub(crate) fn guess_extension(&self, path: &Path) -> Result<FileExtension> {
-        match extension(path).as_str() {
-            "" => match self.get(path) {
-                Ok(bytes) => FileExtension::detect_from_bytes(path, bytes),
-                Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
-            },
-            "gltf" | "glb" => {
-                #[cfg(not(feature = "gltf"))]
-                return Err(Error::FeatureMissing("gltf".to_string()));
-                #[cfg(feature = "gltf")]
-                Ok(FileExtension::Gltf)
-            }
-            "obj" => {
-                #[cfg(not(feature = "obj"))]
-                return Err(Error::FeatureMissing("obj".to_string()));
-                #[cfg(feature = "obj")]
-                Ok(FileExtension::Obj)
-            }
-            "stl" => {
-                #[cfg(not(feature = "stl"))]
-                return Err(Error::FeatureMissing("stl".to_string()));
-                #[cfg(feature = "stl")]
-                Ok(FileExtension::Stl)
-            }
-            "fbx" => {
-                #[cfg(not(feature = "fbx"))]
-                return Err(Error::FeatureMissing("fbx".to_string()));
-                #[cfg(feature = "fbx")]
-                Ok(FileExtension::Fbx)
-            }
-            "pcd" => {
-                #[cfg(not(feature = "pcd"))]
-                return Err(Error::FeatureMissing("pcd".to_string()));
-                #[cfg(feature = "pcd")]
-                Ok(FileExtension::Pcd)
-            }
-            "mtl" => {
-                #[cfg(not(feature = "obj"))]
-                return Err(Error::FeatureMissing("obj".to_string()));
-                #[cfg(feature = "obj")]
-                Ok(FileExtension::Mtl)
-            }
-            "3mf" => {
-                #[cfg(not(feature = "3mf"))]
-                return Err(Error::FeatureMissing("3mf".to_string()));
-                #[cfg(feature = "3mf")]
-                Ok(FileExtension::ThreeMf)
-            }
-            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
-        }
+        FileExtension::guess(self, path)
     }
 
     pub(crate) fn match_path(&self, path: &Path) -> Result<PathBuf> {
