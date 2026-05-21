@@ -268,11 +268,10 @@ impl Serialize for crate::Scene {
 impl Deserialize for crate::VoxelGrid {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        match extension(&path).as_str() {
-            "vol" => {
+        match raw_assets.guess_extension(&path)? {
+            FileExtension::Vol => {
                 #[cfg(not(feature = "vol"))]
                 return Err(Error::FeatureMissing("vol".to_string()));
-
                 #[cfg(feature = "vol")]
                 vol::deserialize_vol(raw_assets, &path)
             }
