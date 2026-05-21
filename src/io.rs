@@ -375,7 +375,7 @@ impl Deserialize for crate::PointCloud {
     }
 }
 
-fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
+fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
