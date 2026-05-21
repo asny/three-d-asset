@@ -18,37 +18,37 @@ pub(crate) enum FileExtension {
 impl FileExtension {
     fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
         match extension(path).as_str() {
-            "gltf" | "glb" => Ok(Self::Gltf),
-            "obj" => Ok(Self::Obj),
-            "stl" => Ok(Self::Stl),
-            "fbx" => Ok(Self::Fbx),
-            "pcd" => Ok(Self::Pcd),
-            "mtl" => Ok(Self::Mtl),
-            "3mf" => Ok(Self::ThreeMf),
-            _ => match raw_assets.get(path) {
-                Ok(bytes) => Self::detect_from_bytes(path, bytes),
-                Err(_) => Err(Error::FailedToGuessFileExtension(path.to_str().unwrap().to_string())),
-            },
+            "gltf" | "glb" => return Ok(Self::Gltf),
+            "obj" => return Ok(Self::Obj),
+            "stl" => return Ok(Self::Stl),
+            "fbx" => return Ok(Self::Fbx),
+            "pcd" => return Ok(Self::Pcd),
+            "mtl" => return Ok(Self::Mtl),
+            "3mf" => return Ok(Self::ThreeMf),
+            _ => {}
         }
-    }
 
-    fn detect_from_bytes(path: &Path, bytes: &[u8]) -> Result<Self> {
-        if bytes.starts_with(b"glTF") {
-            return Ok(Self::Gltf);
+        if let Ok(bytes) = raw_assets.get(path) {
+            if bytes.starts_with(b"glTF") {
+                return Ok(Self::Gltf);
+            }
+            if bytes.starts_with(b"Kaydara FBX Binary") {
+                return Ok(Self::Fbx);
+            }
+            if bytes.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
+                return Ok(Self::ThreeMf);
+            }
+            if bytes.starts_with(b"# .PCD") || bytes.starts_with(b"VERSION") {
+                return Ok(Self::Pcd);
+            }
+            if bytes.starts_with(b"solid ") {
+                return Ok(Self::Stl);
+            }
         }
-        if bytes.starts_with(b"Kaydara FBX Binary") {
-            return Ok(Self::Fbx);
-        }
-        if bytes.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
-            return Ok(Self::ThreeMf);
-        }
-        if bytes.starts_with(b"# .PCD") || bytes.starts_with(b"VERSION") {
-            return Ok(Self::Pcd);
-        }
-        if bytes.starts_with(b"solid ") {
-            return Ok(Self::Stl);
-        }
-        Err(Error::FailedToGuessFileExtension(path.to_str().unwrap().to_string()))
+
+        Err(Error::FailedToGuessFileExtension(
+            path.to_str().unwrap().to_string(),
+        ))
     }
 }
 
