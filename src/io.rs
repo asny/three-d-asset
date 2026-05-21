@@ -198,20 +198,45 @@ impl Deserialize for crate::Scene {
         let path = raw_assets.match_path(path.as_ref())?;
         let ext = raw_assets.guess_extension(&path)?;
         match ext {
-            #[cfg(feature = "gltf")]
-            FileExtension::Gltf => gltf::deserialize_gltf(raw_assets, &path),
-            #[cfg(feature = "obj")]
-            FileExtension::Obj => obj::deserialize_obj(raw_assets, &path),
-            #[cfg(feature = "stl")]
-            FileExtension::Stl => stl::deserialize_stl(raw_assets, &path),
-            #[cfg(feature = "fbx")]
-            FileExtension::Fbx => fbx::deserialize_fbx(raw_assets, &path),
-            #[cfg(feature = "pcd")]
-            FileExtension::Pcd => pcd::deserialize_pcd(raw_assets, &path),
-            #[cfg(feature = "3mf")]
-            FileExtension::ThreeMf => three_mf::deserialize_3mf(raw_assets, &path),
-            #[cfg(feature = "obj")]
-            FileExtension::Mtl => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+            FileExtension::Gltf => {
+                #[cfg(not(feature = "gltf"))]
+                return Err(Error::FeatureMissing("gltf".to_string()));
+                #[cfg(feature = "gltf")]
+                gltf::deserialize_gltf(raw_assets, &path)
+            }
+            FileExtension::Obj => {
+                #[cfg(not(feature = "obj"))]
+                return Err(Error::FeatureMissing("obj".to_string()));
+                #[cfg(feature = "obj")]
+                obj::deserialize_obj(raw_assets, &path)
+            }
+            FileExtension::Stl => {
+                #[cfg(not(feature = "stl"))]
+                return Err(Error::FeatureMissing("stl".to_string()));
+                #[cfg(feature = "stl")]
+                stl::deserialize_stl(raw_assets, &path)
+            }
+            FileExtension::Fbx => {
+                #[cfg(not(feature = "fbx"))]
+                return Err(Error::FeatureMissing("fbx".to_string()));
+                #[cfg(feature = "fbx")]
+                fbx::deserialize_fbx(raw_assets, &path)
+            }
+            FileExtension::Pcd => {
+                #[cfg(not(feature = "pcd"))]
+                return Err(Error::FeatureMissing("pcd".to_string()));
+                #[cfg(feature = "pcd")]
+                pcd::deserialize_pcd(raw_assets, &path)
+            }
+            FileExtension::ThreeMf => {
+                #[cfg(not(feature = "3mf"))]
+                return Err(Error::FeatureMissing("3mf".to_string()));
+                #[cfg(feature = "3mf")]
+                three_mf::deserialize_3mf(raw_assets, &path)
+            }
+            FileExtension::Mtl => {
+                Err(Error::FailedDeserialize(path.to_str().unwrap().to_string()))
+            }
         }
     }
 }
@@ -319,20 +344,20 @@ fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
         match raw_assets.guess_extension(path) {
-            #[cfg(feature = "gltf")]
             Ok(FileExtension::Gltf) => {
+                #[cfg(feature = "gltf")]
                 dependencies.extend(gltf::dependencies(raw_assets, path));
             }
-            #[cfg(feature = "obj")]
             Ok(FileExtension::Obj) => {
+                #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_obj(raw_assets, path));
             }
-            #[cfg(feature = "obj")]
             Ok(FileExtension::Mtl) => {
+                #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
-            #[cfg(feature = "fbx")]
             Ok(FileExtension::Fbx) => {
+                #[cfg(feature = "fbx")]
                 dependencies.extend(fbx::dependencies(raw_assets, path));
             }
             _ => {}

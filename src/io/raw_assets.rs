@@ -6,19 +6,12 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub(crate) enum FileExtension {
-    #[cfg(feature = "gltf")]
     Gltf,
-    #[cfg(feature = "obj")]
     Obj,
-    #[cfg(feature = "obj")]
     Mtl,
-    #[cfg(feature = "stl")]
     Stl,
-    #[cfg(feature = "fbx")]
     Fbx,
-    #[cfg(feature = "pcd")]
     Pcd,
-    #[cfg(feature = "3mf")]
     ThreeMf,
 }
 
@@ -26,84 +19,34 @@ impl FileExtension {
     fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
         match extension(path).as_str() {
             "" => match raw_assets.get(path) {
-                Ok(bytes) => FileExtension::detect_from_bytes(path, bytes),
+                Ok(bytes) => Self::detect_from_bytes(path, bytes),
                 Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
             },
-            "gltf" | "glb" => {
-                #[cfg(not(feature = "gltf"))]
-                return Err(Error::FeatureMissing("gltf".to_string()));
-                #[cfg(feature = "gltf")]
-                Ok(FileExtension::Gltf)
-            }
-            "obj" => {
-                #[cfg(not(feature = "obj"))]
-                return Err(Error::FeatureMissing("obj".to_string()));
-                #[cfg(feature = "obj")]
-                Ok(FileExtension::Obj)
-            }
-            "stl" => {
-                #[cfg(not(feature = "stl"))]
-                return Err(Error::FeatureMissing("stl".to_string()));
-                #[cfg(feature = "stl")]
-                Ok(FileExtension::Stl)
-            }
-            "fbx" => {
-                #[cfg(not(feature = "fbx"))]
-                return Err(Error::FeatureMissing("fbx".to_string()));
-                #[cfg(feature = "fbx")]
-                Ok(FileExtension::Fbx)
-            }
-            "pcd" => {
-                #[cfg(not(feature = "pcd"))]
-                return Err(Error::FeatureMissing("pcd".to_string()));
-                #[cfg(feature = "pcd")]
-                Ok(FileExtension::Pcd)
-            }
-            "mtl" => {
-                #[cfg(not(feature = "obj"))]
-                return Err(Error::FeatureMissing("obj".to_string()));
-                #[cfg(feature = "obj")]
-                Ok(FileExtension::Mtl)
-            }
-            "3mf" => {
-                #[cfg(not(feature = "3mf"))]
-                return Err(Error::FeatureMissing("3mf".to_string()));
-                #[cfg(feature = "3mf")]
-                Ok(FileExtension::ThreeMf)
-            }
+            "gltf" | "glb" => Ok(Self::Gltf),
+            "obj" => Ok(Self::Obj),
+            "stl" => Ok(Self::Stl),
+            "fbx" => Ok(Self::Fbx),
+            "pcd" => Ok(Self::Pcd),
+            "mtl" => Ok(Self::Mtl),
+            "3mf" => Ok(Self::ThreeMf),
             _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 
     fn detect_from_bytes(path: &Path, bytes: &[u8]) -> Result<Self> {
         if bytes.starts_with(b"glTF") {
-            #[cfg(not(feature = "gltf"))]
-            return Err(Error::FeatureMissing("gltf".to_string()));
-            #[cfg(feature = "gltf")]
             return Ok(Self::Gltf);
         }
         if bytes.starts_with(b"Kaydara FBX Binary") {
-            #[cfg(not(feature = "fbx"))]
-            return Err(Error::FeatureMissing("fbx".to_string()));
-            #[cfg(feature = "fbx")]
             return Ok(Self::Fbx);
         }
         if bytes.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
-            #[cfg(not(feature = "3mf"))]
-            return Err(Error::FeatureMissing("3mf".to_string()));
-            #[cfg(feature = "3mf")]
             return Ok(Self::ThreeMf);
         }
         if bytes.starts_with(b"# .PCD") || bytes.starts_with(b"VERSION") {
-            #[cfg(not(feature = "pcd"))]
-            return Err(Error::FeatureMissing("pcd".to_string()));
-            #[cfg(feature = "pcd")]
             return Ok(Self::Pcd);
         }
         if bytes.starts_with(b"solid ") {
-            #[cfg(not(feature = "stl"))]
-            return Err(Error::FeatureMissing("stl".to_string()));
-            #[cfg(feature = "stl")]
             return Ok(Self::Stl);
         }
         Err(Error::FailedDeserialize(path.to_str().unwrap().to_string()))
