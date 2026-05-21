@@ -88,11 +88,11 @@ enum FileExtension {
 }
 
 impl FileExtension {
-    fn guess(path: &Path, bytes: Option<&[u8]>) -> Result<Self> {
+    fn guess(path: &Path, raw_assets: &RawAssets) -> Result<Self> {
         match extension(path).as_str() {
-            "" => match bytes {
-                Some(bytes) => Self::detect_from_bytes(path, bytes),
-                None => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
+            "" => match raw_assets.get(path) {
+                Ok(bytes) => Self::detect_from_bytes(path, bytes),
+                Err(_) => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
             },
             "gltf" | "glb" => {
                 #[cfg(not(feature = "gltf"))]
@@ -300,7 +300,7 @@ impl Serialize for crate::Texture2D {
 impl Deserialize for crate::Scene {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        let ext = FileExtension::guess(&path, raw_assets.get(&path).ok())?;
+        let ext = FileExtension::guess(&path, raw_assets)?;
         match ext {
             #[cfg(feature = "gltf")]
             FileExtension::Gltf => gltf::deserialize_gltf(raw_assets, &path),
@@ -421,8 +421,8 @@ impl Deserialize for crate::PointCloud {
 fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
-    for (path, bytes) in raw_assets.iter() {
-        match FileExtension::guess(path, Some(bytes.as_slice())) {
+    for (path, _) in raw_assets.iter() {
+        match FileExtension::guess(path, raw_assets) {
             #[cfg(feature = "gltf")]
             Ok(FileExtension::Gltf) => {
                 dependencies.extend(gltf::dependencies(raw_assets, path));
