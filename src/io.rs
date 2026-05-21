@@ -141,37 +141,35 @@ use std::path::{Path, PathBuf};
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        let extension = path
-            .extension()
-            .map(|e| e.to_str().unwrap())
-            .unwrap_or("image")
-            .to_string();
-        let data_url_bytes = if is_data_url(&path) {
-            Some(parse_data_url(path.to_str().unwrap())?)
-        } else {
-            None
-        };
 
-        #[allow(unused_variables)]
-        let bytes = if let Some(bytes) = data_url_bytes.as_ref() {
-            bytes
-        } else {
-            raw_assets.get(&path)?
-        };
-
-        if "svg" == extension {
-            // to satisfy the compiler during wasm compile
-            #[cfg(not(feature = "svg"))]
-            return Err(Error::FeatureMissing("svg".to_string()));
-
-            #[cfg(feature = "svg")]
-            img::deserialize_svg(path, bytes)
-        } else {
+        if is_data_url(&path) {
             #[cfg(not(feature = "image"))]
-            return Err(Error::FeatureMissing(extension));
-
+            return Err(Error::FeatureMissing("image".to_string()));
             #[cfg(feature = "image")]
-            img::deserialize_img(path, bytes)
+            return img::deserialize_img(&path, &parse_data_url(path.to_str().unwrap())?);
+        }
+
+        match raw_assets.guess_extension(&path)? {
+            FileExtension::Svg => {
+                #[cfg(not(feature = "svg"))]
+                return Err(Error::FeatureMissing("svg".to_string()));
+                #[cfg(feature = "svg")]
+                img::deserialize_svg(&path, raw_assets.get(&path)?)
+            }
+            FileExtension::Png
+            | FileExtension::Jpeg
+            | FileExtension::Gif
+            | FileExtension::Bmp
+            | FileExtension::Tga
+            | FileExtension::Tiff
+            | FileExtension::Hdr
+            | FileExtension::WebP => {
+                #[cfg(not(feature = "image"))]
+                return Err(Error::FeatureMissing("image".to_string()));
+                #[cfg(feature = "image")]
+                img::deserialize_img(&path, raw_assets.get(&path)?)
+            }
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 }

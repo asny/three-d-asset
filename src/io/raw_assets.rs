@@ -13,7 +13,14 @@ pub(crate) enum FileExtension {
     Fbx,
     Pcd,
     ThreeMf,
-    Image,
+    Png,
+    Jpeg,
+    Gif,
+    Bmp,
+    Tga,
+    Tiff,
+    Hdr,
+    WebP,
     Svg,
     Vol,
 }
@@ -44,8 +51,16 @@ impl FileExtension {
                 return Ok(Self::Svg);
             }
             #[cfg(feature = "image")]
-            if image::guess_format(bytes).is_ok() {
-                return Ok(Self::Image);
+            match image::guess_format(bytes) {
+                Ok(image::ImageFormat::Png) => return Ok(Self::Png),
+                Ok(image::ImageFormat::Jpeg) => return Ok(Self::Jpeg),
+                Ok(image::ImageFormat::Gif) => return Ok(Self::Gif),
+                Ok(image::ImageFormat::Bmp) => return Ok(Self::Bmp),
+                Ok(image::ImageFormat::Tga) => return Ok(Self::Tga),
+                Ok(image::ImageFormat::Tiff) => return Ok(Self::Tiff),
+                Ok(image::ImageFormat::Hdr) => return Ok(Self::Hdr),
+                Ok(image::ImageFormat::WebP) => return Ok(Self::WebP),
+                _ => {}
             }
         }
 
@@ -59,9 +74,14 @@ impl FileExtension {
             "3mf" => return Ok(Self::ThreeMf),
             "svg" => return Ok(Self::Svg),
             "vol" => return Ok(Self::Vol),
-            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "tga" | "tiff" | "tif" | "hdr" | "webp" => {
-                return Ok(Self::Image)
-            }
+            "png" => return Ok(Self::Png),
+            "jpg" | "jpeg" => return Ok(Self::Jpeg),
+            "gif" => return Ok(Self::Gif),
+            "bmp" => return Ok(Self::Bmp),
+            "tga" => return Ok(Self::Tga),
+            "tiff" | "tif" => return Ok(Self::Tiff),
+            "hdr" => return Ok(Self::Hdr),
+            "webp" => return Ok(Self::WebP),
             _ => {}
         }
 
