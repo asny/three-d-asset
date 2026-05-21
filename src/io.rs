@@ -134,7 +134,7 @@ pub trait Serialize: Sized {
 }
 
 use crate::{Error, Geometry, Result};
-use raw_assets::{extension, FileExtension};
+use raw_assets::{extension, FileFormat};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -149,21 +149,21 @@ impl Deserialize for crate::Texture2D {
             return img::deserialize_img(&path, &parse_data_url(path.to_str().unwrap())?);
         }
 
-        match raw_assets.guess_extension(&path)? {
-            FileExtension::Svg => {
+        match raw_assets.guess_format(&path)? {
+            FileFormat::Svg => {
                 #[cfg(not(feature = "svg"))]
                 return Err(Error::FeatureMissing("svg".to_string()));
                 #[cfg(feature = "svg")]
                 img::deserialize_svg(&path, raw_assets.get(&path)?)
             }
-            FileExtension::Png
-            | FileExtension::Jpeg
-            | FileExtension::Gif
-            | FileExtension::Bmp
-            | FileExtension::Tga
-            | FileExtension::Tiff
-            | FileExtension::Hdr
-            | FileExtension::WebP => {
+            FileFormat::Png
+            | FileFormat::Jpeg
+            | FileFormat::Gif
+            | FileFormat::Bmp
+            | FileFormat::Tga
+            | FileFormat::Tiff
+            | FileFormat::Hdr
+            | FileFormat::WebP => {
                 #[cfg(not(feature = "image"))]
                 return Err(Error::FeatureMissing("image".to_string()));
                 #[cfg(feature = "image")]
@@ -194,39 +194,39 @@ impl Serialize for crate::Texture2D {
 impl Deserialize for crate::Scene {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        let ext = raw_assets.guess_extension(&path)?;
+        let ext = raw_assets.guess_format(&path)?;
         match ext {
-            FileExtension::Gltf => {
+            FileFormat::Gltf => {
                 #[cfg(not(feature = "gltf"))]
                 return Err(Error::FeatureMissing("gltf".to_string()));
                 #[cfg(feature = "gltf")]
                 gltf::deserialize_gltf(raw_assets, &path)
             }
-            FileExtension::Obj => {
+            FileFormat::Obj => {
                 #[cfg(not(feature = "obj"))]
                 return Err(Error::FeatureMissing("obj".to_string()));
                 #[cfg(feature = "obj")]
                 obj::deserialize_obj(raw_assets, &path)
             }
-            FileExtension::Stl => {
+            FileFormat::Stl => {
                 #[cfg(not(feature = "stl"))]
                 return Err(Error::FeatureMissing("stl".to_string()));
                 #[cfg(feature = "stl")]
                 stl::deserialize_stl(raw_assets, &path)
             }
-            FileExtension::Fbx => {
+            FileFormat::Fbx => {
                 #[cfg(not(feature = "fbx"))]
                 return Err(Error::FeatureMissing("fbx".to_string()));
                 #[cfg(feature = "fbx")]
                 fbx::deserialize_fbx(raw_assets, &path)
             }
-            FileExtension::Pcd => {
+            FileFormat::Pcd => {
                 #[cfg(not(feature = "pcd"))]
                 return Err(Error::FeatureMissing("pcd".to_string()));
                 #[cfg(feature = "pcd")]
                 pcd::deserialize_pcd(raw_assets, &path)
             }
-            FileExtension::ThreeMf => {
+            FileFormat::ThreeMf => {
                 #[cfg(not(feature = "3mf"))]
                 return Err(Error::FeatureMissing("3mf".to_string()));
                 #[cfg(feature = "3mf")]
@@ -339,20 +339,20 @@ fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
-        match raw_assets.guess_extension(path) {
-            Ok(FileExtension::Gltf) => {
+        match raw_assets.guess_format(path) {
+            Ok(FileFormat::Gltf) => {
                 #[cfg(feature = "gltf")]
                 dependencies.extend(gltf::dependencies(raw_assets, path));
             }
-            Ok(FileExtension::Obj) => {
+            Ok(FileFormat::Obj) => {
                 #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_obj(raw_assets, path));
             }
-            Ok(FileExtension::Mtl) => {
+            Ok(FileFormat::Mtl) => {
                 #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
-            Ok(FileExtension::Fbx) => {
+            Ok(FileFormat::Fbx) => {
                 #[cfg(feature = "fbx")]
                 dependencies.extend(fbx::dependencies(raw_assets, path));
             }

@@ -5,7 +5,7 @@ use crate::{
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-pub(crate) enum FileExtension {
+pub(crate) enum FileFormat {
     Gltf,
     Obj,
     Mtl,
@@ -25,7 +25,7 @@ pub(crate) enum FileExtension {
     Vol,
 }
 
-impl FileExtension {
+impl FileFormat {
     fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
         if let Ok(bytes) = raw_assets.get(path) {
             if bytes.starts_with(b"glTF") {
@@ -155,8 +155,8 @@ impl RawAssets {
         Ok(self.0.get(&self.match_path(path.as_ref())?).unwrap())
     }
 
-    pub(crate) fn guess_extension(&self, path: &Path) -> Result<FileExtension> {
-        FileExtension::guess(self, path)
+    pub(crate) fn guess_format(&self, path: &Path) -> Result<FileFormat> {
+        FileFormat::guess(self, path)
     }
 
     pub(crate) fn match_path(&self, path: &Path) -> Result<PathBuf> {
