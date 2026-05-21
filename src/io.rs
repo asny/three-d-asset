@@ -267,7 +267,7 @@ impl Deserialize for crate::VoxelGrid {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
         match FileFormat::guess(raw_assets, &path)? {
-            FileExtension::Vol => {
+            FileFormat::Vol => {
                 #[cfg(not(feature = "vol"))]
                 return Err(Error::FeatureMissing("vol".to_string()));
                 #[cfg(feature = "vol")]
