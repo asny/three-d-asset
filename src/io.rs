@@ -70,11 +70,13 @@ mod pcd;
 #[path = "io/3mf.rs"]
 mod three_mf;
 
-enum ModelExtension {
+enum FileExtension {
     #[cfg(feature = "gltf")]
     Gltf,
     #[cfg(feature = "obj")]
     Obj,
+    #[cfg(feature = "obj")]
+    Mtl,
     #[cfg(feature = "stl")]
     Stl,
     #[cfg(feature = "fbx")]
@@ -85,7 +87,7 @@ enum ModelExtension {
     ThreeMf,
 }
 
-impl ModelExtension {
+impl FileExtension {
     fn from_path(path: &Path) -> Result<Self> {
         match extension(path).as_str() {
             "gltf" | "glb" => {
@@ -117,6 +119,12 @@ impl ModelExtension {
                 return Err(Error::FeatureMissing("pcd".to_string()));
                 #[cfg(feature = "pcd")]
                 Ok(Self::Pcd)
+            }
+            "mtl" => {
+                #[cfg(not(feature = "obj"))]
+                return Err(Error::FeatureMissing("obj".to_string()));
+                #[cfg(feature = "obj")]
+                Ok(Self::Mtl)
             }
             "3mf" => {
                 #[cfg(not(feature = "3mf"))]
@@ -254,19 +262,21 @@ impl Serialize for crate::Texture2D {
 impl Deserialize for crate::Scene {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        match ModelExtension::from_path(&path)? {
+        match FileExtension::from_path(&path)? {
             #[cfg(feature = "gltf")]
-            ModelExtension::Gltf => gltf::deserialize_gltf(raw_assets, &path),
+            FileExtension::Gltf => gltf::deserialize_gltf(raw_assets, &path),
             #[cfg(feature = "obj")]
-            ModelExtension::Obj => obj::deserialize_obj(raw_assets, &path),
+            FileExtension::Obj => obj::deserialize_obj(raw_assets, &path),
             #[cfg(feature = "stl")]
-            ModelExtension::Stl => stl::deserialize_stl(raw_assets, &path),
+            FileExtension::Stl => stl::deserialize_stl(raw_assets, &path),
             #[cfg(feature = "fbx")]
-            ModelExtension::Fbx => fbx::deserialize_fbx(raw_assets, &path),
+            FileExtension::Fbx => fbx::deserialize_fbx(raw_assets, &path),
             #[cfg(feature = "pcd")]
-            ModelExtension::Pcd => pcd::deserialize_pcd(raw_assets, &path),
+            FileExtension::Pcd => pcd::deserialize_pcd(raw_assets, &path),
             #[cfg(feature = "3mf")]
-            ModelExtension::ThreeMf => three_mf::deserialize_3mf(raw_assets, &path),
+            FileExtension::ThreeMf => three_mf::deserialize_3mf(raw_assets, &path),
+            #[cfg(feature = "obj")]
+            FileExtension::Mtl => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 }
@@ -281,9 +291,9 @@ impl Deserialize for crate::Model {
 impl Serialize for crate::Scene {
     fn serialize(&self, path: impl AsRef<Path>) -> Result<RawAssets> {
         let path = path.as_ref();
-        match ModelExtension::from_path(path) {
+        match FileExtension::from_path(path) {
             #[cfg(feature = "3mf")]
-            Ok(ModelExtension::ThreeMf) => {
+            Ok(FileExtension::ThreeMf) => {
                 let bytes = three_mf::serialize_3mf(self)?;
                 let mut raw_assets = RawAssets::new();
                 raw_assets.insert(path, bytes);
@@ -369,25 +379,24 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
-        match ModelExtension::from_path(path) {
+        match FileExtension::from_path(path) {
             #[cfg(feature = "gltf")]
-            Ok(ModelExtension::Gltf) => {
+            Ok(FileExtension::Gltf) => {
                 dependencies.extend(gltf::dependencies(raw_assets, path));
             }
             #[cfg(feature = "obj")]
-            Ok(ModelExtension::Obj) => {
+            Ok(FileExtension::Obj) => {
                 dependencies.extend(obj::dependencies_obj(raw_assets, path));
             }
+            #[cfg(feature = "obj")]
+            Ok(FileExtension::Mtl) => {
+                dependencies.extend(obj::dependencies_mtl(raw_assets, path));
+            }
             #[cfg(feature = "fbx")]
-            Ok(ModelExtension::Fbx) => {
+            Ok(FileExtension::Fbx) => {
                 dependencies.extend(fbx::dependencies(raw_assets, path));
             }
-            _ => {
-                #[cfg(feature = "obj")]
-                if extension(path).as_str() == "mtl" {
-                    dependencies.extend(obj::dependencies_mtl(raw_assets, path));
-                }
-            }
+            _ => {}
         }
     }
     dependencies
