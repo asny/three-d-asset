@@ -13,6 +13,9 @@ pub(crate) enum FileExtension {
     Fbx,
     Pcd,
     ThreeMf,
+    Image,
+    Svg,
+    Vol,
 }
 
 impl FileExtension {
@@ -33,6 +36,17 @@ impl FileExtension {
             if bytes.starts_with(b"solid ") {
                 return Ok(Self::Stl);
             }
+            let trimmed = &bytes[bytes
+                .iter()
+                .position(|b| !b.is_ascii_whitespace())
+                .unwrap_or(0)..];
+            if trimmed.starts_with(b"<svg") || trimmed.starts_with(b"<?xml") {
+                return Ok(Self::Svg);
+            }
+            #[cfg(feature = "image")]
+            if image::guess_format(bytes).is_ok() {
+                return Ok(Self::Image);
+            }
         }
 
         match extension(path).as_str() {
@@ -43,6 +57,11 @@ impl FileExtension {
             "pcd" => return Ok(Self::Pcd),
             "mtl" => return Ok(Self::Mtl),
             "3mf" => return Ok(Self::ThreeMf),
+            "svg" => return Ok(Self::Svg),
+            "vol" => return Ok(Self::Vol),
+            "png" | "jpg" | "jpeg" | "gif" | "bmp" | "tga" | "tiff" | "tif" | "hdr" | "webp" => {
+                return Ok(Self::Image)
+            }
             _ => {}
         }
 

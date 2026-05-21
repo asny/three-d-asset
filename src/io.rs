@@ -234,9 +234,7 @@ impl Deserialize for crate::Scene {
                 #[cfg(feature = "3mf")]
                 three_mf::deserialize_3mf(raw_assets, &path)
             }
-            FileExtension::Mtl => {
-                Err(Error::FailedDeserialize(path.to_str().unwrap().to_string()))
-            }
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 }
