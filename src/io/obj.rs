@@ -1,20 +1,24 @@
 use crate::{geometry::*, io::RawAssets, material::*, prelude::Srgba, Node, Result, Scene};
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
 pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
-    let mut dependencies = HashSet::new();
+    let dependencies = RefCell::new(HashSet::new());
     let bytes = raw_assets.get(path).unwrap();
     let base_path = path.parent().unwrap_or(Path::new(""));
 
-    for line in std::str::from_utf8(bytes).unwrap_or("").lines() {
-        let line = line.trim();
-        if let Some(material_file) = line.strip_prefix("mtllib ") {
-            dependencies.insert(base_path.join(material_file.trim()));
-        }
-    }
-    dependencies
+    let mut reader = Cursor::new(bytes);
+    let _ = tobj::load_obj_buf(
+        &mut reader,
+        &tobj::LoadOptions::default(),
+        |material_path| {
+            dependencies.borrow_mut().insert(base_path.join(material_path));
+            Ok((vec![], Default::default()))
+        },
+    );
+    dependencies.into_inner()
 }
 
 pub fn dependencies_material(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
