@@ -140,37 +140,35 @@ use std::path::{Path, PathBuf};
 impl Deserialize for crate::Texture2D {
     fn deserialize(path: impl AsRef<std::path::Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        let extension = path
-            .extension()
-            .map(|e| e.to_str().unwrap())
-            .unwrap_or("image")
-            .to_string();
-        let data_url_bytes = if is_data_url(&path) {
-            Some(parse_data_url(path.to_str().unwrap())?)
-        } else {
-            None
-        };
 
-        #[allow(unused_variables)]
-        let bytes = if let Some(bytes) = data_url_bytes.as_ref() {
-            bytes
-        } else {
-            raw_assets.get(&path)?
-        };
-
-        if "svg" == extension {
-            // to satisfy the compiler during wasm compile
-            #[cfg(not(feature = "svg"))]
-            return Err(Error::FeatureMissing("svg".to_string()));
-
-            #[cfg(feature = "svg")]
-            img::deserialize_svg(path, bytes)
-        } else {
+        if is_data_url(&path) {
             #[cfg(not(feature = "image"))]
-            return Err(Error::FeatureMissing(extension));
-
+            return Err(Error::FeatureMissing("image".to_string()));
             #[cfg(feature = "image")]
-            img::deserialize_img(path, bytes)
+            return img::deserialize_img(&path, &parse_data_url(path.to_str().unwrap())?);
+        }
+
+        match FileFormat::guess(raw_assets, &path)? {
+            FileFormat::Svg => {
+                #[cfg(not(feature = "svg"))]
+                return Err(Error::FeatureMissing("svg".to_string()));
+                #[cfg(feature = "svg")]
+                img::deserialize_svg(&path, raw_assets.get(&path)?)
+            }
+            FileFormat::Png
+            | FileFormat::Jpeg
+            | FileFormat::Gif
+            | FileFormat::Bmp
+            | FileFormat::Tga
+            | FileFormat::Tiff
+            | FileFormat::Hdr
+            | FileFormat::WebP => {
+                #[cfg(not(feature = "image"))]
+                return Err(Error::FeatureMissing("image".to_string()));
+                #[cfg(feature = "image")]
+                img::deserialize_img(&path, raw_assets.get(&path)?)
+            }
+            _ => Err(Error::FailedDeserialize(path.to_str().unwrap().to_string())),
         }
     }
 }
@@ -195,46 +193,40 @@ impl Serialize for crate::Texture2D {
 impl Deserialize for crate::Scene {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        match extension(&path).as_str() {
-            "gltf" | "glb" => {
+        match FileFormat::guess(raw_assets, &path)? {
+            FileFormat::Gltf => {
                 #[cfg(not(feature = "gltf"))]
                 return Err(Error::FeatureMissing("gltf".to_string()));
-
                 #[cfg(feature = "gltf")]
                 gltf::deserialize_gltf(raw_assets, &path)
             }
-            "obj" => {
+            FileFormat::Obj => {
                 #[cfg(not(feature = "obj"))]
                 return Err(Error::FeatureMissing("obj".to_string()));
-
                 #[cfg(feature = "obj")]
                 obj::deserialize_obj(raw_assets, &path)
             }
-            "stl" => {
+            FileFormat::Stl => {
                 #[cfg(not(feature = "stl"))]
                 return Err(Error::FeatureMissing("stl".to_string()));
-
                 #[cfg(feature = "stl")]
                 stl::deserialize_stl(raw_assets, &path)
             }
-            "fbx" => {
+            FileFormat::Fbx => {
                 #[cfg(not(feature = "fbx"))]
                 return Err(Error::FeatureMissing("fbx".to_string()));
-
                 #[cfg(feature = "fbx")]
                 fbx::deserialize_fbx(raw_assets, &path)
             }
-            "pcd" => {
+            FileFormat::Pcd => {
                 #[cfg(not(feature = "pcd"))]
                 return Err(Error::FeatureMissing("pcd".to_string()));
-
                 #[cfg(feature = "pcd")]
                 pcd::deserialize_pcd(raw_assets, &path)
             }
-            "3mf" => {
+            FileFormat::ThreeMf => {
                 #[cfg(not(feature = "3mf"))]
                 return Err(Error::FeatureMissing("3mf".to_string()));
-
                 #[cfg(feature = "3mf")]
                 three_mf::deserialize_3mf(raw_assets, &path)
             }
@@ -274,11 +266,10 @@ impl Serialize for crate::Scene {
 impl Deserialize for crate::VoxelGrid {
     fn deserialize(path: impl AsRef<Path>, raw_assets: &mut RawAssets) -> Result<Self> {
         let path = raw_assets.match_path(path.as_ref())?;
-        match extension(&path).as_str() {
-            "vol" => {
+        match FileFormat::guess(raw_assets, &path)? {
+            FileFormat::Vol => {
                 #[cfg(not(feature = "vol"))]
                 return Err(Error::FeatureMissing("vol".to_string()));
-
                 #[cfg(feature = "vol")]
                 vol::deserialize_vol(raw_assets, &path)
             }
@@ -341,24 +332,24 @@ impl Deserialize for crate::PointCloud {
     }
 }
 
-fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
+fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
     #[allow(unused_mut)]
     let mut dependencies = HashSet::new();
     for (path, _) in raw_assets.iter() {
-        match extension(path).as_str() {
-            "gltf" | "glb" => {
+        match FileFormat::guess(raw_assets, &path) {
+            Ok(FileFormat::Gltf) => {
                 #[cfg(feature = "gltf")]
                 dependencies.extend(gltf::dependencies(raw_assets, path));
             }
-            "obj" => {
+            Ok(FileFormat::Obj) => {
                 #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_obj(raw_assets, path));
             }
-            "mtl" => {
+            Ok(FileFormat::Mtl) => {
                 #[cfg(feature = "obj")]
                 dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
-            "fbx" => {
+            Ok(FileFormat::Fbx) => {
                 #[cfg(feature = "fbx")]
                 dependencies.extend(fbx::dependencies(raw_assets, path));
             }
@@ -369,12 +360,6 @@ fn get_dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
         .into_iter()
         .filter(|d| !raw_assets.contains_key(d))
         .collect()
-}
-
-fn extension(path: &Path) -> String {
-    path.extension()
-        .map(|e| e.to_str().unwrap().to_ascii_lowercase())
-        .unwrap_or("".to_string())
 }
 
 fn is_data_url(path: &Path) -> bool {
@@ -396,4 +381,96 @@ fn parse_data_url(path: &str) -> Result<Vec<u8>> {
     }
     #[cfg(not(feature = "data-url"))]
     Err(Error::FeatureMissing("data-url".to_string()))
+}
+
+enum FileFormat {
+    Gltf,
+    Obj,
+    Mtl,
+    Stl,
+    Fbx,
+    Pcd,
+    ThreeMf,
+    Png,
+    Jpeg,
+    Gif,
+    Bmp,
+    Tga,
+    Tiff,
+    Hdr,
+    WebP,
+    Svg,
+    Vol,
+}
+
+impl FileFormat {
+    fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
+        if let Ok(bytes) = raw_assets.get(path) {
+            if bytes.starts_with(b"glTF") {
+                return Ok(Self::Gltf);
+            }
+            if bytes.starts_with(b"Kaydara FBX Binary") {
+                return Ok(Self::Fbx);
+            }
+            if bytes.starts_with(&[0x50, 0x4B, 0x03, 0x04]) {
+                return Ok(Self::ThreeMf);
+            }
+            if bytes.starts_with(b"# .PCD") || bytes.starts_with(b"VERSION") {
+                return Ok(Self::Pcd);
+            }
+            if bytes.starts_with(b"solid ") {
+                return Ok(Self::Stl);
+            }
+            let trimmed = &bytes[bytes
+                .iter()
+                .position(|b| !b.is_ascii_whitespace())
+                .unwrap_or(0)..];
+            if trimmed.starts_with(b"<svg") || trimmed.starts_with(b"<?xml") {
+                return Ok(Self::Svg);
+            }
+            #[cfg(feature = "image")]
+            match image::guess_format(bytes) {
+                Ok(image::ImageFormat::Png) => return Ok(Self::Png),
+                Ok(image::ImageFormat::Jpeg) => return Ok(Self::Jpeg),
+                Ok(image::ImageFormat::Gif) => return Ok(Self::Gif),
+                Ok(image::ImageFormat::Bmp) => return Ok(Self::Bmp),
+                Ok(image::ImageFormat::Tga) => return Ok(Self::Tga),
+                Ok(image::ImageFormat::Tiff) => return Ok(Self::Tiff),
+                Ok(image::ImageFormat::Hdr) => return Ok(Self::Hdr),
+                Ok(image::ImageFormat::WebP) => return Ok(Self::WebP),
+                _ => {}
+            }
+        }
+
+        match extension(path).as_str() {
+            "gltf" | "glb" => return Ok(Self::Gltf),
+            "obj" => return Ok(Self::Obj),
+            "stl" => return Ok(Self::Stl),
+            "fbx" => return Ok(Self::Fbx),
+            "pcd" => return Ok(Self::Pcd),
+            "mtl" => return Ok(Self::Mtl),
+            "3mf" => return Ok(Self::ThreeMf),
+            "svg" => return Ok(Self::Svg),
+            "vol" => return Ok(Self::Vol),
+            "png" => return Ok(Self::Png),
+            "jpg" | "jpeg" => return Ok(Self::Jpeg),
+            "gif" => return Ok(Self::Gif),
+            "bmp" => return Ok(Self::Bmp),
+            "tga" => return Ok(Self::Tga),
+            "tiff" | "tif" => return Ok(Self::Tiff),
+            "hdr" => return Ok(Self::Hdr),
+            "webp" => return Ok(Self::WebP),
+            _ => {}
+        }
+
+        Err(Error::FailedToGuessFileExtension(
+            path.to_str().unwrap().to_string(),
+        ))
+    }
+}
+
+fn extension(path: &Path) -> String {
+    path.extension()
+        .map(|e| e.to_str().unwrap().to_ascii_lowercase())
+        .unwrap_or("".to_string())
 }

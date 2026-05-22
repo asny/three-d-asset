@@ -21,10 +21,10 @@ use std::path::{Path, PathBuf};
 #[cfg(not(target_arch = "wasm32"))]
 pub fn load(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = load_single(paths)?;
-    let mut dependencies = super::get_dependencies(&raw_assets);
+    let mut dependencies = super::dependencies(&raw_assets);
     while !dependencies.is_empty() {
         let deps = load_single(&dependencies)?;
-        dependencies = super::get_dependencies(&deps);
+        dependencies = super::dependencies(&deps);
         raw_assets.extend(deps);
     }
     Ok(raw_assets)
@@ -58,10 +58,10 @@ fn load_single(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
 ///
 pub async fn load_async(paths: &[impl AsRef<Path>]) -> Result<RawAssets> {
     let mut raw_assets = load_async_single(paths).await?;
-    let mut dependencies = super::get_dependencies(&raw_assets);
+    let mut dependencies = super::dependencies(&raw_assets);
     while !dependencies.is_empty() {
         let deps = load_async_single(&dependencies).await?;
-        dependencies = super::get_dependencies(&deps);
+        dependencies = super::dependencies(&deps);
         raw_assets.extend(deps);
     }
     Ok(raw_assets)
