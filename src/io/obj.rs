@@ -1,5 +1,5 @@
 use crate::{geometry::*, io::RawAssets, material::*, prelude::Srgba, Node, Result, Scene};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 
@@ -52,17 +52,7 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
     let obj_bytes = raw_assets.remove(path)?;
     let base_path = path.parent().unwrap_or(Path::new("")).to_owned();
 
-    let mut material_files: HashMap<PathBuf, Vec<u8>> = HashMap::new();
-    for line in std::str::from_utf8(&obj_bytes).unwrap_or("").lines() {
-        let line = line.trim();
-        if let Some(material_file) = line.strip_prefix("mtllib ") {
-            let full_path = base_path.join(material_file.trim());
-            if let Ok(bytes) = raw_assets.remove(&full_path) {
-                material_files.insert(full_path, bytes);
-            }
-        }
-    }
-
+    let raw_assets_ref: &RawAssets = &*raw_assets;
     let mut reader = Cursor::new(&obj_bytes);
     let (models, obj_materials) = tobj::load_obj_buf(
         &mut reader,
@@ -73,11 +63,12 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         },
         |material_path| {
             let full_path = base_path.join(material_path);
-            if let Some(material_bytes) = material_files.get(&full_path) {
-                let mut material_reader = Cursor::new(material_bytes);
-                tobj::load_mtl_buf(&mut material_reader)
-            } else {
-                Err(tobj::LoadError::ReadError)
+            match raw_assets_ref.get(&full_path) {
+                Ok(material_bytes) => {
+                    let mut material_reader = Cursor::new(material_bytes);
+                    tobj::load_mtl_buf(&mut material_reader)
+                }
+                Err(_) => Err(tobj::LoadError::ReadError),
             }
         },
     )?;
