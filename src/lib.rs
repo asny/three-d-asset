@@ -225,7 +225,7 @@ pub enum Error {
 
     #[cfg(feature = "obj")]
     #[error("error while parsing an .obj file")]
-    Obj(#[from] wavefront_obj::ParseError),
+    Obj(#[from] tobj::LoadError),
 
     #[cfg(feature = "3mf")]
     #[error("error while parsing a .3mf file")]
