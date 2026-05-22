@@ -116,7 +116,13 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
 
         materials.push(PbrMaterial {
             name: mat.name.clone(),
-            albedo: [color[0] as f32, color[1] as f32, color[2] as f32, alpha as f32].into(),
+            albedo: [
+                color[0] as f32,
+                color[1] as f32,
+                color[2] as f32,
+                alpha as f32,
+            ]
+            .into(),
             albedo_texture,
             metallic: ((specular[0] + specular[1] + specular[2]) / 3.0) as f32,
             roughness: if shininess > 0.1 {
@@ -197,9 +203,13 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         nodes.push(Node {
             name: model.name.clone(),
             geometry: Some(Geometry::Triangles(tri_mesh)),
-            material_index: mesh
-                .material_id
-                .and_then(|id| if id < materials.len() { Some(id) } else { None }),
+            material_index: mesh.material_id.and_then(|id| {
+                if id < materials.len() {
+                    Some(id)
+                } else {
+                    None
+                }
+            }),
             ..Default::default()
         });
     }
@@ -240,6 +250,14 @@ mod test {
         };
         let colors = mesh.colors.as_ref().expect("expected vertex colors");
         assert!(!colors.is_empty());
-        assert_eq!(colors[0], crate::prelude::Srgba { r: 255, g: 0, b: 0, a: 255 });
+        assert_eq!(
+            colors[0],
+            crate::prelude::Srgba {
+                r: 255,
+                g: 0,
+                b: 0,
+                a: 255
+            }
+        );
     }
 }
