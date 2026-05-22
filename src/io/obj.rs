@@ -1,4 +1,4 @@
-use crate::{geometry::*, io::RawAssets, material::*, prelude::Srgba, Node, Result, Scene};
+use crate::{geometry::*, io::RawAssets, material::*, prelude::Srgba, Error, Node, Result, Scene};
 use std::cell::RefCell;
 use std::collections::HashSet;
 use std::io::Cursor;
@@ -14,7 +14,9 @@ pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathB
         &mut reader,
         &tobj::LoadOptions::default(),
         |material_path| {
-            dependencies.borrow_mut().insert(base_path.join(material_path));
+            dependencies
+                .borrow_mut()
+                .insert(base_path.join(material_path));
             Ok((vec![], Default::default()))
         },
     );
@@ -77,7 +79,8 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         },
     )?;
 
-    let tobj_materials = obj_materials.unwrap_or_default();
+    let tobj_materials =
+        obj_materials.map_err(|_| Error::MissingMaterial(path.display().to_string()))?;
 
     let mut materials = Vec::new();
     for mat in &tobj_materials {
