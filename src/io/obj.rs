@@ -227,4 +227,19 @@ mod test {
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 1);
     }
+
+    #[test]
+    pub fn deserialize_obj_with_vertex_colors() {
+        use crate::geometry::Geometry;
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/cube_vertex_colors.obj").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        let mesh = match &model.geometries[0].geometry {
+            Geometry::Triangles(m) => m,
+            _ => panic!("expected triangle mesh"),
+        };
+        let colors = mesh.colors.as_ref().expect("expected vertex colors");
+        assert!(!colors.is_empty());
+        assert_eq!(colors[0], crate::prelude::Srgba { r: 255, g: 0, b: 0, a: 255 });
+    }
 }
