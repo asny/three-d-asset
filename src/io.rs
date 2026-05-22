@@ -347,7 +347,7 @@ fn dependencies(raw_assets: &RawAssets) -> Vec<PathBuf> {
             }
             Ok(FileFormat::Mtl) => {
                 #[cfg(feature = "obj")]
-                dependencies.extend(obj::dependencies_material(raw_assets, path));
+                dependencies.extend(obj::dependencies_mtl(raw_assets, path));
             }
             Ok(FileFormat::Fbx) => {
                 #[cfg(feature = "fbx")]

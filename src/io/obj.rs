@@ -23,7 +23,7 @@ pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathB
     dependencies.into_inner()
 }
 
-pub fn dependencies_material(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
+pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
     let bytes = raw_assets.get(path).unwrap();
     let base_path = path.parent().unwrap_or(Path::new(""));
