@@ -10,14 +10,14 @@ pub fn dependencies_obj(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathB
 
     for line in std::str::from_utf8(bytes).unwrap_or("").lines() {
         let line = line.trim();
-        if let Some(mtl_file) = line.strip_prefix("mtllib ") {
-            dependencies.insert(base_path.join(mtl_file.trim()));
+        if let Some(material_file) = line.strip_prefix("mtllib ") {
+            dependencies.insert(base_path.join(material_file.trim()));
         }
     }
     dependencies
 }
 
-pub fn dependencies_mtl(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
+pub fn dependencies_material(raw_assets: &RawAssets, path: &PathBuf) -> HashSet<PathBuf> {
     let mut dependencies = HashSet::new();
     let bytes = raw_assets.get(path).unwrap();
     let base_path = path.parent().unwrap_or(Path::new(""));
@@ -52,13 +52,13 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
     let obj_bytes = raw_assets.remove(path)?;
     let base_path = path.parent().unwrap_or(Path::new("")).to_owned();
 
-    let mut mtl_cache: HashMap<PathBuf, Vec<u8>> = HashMap::new();
+    let mut material_files: HashMap<PathBuf, Vec<u8>> = HashMap::new();
     for line in std::str::from_utf8(&obj_bytes).unwrap_or("").lines() {
         let line = line.trim();
-        if let Some(mtl_file) = line.strip_prefix("mtllib ") {
-            let full_path = base_path.join(mtl_file.trim());
+        if let Some(material_file) = line.strip_prefix("mtllib ") {
+            let full_path = base_path.join(material_file.trim());
             if let Ok(bytes) = raw_assets.remove(&full_path) {
-                mtl_cache.insert(full_path, bytes);
+                material_files.insert(full_path, bytes);
             }
         }
     }
@@ -71,11 +71,11 @@ pub fn deserialize_obj(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             single_index: true,
             ..Default::default()
         },
-        |mtl_path| {
-            let full_path = base_path.join(mtl_path);
-            if let Some(mtl_bytes) = mtl_cache.get(&full_path) {
-                let mut mtl_reader = Cursor::new(mtl_bytes);
-                tobj::load_mtl_buf(&mut mtl_reader)
+        |material_path| {
+            let full_path = base_path.join(material_path);
+            if let Some(material_bytes) = material_files.get(&full_path) {
+                let mut material_reader = Cursor::new(material_bytes);
+                tobj::load_mtl_buf(&mut material_reader)
             } else {
                 Err(tobj::LoadError::ReadError)
             }
