@@ -407,7 +407,7 @@ enum FileFormat {
 impl FileFormat {
     fn guess(raw_assets: &RawAssets, path: &Path) -> Result<Self> {
         if let Ok(bytes) = raw_assets.get(path) {
-            if bytes.starts_with(b"glTF") {
+            if bytes.starts_with(b"glTF") || looks_like_gltf_json(bytes) {
                 return Ok(Self::Gltf);
             }
             if bytes.starts_with(b"Kaydara FBX Binary") {
@@ -471,6 +471,14 @@ impl FileFormat {
             path.to_str().unwrap().to_string(),
         ))
     }
+}
+
+fn looks_like_gltf_json(bytes: &[u8]) -> bool {
+    let text = match std::str::from_utf8(&bytes[..bytes.len().min(4096)]) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+    text.contains("\"asset\"") && text.contains("\"version\"")
 }
 
 fn looks_like_obj(bytes: &[u8]) -> bool {
@@ -625,5 +633,33 @@ mod test {
             crate::io::load_and_deserialize("test_data/cube_no_extension").unwrap();
         assert_eq!(model.geometries.len(), 1);
         assert_eq!(model.materials.len(), 0);
+    }
+
+    #[test]
+    fn deserialize_fbx_with_wrong_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/Cube_fbx_wrong_extension.obj").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+    }
+
+    #[test]
+    fn deserialize_fbx_with_no_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/Cube_fbx_no_extension").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+    }
+
+    #[test]
+    fn deserialize_gltf_with_wrong_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/Cube_gltf_wrong_extension.stl").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+    }
+
+    #[test]
+    fn deserialize_gltf_with_no_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/Cube_gltf_no_extension").unwrap();
+        assert_eq!(model.geometries.len(), 1);
     }
 }
