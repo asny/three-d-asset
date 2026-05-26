@@ -518,67 +518,103 @@ mod test {
     #[test]
     fn guess_gltf_from_extension() {
         let assets = assets_with("model.gltf", b"{}");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.gltf")).unwrap(), FileFormat::Gltf);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.gltf")).unwrap(),
+            FileFormat::Gltf
+        );
     }
 
     #[test]
     fn guess_obj_from_extension() {
         let assets = assets_with("model.obj", b"v 0 0 0");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.obj")).unwrap(), FileFormat::Obj);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.obj")).unwrap(),
+            FileFormat::Obj
+        );
     }
 
     #[test]
     fn guess_glb_from_magic_bytes_with_wrong_extension() {
         let assets = assets_with("model.obj", b"glTF\x02\x00\x00\x00");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.obj")).unwrap(), FileFormat::Gltf);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.obj")).unwrap(),
+            FileFormat::Gltf
+        );
     }
 
     #[test]
     fn guess_fbx_from_magic_bytes_with_wrong_extension() {
         let assets = assets_with("model.txt", b"Kaydara FBX Binary\x00\x00");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.txt")).unwrap(), FileFormat::Fbx);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.txt")).unwrap(),
+            FileFormat::Fbx
+        );
     }
 
     #[test]
     fn guess_3mf_from_magic_bytes_with_wrong_extension() {
         let assets = assets_with("archive.zip", &[0x50, 0x4B, 0x03, 0x04, 0x00]);
-        assert_eq!(FileFormat::guess(&assets, Path::new("archive.zip")).unwrap(), FileFormat::ThreeMf);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("archive.zip")).unwrap(),
+            FileFormat::ThreeMf
+        );
     }
 
     #[test]
     fn guess_pcd_from_magic_bytes_with_wrong_extension() {
         let assets = assets_with("cloud.dat", b"# .PCD v0.7\n");
-        assert_eq!(FileFormat::guess(&assets, Path::new("cloud.dat")).unwrap(), FileFormat::Pcd);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("cloud.dat")).unwrap(),
+            FileFormat::Pcd
+        );
     }
 
     #[test]
     fn guess_stl_from_magic_bytes_with_wrong_extension() {
         let assets = assets_with("model.bin", b"solid cube\nfacet normal 0 0 1\n");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.bin")).unwrap(), FileFormat::Stl);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.bin")).unwrap(),
+            FileFormat::Stl
+        );
     }
 
     #[test]
     fn guess_svg_from_content_with_wrong_extension() {
-        let assets = assets_with("image.bin", b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>");
-        assert_eq!(FileFormat::guess(&assets, Path::new("image.bin")).unwrap(), FileFormat::Svg);
+        let assets = assets_with(
+            "image.bin",
+            b"<svg xmlns=\"http://www.w3.org/2000/svg\"></svg>",
+        );
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("image.bin")).unwrap(),
+            FileFormat::Svg
+        );
     }
 
     #[test]
     fn guess_svg_from_xml_declaration_with_wrong_extension() {
         let assets = assets_with("image.bin", b"<?xml version=\"1.0\"?><svg></svg>");
-        assert_eq!(FileFormat::guess(&assets, Path::new("image.bin")).unwrap(), FileFormat::Svg);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("image.bin")).unwrap(),
+            FileFormat::Svg
+        );
     }
 
     #[test]
     fn guess_glb_from_magic_bytes_with_no_extension() {
         let assets = assets_with("model", b"glTF\x02\x00\x00\x00");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model")).unwrap(), FileFormat::Gltf);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model")).unwrap(),
+            FileFormat::Gltf
+        );
     }
 
     #[test]
     fn guess_fbx_from_magic_bytes_with_no_extension() {
         let assets = assets_with("model", b"Kaydara FBX Binary\x00\x00");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model")).unwrap(), FileFormat::Fbx);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model")).unwrap(),
+            FileFormat::Fbx
+        );
     }
 
     #[test]
@@ -590,7 +626,10 @@ mod test {
     #[test]
     fn guess_falls_back_to_extension_for_unknown_content() {
         let assets = assets_with("model.obj", b"unknown content");
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.obj")).unwrap(), FileFormat::Obj);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.obj")).unwrap(),
+            FileFormat::Obj
+        );
     }
 
     #[test]
@@ -602,7 +641,10 @@ mod test {
     #[test]
     fn guess_works_without_bytes_in_assets() {
         let assets = RawAssets::new();
-        assert_eq!(FileFormat::guess(&assets, Path::new("model.obj")).unwrap(), FileFormat::Obj);
+        assert_eq!(
+            FileFormat::guess(&assets, Path::new("model.obj")).unwrap(),
+            FileFormat::Obj
+        );
     }
 
     #[test]
