@@ -422,6 +422,9 @@ impl FileFormat {
             if bytes.starts_with(b"solid ") {
                 return Ok(Self::Stl);
             }
+            if looks_like_obj(bytes) {
+                return Ok(Self::Obj);
+            }
             let trimmed = &bytes[bytes
                 .iter()
                 .position(|b| !b.is_ascii_whitespace())
@@ -468,6 +471,23 @@ impl FileFormat {
             path.to_str().unwrap().to_string(),
         ))
     }
+}
+
+fn looks_like_obj(bytes: &[u8]) -> bool {
+    let text = match std::str::from_utf8(&bytes[..bytes.len().min(4096)]) {
+        Ok(s) => s,
+        Err(_) => return false,
+    };
+    text.lines().any(|line| {
+        let line = line.trim();
+        line.starts_with("v ")
+            || line.starts_with("vn ")
+            || line.starts_with("vt ")
+            || line.starts_with("f ")
+            || line.starts_with("o ")
+            || line.starts_with("g ")
+            || line.starts_with("mtllib ")
+    })
 }
 
 fn extension(path: &Path) -> String {
@@ -581,5 +601,29 @@ mod test {
     fn guess_fails_without_bytes_and_unknown_extension() {
         let assets = RawAssets::new();
         assert!(FileFormat::guess(&assets, Path::new("model.xyz")).is_err());
+    }
+
+    #[test]
+    fn deserialize_obj_with_fbx_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/cube_wrong_extension.fbx").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 0);
+    }
+
+    #[test]
+    fn deserialize_obj_with_glb_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/cube_wrong_extension.glb").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 0);
+    }
+
+    #[test]
+    fn deserialize_obj_with_no_extension() {
+        let model: crate::Model =
+            crate::io::load_and_deserialize("test_data/cube_no_extension").unwrap();
+        assert_eq!(model.geometries.len(), 1);
+        assert_eq!(model.materials.len(), 0);
     }
 }
