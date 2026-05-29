@@ -11,6 +11,17 @@ pub struct PointCloud {
     pub positions: Positions,
     /// The colors of the points.
     pub colors: Option<Vec<Srgba>>,
+
+    /// Gaussian splat data
+
+    /// Scale
+    pub scale: Option<Vec<Vec3>>,
+
+    /// Rotation ( quaternion )
+    pub rotation: Option<Vec<Vec4>>,
+
+    /// Opacity
+    pub opacity: Option<Vec<f32>>,
 }
 
 impl std::fmt::Debug for PointCloud {
@@ -18,6 +29,9 @@ impl std::fmt::Debug for PointCloud {
         let mut d = f.debug_struct("PointCloud");
         d.field("positions", &self.positions.len());
         d.field("colors", &self.colors.as_ref().map(|v| v.len()));
+        d.field("scale", &self.scale.as_ref().map(|v| v.len()));
+        d.field("rotation", &self.rotation.as_ref().map(|v| v.len()));
+        d.field("opacity", &self.opacity.as_ref().map(|v| v.len()));
         d.finish()
     }
 }

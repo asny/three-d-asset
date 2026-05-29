@@ -66,6 +66,9 @@ mod vol;
 #[cfg(feature = "pcd")]
 mod pcd;
 
+#[cfg(feature = "ply")]
+mod ply;
+
 #[cfg(feature = "3mf")]
 #[path = "io/3mf.rs"]
 mod three_mf;
@@ -223,6 +226,12 @@ impl Deserialize for crate::Scene {
                 return Err(Error::FeatureMissing("pcd".to_string()));
                 #[cfg(feature = "pcd")]
                 pcd::deserialize_pcd(raw_assets, &path)
+            }
+            FileFormat::Ply => {
+                #[cfg(not(feature = "ply"))]
+                return Err(Error::FeatureMissing("ply".to_string()));
+                #[cfg(feature = "ply")]
+                ply::deserialize_ply(raw_assets, &path)
             }
             FileFormat::ThreeMf => {
                 #[cfg(not(feature = "3mf"))]
@@ -402,6 +411,7 @@ enum FileFormat {
     WebP,
     Svg,
     Vol,
+    Ply,
 }
 
 impl FileFormat {
@@ -418,6 +428,9 @@ impl FileFormat {
             }
             if bytes.starts_with(b"# .PCD") || bytes.starts_with(b"VERSION") {
                 return Ok(Self::Pcd);
+            }
+            if bytes.starts_with(b"ply") {
+                return Ok(Self::Ply);
             }
             if bytes.starts_with(b"solid ") {
                 return Ok(Self::Stl);
