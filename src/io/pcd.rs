@@ -49,6 +49,7 @@ pub fn deserialize_pcd(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             geometry: Some(Geometry::Points(PointCloud {
                 positions: Positions::F32(positions),
                 colors,
+                ..Default::default()
             })),
             ..Default::default()
         }],

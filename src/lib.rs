@@ -238,6 +238,10 @@ pub enum Error {
     #[error("error while parsing an .pcd file")]
     Pcd(#[from] pcd_rs::Error),
 
+    #[cfg(feature = "ply")]
+    #[error("error while parsing an .ply file")]
+    Ply(#[from] ply_rs_bw::parser::ParseError),
+
     #[cfg(feature = "fbx")]
     #[error("error while parsing an .fbx file")]
     Fbx(#[from] fbxcel::tree::any::Error),

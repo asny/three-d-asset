@@ -11,6 +11,23 @@ pub struct PointCloud {
     pub positions: Positions,
     /// The colors of the points.
     pub colors: Option<Vec<Srgba>>,
+
+    /// Gaussian splat data
+
+    /// Scale
+    pub scale: Option<Vec<Vec3>>,
+
+    /// Rotation ( quaternion )
+    pub rotation: Option<Vec<Quat>>,
+
+    /// Opacity
+    pub opacity: Option<Vec<f32>>,
+
+    /// Degree 0 spherical harmonic coefficients
+    pub dc_spherical_harmonics: Option<Vec<Vec3>>,
+
+    /// Spherical harmonic coefficients
+    pub spherical_harmonics: Option<Vec<Vec<f32>>>,
 }
 
 impl std::fmt::Debug for PointCloud {
@@ -18,6 +35,17 @@ impl std::fmt::Debug for PointCloud {
         let mut d = f.debug_struct("PointCloud");
         d.field("positions", &self.positions.len());
         d.field("colors", &self.colors.as_ref().map(|v| v.len()));
+        d.field("scale", &self.scale.as_ref().map(|v| v.len()));
+        d.field("rotation", &self.rotation.as_ref().map(|v| v.len()));
+        d.field("opacity", &self.opacity.as_ref().map(|v| v.len()));
+        d.field(
+            "dc_spherical_harmonics",
+            &self.dc_spherical_harmonics.as_ref().map(|v| v.len()),
+        );
+        d.field(
+            "spherical_harmonics",
+            &self.spherical_harmonics.as_ref().map(|v| v.len()),
+        );
         d.finish()
     }
 }
