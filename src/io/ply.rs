@@ -6,9 +6,6 @@ use ply_rs_bw::ply::{DefaultElement, PropertyAccess};
 use std::io::Cursor;
 use std::path::PathBuf;
 
-/// DC spherical harmonics coefficient used to convert SH to linear color.
-const SH_C0: f32 = 0.282_094_8;
-
 pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Scene> {
     let name = path.to_str().unwrap().to_string();
     let bytes = raw_assets.get(path)?;
@@ -44,9 +41,7 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         sh_coeff_count += 1;
     }
 
-    let has_colors = has_uchar_colors || has_gs_fields;
-
-    let mut colors = if has_colors {
+    let mut colors = if has_uchar_colors {
         Some(Vec::with_capacity(num_vertices))
     } else {
         None
@@ -108,20 +103,6 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             let f_dc_1 = vertex.get_float("f_dc_1").unwrap_or(0.0);
             let f_dc_2 = vertex.get_float("f_dc_2").unwrap_or(0.0);
 
-            // Convert SH to linear color ( for preview only, not precise enough for gaussian splat)
-            let r = ((0.5 + SH_C0 * f_dc_0).clamp(0.0, 1.0) * 255.0) as u8;
-            let g = ((0.5 + SH_C0 * f_dc_1).clamp(0.0, 1.0) * 255.0) as u8;
-            let b = ((0.5 + SH_C0 * f_dc_2).clamp(0.0, 1.0) * 255.0) as u8;
-
-            if let Some(ref mut c) = colors {
-                c.push(Srgba {
-                    r,
-                    g,
-                    b,
-                    ..Default::default()
-                });
-            }
-
             // scale
             let scale_x = vertex.get_float("scale_0").unwrap_or(1.0);
             let scale_y = vertex.get_float("scale_1").unwrap_or(1.0);
@@ -136,7 +117,7 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             let rot_y = vertex.get_float("rot_2").unwrap_or(0.0);
             let rot_z = vertex.get_float("rot_3").unwrap_or(0.0);
             if let Some(ref mut r) = rotation {
-                r.push(Quat::new(rot_w, rot_x, rot_y, rot_z));
+                r.push(Quat::from_sv(rot_w, vec3(rot_x, rot_y, rot_z)));
             }
 
             // opacity;
@@ -189,7 +170,7 @@ mod test {
             .deserialize("grape_small.ply")
             .unwrap();
         assert_eq!(pc.positions.len(), 5000);
-        assert!(pc.colors.is_some(), "expected colors from f_dc_*");
+        assert!(pc.colors.is_none(), "expected no colors");
         assert!(pc.scale.is_some(), "expected scale");
         assert!(pc.rotation.is_some(), "expected rotation");
         assert!(pc.opacity.is_some(), "expected opacity");

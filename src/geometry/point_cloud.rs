@@ -18,7 +18,7 @@ pub struct PointCloud {
     pub scale: Option<Vec<Vec3>>,
 
     /// Rotation ( quaternion )
-    pub rotation: Option<Vec<Vec4>>,
+    pub rotation: Option<Vec<Quat>>,
 
     /// Opacity
     pub opacity: Option<Vec<f32>>,
@@ -76,5 +76,13 @@ impl PointCloud {
     ///
     pub fn compute_aabb(&self) -> AxisAlignedBoundingBox {
         self.positions.compute_aabb()
+    }
+
+    ///
+    /// DC spherical harmonics coefficient used to convert SH to linear color.
+    ///
+    pub fn sh_dc_to_u8(dc: f32) -> u8 {
+        const SH_C0: f32 = 0.282_094_8;
+        ((0.5 + SH_C0 * dc).clamp(0.0, 1.0) * 255.0) as u8
     }
 }
