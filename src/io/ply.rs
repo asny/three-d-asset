@@ -136,7 +136,7 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             let rot_y = vertex.get_float("rot_2").unwrap_or(0.0);
             let rot_z = vertex.get_float("rot_3").unwrap_or(0.0);
             if let Some(ref mut r) = rotation {
-                r.push(vec4(rot_x, rot_y, rot_z, rot_w));
+                r.push(Quat::new(rot_w, rot_x, rot_y, rot_z));
             }
 
             // opacity;
