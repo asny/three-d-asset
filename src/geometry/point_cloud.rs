@@ -27,7 +27,7 @@ pub struct PointCloud {
     pub dc_spherical_harmonics: Option<Vec<Vec3>>,
 
     /// Spherical harmonic coefficients
-    pub spherical_harmonics: Option<Vec<Vec<f32>>>,
+    pub spherical_harmonics: Option<Vec<f32>>,
 }
 
 impl std::fmt::Debug for PointCloud {
