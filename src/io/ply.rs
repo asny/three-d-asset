@@ -2,11 +2,11 @@ use crate::geometry::{Geometry, PointCloud, Positions};
 use crate::prelude::*;
 use crate::{io::RawAssets, Node, Result, Scene};
 use ply_rs_bw::parser::{Parser, Reader};
-use ply_rs_bw::ply::{ PropertyAccess, PropertyAccessResult};
+use ply_rs_bw::ply::{PropertyAccess, PropertyAccessResult};
 use std::io::Cursor;
 use std::path::PathBuf;
 
-const MAX_SH:usize = 45;
+const MAX_SH: usize = 45;
 
 struct GsSplat {
     position: [f32; 3],
@@ -52,12 +52,12 @@ impl PropertyAccess for GsSplat {
             "f_dc_1" => self.f_dc[1] = value,
             "f_dc_2" => self.f_dc[2] = value,
             _ => {
-                match key 
-                .strip_prefix("f_rest_")
-                .and_then(|s| s.parse::<usize>().ok())
+                match key
+                    .strip_prefix("f_rest_")
+                    .and_then(|s| s.parse::<usize>().ok())
                 {
                     Some(i) if i < MAX_SH => self.f_rest[i] = value,
-                    _ => return PropertyAccessResult::Ignored
+                    _ => return PropertyAccessResult::Ignored,
                 }
             }
         }
@@ -69,7 +69,7 @@ impl PropertyAccess for GsSplat {
             "red" => self.red = value,
             "green" => self.green = value,
             "blue" => self.blue = value,
-            _ => return PropertyAccessResult::Ignored
+            _ => return PropertyAccessResult::Ignored,
         }
         PropertyAccessResult::Set
     }
@@ -86,7 +86,10 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
     // read header
     let mut reader = Reader::new(Cursor::new(bytes));
     let header = parser.read_header(&mut reader)?;
-    let vertex_def = header.elements.get("vertex").ok_or_else(|| crate::Error::FailedDeserialize(name.clone()))?;
+    let vertex_def = header
+        .elements
+        .get("vertex")
+        .ok_or_else(|| crate::Error::FailedDeserialize(name.clone()))?;
 
     // checking ply type
     let has_uchar_colors = vertex_def.properties.contains_key("red");
@@ -96,7 +99,10 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
         && vertex_def.properties.contains_key("f_dc_0");
 
     let mut sh_coeff_count = 0;
-    while vertex_def.properties.contains_key(&format!("f_rest_{}", sh_coeff_count)) {
+    while vertex_def
+        .properties
+        .contains_key(&format!("f_rest_{}", sh_coeff_count))
+    {
         sh_coeff_count += 1;
     }
     sh_coeff_count = sh_coeff_count.min(MAX_SH);
@@ -108,7 +114,6 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
 
     let num_vertices = vertices.len();
     let mut positions = Vec::with_capacity(num_vertices);
-
 
     let mut colors = if has_uchar_colors {
         Some(Vec::with_capacity(num_vertices))
@@ -202,8 +207,6 @@ pub fn deserialize_ply(raw_assets: &mut RawAssets, path: &PathBuf) -> Result<Sce
             if let Some(ref mut sh) = spherical_harmonics {
                 sh.extend_from_slice(&vertex.f_rest[0..sh_coeff_count]);
             }
-
-            
         }
     }
 
